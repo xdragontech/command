@@ -1,6 +1,7 @@
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
-import type { CSSProperties } from "react";
-import { AdminPlaceholderShell } from "../../components/AdminPlaceholderShell";
+import { AdminCard } from "../../components/AdminCard";
+import { AdminLayout } from "../../components/AdminLayout";
+import { AdminPlaceholderNotice } from "../../components/AdminPlaceholderNotice";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
 type LibraryProps = {
@@ -11,19 +12,24 @@ type LibraryProps = {
 
 export default function LibraryPage({ principal, role, brands }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
-    <AdminPlaceholderShell
-      title="Library"
-      subtitle="This is the first protected destination in command/admin-web while the broader library UI is still being extracted."
-      principal={principal}
+    <AdminLayout
+      title="Command Admin — Library"
+      sectionLabel="Library"
+      loggedInAs={principal}
       role={role}
       brands={brands}
+      active="library"
     >
-      <h2 style={headingStyle}>Protected admin shell is active</h2>
-      <p style={bodyStyle}>
-        Your backoffice session, role, and brand scope are now being resolved inside the <strong>command</strong> repo.
-        The actual library screens will replace this stub in the next extraction waves.
-      </p>
-    </AdminPlaceholderShell>
+      <AdminCard
+        title="Library"
+        description="This is the first protected non-auth destination in command. The library modules themselves still need to be extracted."
+      >
+        <AdminPlaceholderNotice
+          title="Library extraction pending"
+          body="The command repo now owns the route, protection, and app shell for the library area. The actual prompt and guide management screens will replace this placeholder in a later wave."
+        />
+      </AdminCard>
+    </AdminLayout>
   );
 }
 
@@ -40,17 +46,4 @@ export const getServerSideProps: GetServerSideProps<LibraryProps> = async (ctx) 
       brands: auth.principal.allowedBrandKeys,
     },
   };
-};
-
-const headingStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "1.35rem",
-  lineHeight: 1.2,
-};
-
-const bodyStyle: CSSProperties = {
-  margin: "14px 0 0",
-  color: "#475569",
-  lineHeight: 1.7,
-  fontSize: "1rem",
 };
