@@ -2,9 +2,23 @@
   "name": "@command/admin-web",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --pretty false --noEmit -p tsconfig.json"
+  },
   "dependencies": {
-    "@command/core-auth-backoffice": "*"
+    "@command/core-auth-backoffice": "*",
+    "@command/core-brand-runtime": "*",
+    "@prisma/client": "6.19.2",
+    "next": "^14.2.35",
+    "next-auth": "^4.24.13",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0"
   }
 }

@@ -23,6 +23,21 @@ export function getBackofficeRole(source: any): "SUPERADMIN" | "STAFF" | null {
   return role === "SUPERADMIN" || role === "STAFF" ? role : null;
 }
 
+export function getBackofficeMfaState(source: any): "DISABLED" | "PENDING" | "ENABLED" | null {
+  const state = readValue(source, "mfaState");
+  return state === "DISABLED" || state === "PENDING" || state === "ENABLED" ? state : null;
+}
+
+export function getBackofficeMfaEnabledAt(source: any): string | null {
+  const value = readValue(source, "mfaEnabledAt");
+  return typeof value === "string" && value ? value : null;
+}
+
+export function getBackofficeMfaChallenge(source: any): string | null {
+  const value = readValue(source, "backofficeMfaChallenge");
+  return typeof value === "string" && value ? value : null;
+}
+
 export function getSessionUserId(source: any): string | null {
   const id = readValue(source, "id");
   return typeof id === "string" && id ? id : null;
@@ -40,4 +55,8 @@ export function getSessionUsername(source: any): string | null {
 
 export function isBackofficeSession(source: any): boolean {
   return getAuthScope(source) === BACKOFFICE_AUTH_SCOPE && getSessionStatus(source) !== "BLOCKED";
+}
+
+export function requiresBackofficeMfaChallenge(source: any): boolean {
+  return isBackofficeSession(source) && getBackofficeMfaState(source) === "ENABLED";
 }
