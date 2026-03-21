@@ -1,5 +1,10 @@
 {
   "name": "@command/admin-web",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@command/core-auth-backoffice": "*"
+  }
 }

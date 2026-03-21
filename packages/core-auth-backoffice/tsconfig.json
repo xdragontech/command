@@ -7,8 +7,15 @@
     "rootDir": "src",
     "outDir": "dist"
   },
+  "references": [
+    {
+      "path": "../core-config"
+    },
+    {
+      "path": "../core-db"
+    }
+  ],
   "include": [
-    "src/**/*",
-    "src/**/*.json"
+    "src/**/*"
   ]
 }

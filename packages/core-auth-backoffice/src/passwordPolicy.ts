@@ -1,0 +1,1 @@
+export const MIN_BACKOFFICE_PASSWORD_LENGTH = 10;

@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -b tsconfig.json",
     "lint": "echo \"No lint configured yet\"",
-    "typecheck": "tsc -b --pretty false tsconfig.json",
+    "typecheck": "tsc --pretty false --noEmit --tsBuildInfoFile /tmp/command-core-config.tsbuildinfo -p packages/core-config/tsconfig.json && tsc --pretty false --noEmit --tsBuildInfoFile /tmp/command-core-db.tsbuildinfo -p packages/core-db/tsconfig.json && tsc --pretty false --noEmit --tsBuildInfoFile /tmp/command-core-brand-runtime.tsbuildinfo -p packages/core-brand-runtime/tsconfig.json && tsc --pretty false --noEmit --tsBuildInfoFile /tmp/command-core-email.tsbuildinfo -p packages/core-email/tsconfig.json && tsc --pretty false --noEmit --tsBuildInfoFile /tmp/command-core-auth-backoffice.tsbuildinfo -p packages/core-auth-backoffice/tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "db:status:preview": "./scripts/with-db-target.sh preview npx prisma migrate status",
@@ -41,6 +41,7 @@
     "resend": "^6.9.1"
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "prisma": "6.19.2",
     "typescript": "^5.0.0"
   }
