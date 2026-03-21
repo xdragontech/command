@@ -529,3 +529,17 @@ export async function resolveRuntimeBrandForHost(host: string): Promise<RuntimeB
     isAdminHost: hostRecord.kind === BrandHostKind.ADMIN,
   };
 }
+
+export async function getRuntimeAllowedHosts(extraHosts: string[] = []): Promise<Set<string>> {
+  const hosts = new Set(extraHosts.map((host) => normalizeHost(host)).filter(Boolean));
+  const dbHosts = await prisma.brandHost.findMany({
+    select: { host: true },
+  });
+
+  for (const host of dbHosts) {
+    const normalized = normalizeHost(host.host);
+    if (normalized) hosts.add(normalized);
+  }
+
+  return hosts;
+}
