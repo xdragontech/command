@@ -27,6 +27,9 @@
       ],
       "@command/core-email": [
         "packages/core-email/src/index.ts"
+      ],
+      "@command/core-leads": [
+        "packages/core-leads/src/index.ts"
       ]
     }
   }
