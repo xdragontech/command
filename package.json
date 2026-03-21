@@ -7,9 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run -ws --if-present build",
-    "lint": "npm run -ws --if-present lint",
-    "typecheck": "npm run -ws --if-present typecheck",
+    "build": "tsc -b tsconfig.json",
+    "lint": "echo \"No lint configured yet\"",
+    "typecheck": "tsc -b --pretty false tsconfig.json",
     "prisma:generate": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "db:status:preview": "./scripts/with-db-target.sh preview npx prisma migrate status",

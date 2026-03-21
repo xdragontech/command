@@ -1,5 +1,13 @@
 {
   "name": "@command/core-email",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@command/core-brand-runtime": "*",
+    "@command/core-db": "*",
+    "@prisma/client": "6.19.2",
+    "resend": "^6.9.1"
+  }
 }
