@@ -20,7 +20,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     if (req.method === "GET") {
-      const users = await listManagedBackofficeUsers();
+      const users =
+        auth.principal.role === "SUPERADMIN"
+          ? await listManagedBackofficeUsers()
+          : await listManagedBackofficeUsers(auth.principal.allowedBrandIds);
       return json(res, 200, { ok: true, users });
     }
 

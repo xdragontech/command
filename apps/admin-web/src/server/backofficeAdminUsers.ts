@@ -276,8 +276,28 @@ async function persistBrandAssignments(
   });
 }
 
-export async function listManagedBackofficeUsers(): Promise<ManagedBackofficeUserRecord[]> {
+export async function listManagedBackofficeUsers(allowedBrandIds?: string[]): Promise<ManagedBackofficeUserRecord[]> {
+  const scopedBrandIds = Array.isArray(allowedBrandIds)
+    ? Array.from(new Set(allowedBrandIds.filter(Boolean)))
+    : null;
+
+  if (scopedBrandIds && scopedBrandIds.length === 0) {
+    return [];
+  }
+
   const users = await prisma.backofficeUser.findMany({
+    where:
+      scopedBrandIds && scopedBrandIds.length > 0
+        ? {
+            brandAccesses: {
+              some: {
+                brandId: {
+                  in: scopedBrandIds,
+                },
+              },
+            },
+          }
+        : undefined,
     orderBy: [{ createdAt: "desc" }],
     include: {
       brandAccesses: {
