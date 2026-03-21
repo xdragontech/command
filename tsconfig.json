@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/core-config"
+    },
+    {
+      "path": "./packages/core-db"
+    },
+    {
+      "path": "./packages/core-brand-runtime"
+    },
+    {
+      "path": "./packages/core-email"
+    }
+  ]
+}
