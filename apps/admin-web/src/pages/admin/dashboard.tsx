@@ -1,6 +1,7 @@
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
-import type { CSSProperties } from "react";
-import { AdminPlaceholderShell } from "../../components/AdminPlaceholderShell";
+import { AdminCard } from "../../components/AdminCard";
+import { AdminLayout } from "../../components/AdminLayout";
+import { AdminPlaceholderNotice } from "../../components/AdminPlaceholderNotice";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
 type DashboardProps = {
@@ -11,19 +12,24 @@ type DashboardProps = {
 
 export default function DashboardPage({ principal, role, brands }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
-    <AdminPlaceholderShell
-      title="Dashboard"
-      subtitle="The full admin UI has not been migrated into command yet. This page is the landing stub for the first extraction wave."
-      principal={principal}
+    <AdminLayout
+      title="Command Admin — Dashboard"
+      sectionLabel="Dashboard"
+      loggedInAs={principal}
       role={role}
       brands={brands}
+      active="dashboard"
     >
-      <h2 style={headingStyle}>Wave 3 migration in progress</h2>
-      <p style={bodyStyle}>
-        Backoffice sign-in and MFA now live in <strong>command</strong>. Dashboard modules, library management,
-        accounts, settings, and analytics will move in later extraction waves.
-      </p>
-    </AdminPlaceholderShell>
+      <AdminCard
+        title="Dashboard"
+        description="The dashboard shell is now in command, but the operational widgets and reporting cards have not been extracted yet."
+      >
+        <AdminPlaceholderNotice
+          title="Dashboard migration queued"
+          body="This page is intentionally live but minimal. It confirms the new admin shell, route protection, and session handling are working inside command before the real dashboard modules move over."
+        />
+      </AdminCard>
+    </AdminLayout>
   );
 }
 
@@ -40,17 +46,4 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (ctx
       brands: auth.principal.allowedBrandKeys,
     },
   };
-};
-
-const headingStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "1.35rem",
-  lineHeight: 1.2,
-};
-
-const bodyStyle: CSSProperties = {
-  margin: "14px 0 0",
-  color: "#475569",
-  lineHeight: 1.7,
-  fontSize: "1rem",
 };
