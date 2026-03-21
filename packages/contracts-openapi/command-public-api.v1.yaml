@@ -1,0 +1,636 @@
+openapi: 3.1.0
+info:
+  title: Command Public API
+  version: 0.1.0
+  summary: Initial public-site integration contract for the reusable Command backoffice.
+  description: |
+    This is the initial external API contract that brand-specific public websites will consume
+    through a server-side BFF/proxy. It is intentionally limited to the current live needs:
+    external auth, account access, password reset, and brand-scoped resource feeds.
+servers:
+  - url: https://command.example.com
+    description: Example Command install base URL
+tags:
+  - name: Auth
+    description: External user authentication and session lifecycle
+  - name: Account
+    description: Authenticated external account profile operations
+  - name: Resources
+    description: Authenticated brand-scoped prompt and guide feeds
+security:
+  - IntegrationKeyAuth: []
+paths:
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new external account
+      description: |
+        Creates a brand-scoped external account for the integration's brand context and starts
+        the email-verification flow. This endpoint is called by the public-site BFF, not directly
+        by the browser.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Registration accepted and verification is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate an external user
+      description: |
+        Authenticates the external user and returns an opaque Command session token for the BFF to
+        store and forward on subsequent requests. The browser should not receive or manage the raw
+        Command session token directly.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate the current external session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '204':
+          description: Session invalidated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/auth/session:
+    get:
+      tags: [Auth]
+      summary: Inspect the current external session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify an external account email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/auth/password/forgot:
+    post:
+      tags: [Auth]
+      summary: Start password-reset flow
+      description: |
+        Accepts an email address and triggers the brand-scoped password-reset flow. The response is
+        intentionally generic to avoid account enumeration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordForgotRequest'
+      responses:
+        '202':
+          description: Password-reset request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedResponse'
+  /v1/auth/password/reset:
+    post:
+      tags: [Auth]
+      summary: Complete password-reset flow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Password updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordResetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/account/me:
+    get:
+      tags: [Account]
+      summary: Fetch the current external account
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current external account profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      tags: [Account]
+      summary: Update the current external account
+      description: |
+        Initial v1 scope is intentionally narrow: display-name updates only. Email change,
+        password change, and social-account linking are explicitly deferred.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountUpdateRequest'
+      responses:
+        '200':
+          description: Updated account profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/resources/prompts:
+    get:
+      tags: [Resources]
+      summary: List brand-scoped prompt resources
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Free-text search query
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Exact category filter
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: Prompt feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/resources/guides:
+    get:
+      tags: [Resources]
+      summary: List brand-scoped guide resources
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Free-text search query
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Exact category filter
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        '200':
+          description: Guide feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuideListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/resources/guides/{slug}:
+    get:
+      tags: [Resources]
+      summary: Fetch a single guide by slug
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+        - in: path
+          name: slug
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Guide detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuideDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    IntegrationKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Command-Integration-Key
+      description: |
+        Server-side integration credential used by the public-site BFF to prove that the site is
+        allowed to talk to this Command install.
+    CommandSessionAuth:
+      type: apiKey
+      in: header
+      name: X-Command-Session
+      description: |
+        Opaque end-user session token issued by Command and forwarded by the public-site BFF.
+  parameters:
+    CommandSessionHeader:
+      in: header
+      name: X-Command-Session
+      required: true
+      schema:
+        type: string
+      description: Opaque end-user session token issued by Command.
+  responses:
+    BadRequest:
+      description: Invalid request payload
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid integration credential or session token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource already exists or cannot be created in the requested state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnprocessableEntity:
+      description: Validation failure or unsupported state transition
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, error]
+      properties:
+        ok:
+          type: boolean
+          const: false
+        error:
+          type: string
+    AcceptedResponse:
+      type: object
+      additionalProperties: false
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          const: true
+    ExternalAccount:
+      type: object
+      additionalProperties: false
+      required: [id, brandKey, email, status, emailVerified, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        brandKey:
+          type: string
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [ACTIVE, BLOCKED]
+        emailVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+    Session:
+      type: object
+      additionalProperties: false
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+          description: Opaque Command session token for BFF forwarding only.
+        expiresAt:
+          type: string
+          format: date-time
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          nullable: true
+    RegisterResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, verificationRequired]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        verificationRequired:
+          type: boolean
+          const: true
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, session, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        session:
+          $ref: '#/components/schemas/Session'
+        account:
+          $ref: '#/components/schemas/ExternalAccount'
+    SessionResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        account:
+          $ref: '#/components/schemas/ExternalAccount'
+    VerifyEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [token]
+      properties:
+        token:
+          type: string
+    VerifyEmailResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, verified]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        verified:
+          type: boolean
+          const: true
+    PasswordForgotRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+    PasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [token, password]
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          minLength: 8
+    PasswordResetResponse:
+      type: object
+      additionalProperties: false
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          const: true
+    AccountResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        account:
+          $ref: '#/components/schemas/ExternalAccount'
+    AccountUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          nullable: true
+    PromptItem:
+      type: object
+      additionalProperties: false
+      required: [id, title, category, content]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          type: string
+        content:
+          type: string
+    PromptListResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, items]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptItem'
+    GuideListItem:
+      type: object
+      additionalProperties: false
+      required: [id, title, slug, summary, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        category:
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [id, name, slug]
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            slug:
+              type: string
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+    GuideListResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, items]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuideListItem'
+    GuideDetail:
+      allOf:
+        - $ref: '#/components/schemas/GuideListItem'
+        - type: object
+          additionalProperties: false
+          required: [body]
+          properties:
+            body:
+              type: string
+    GuideDetailResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, item]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        item:
+          $ref: '#/components/schemas/GuideDetail'

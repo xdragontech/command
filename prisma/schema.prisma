@@ -1,0 +1,551 @@
+// prisma/schema.prisma
+// Requires XD_POSTGRES (Postgres)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("XD_POSTGRES")
+}
+
+enum BrandStatus {
+  SETUP_PENDING
+  ACTIVE
+  DISABLED
+}
+
+enum BrandEnvironment {
+  PRODUCTION
+  PREVIEW
+}
+
+enum BrandHostKind {
+  PUBLIC
+  ADMIN
+  APEX
+  ALIAS
+}
+
+enum BrandEmailConfigStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BrandEmailProvider {
+  RESEND
+}
+
+enum BackofficeRole {
+  SUPERADMIN
+  STAFF
+}
+
+enum BackofficeUserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum BackofficeMfaMethod {
+  AUTHENTICATOR_APP
+}
+
+enum ExternalUserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String?    @unique
+  passwordHash  String?
+  emailVerified DateTime?
+  image         String?
+  status        UserStatus @default(ACTIVE)
+  role          UserRole   @default(USER)
+  createdAt     DateTime   @default(now())
+  lastLoginAt   DateTime?
+
+  accounts      Account[]
+  sessions      Session[]
+  loginEvents   LoginEvent[]
+  externalUsers ExternalUser[] @relation("LegacyUserToExternalUsers")
+
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmailVerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@index([identifier])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Password reset flow (store HASHED token, not raw)
+model PasswordResetToken {
+  identifier String // user email (lowercased)
+  token      String   @unique // SHA-256 hash of the raw token
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([identifier])
+}
+
+model LoginEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  ip          String
+  countryIso2 String?
+  countryName String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum PromptStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Brand {
+  id        String      @id @default(cuid())
+  brandKey  String      @unique
+  name      String
+  status    BrandStatus @default(SETUP_PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  hosts                           BrandHost[]
+  emailConfig                     BrandEmailConfig?
+  categories                      Category[]
+  prompts                         Prompt[]
+  articleCategories               ArticleCategory[]
+  articles                        Article[]
+  leads                           Lead[]
+  leadEvents                      LeadEvent[]
+  staffAccesses                   BackofficeUserBrandAccess[]
+  externalUsers                   ExternalUser[]
+  externalAccounts                ExternalAccount[]
+  externalLoginEvents             ExternalLoginEvent[]
+  externalVerificationTokens      ExternalVerificationToken[]
+  externalEmailVerificationTokens ExternalEmailVerificationToken[]
+  externalPasswordResetTokens     ExternalPasswordResetToken[]
+}
+
+model BrandHost {
+  id          String           @id @default(cuid())
+  brandId     String
+  host        String           @unique
+  environment BrandEnvironment
+  kind        BrandHostKind    @default(PUBLIC)
+  isCanonical Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([environment, kind])
+}
+
+model BrandEmailConfig {
+  id                String                 @id @default(cuid())
+  brandId           String                 @unique
+  status            BrandEmailConfigStatus @default(INACTIVE)
+  provider          BrandEmailProvider     @default(RESEND)
+  fromName          String?
+  fromEmail         String?
+  replyToEmail      String?
+  supportEmail      String?
+  providerSecretRef String?
+  settings          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model BackofficeUser {
+  id                          String               @id @default(cuid())
+  username                    String               @unique
+  email                       String?              @unique
+  passwordHash                String
+  role                        BackofficeRole       @default(STAFF)
+  status                      BackofficeUserStatus @default(ACTIVE)
+  mfaMethod                   BackofficeMfaMethod?
+  mfaEnabledAt                DateTime?
+  mfaSecretEncrypted          String?
+  mfaRecoveryCodesEncrypted   String?
+  mfaRecoveryCodesGeneratedAt DateTime?
+  lastSelectedBrandKey        String?
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
+  lastLoginAt                 DateTime?
+
+  brandAccesses BackofficeUserBrandAccess[]
+  accounts      BackofficeAccount[]
+  sessions      BackofficeSession[]
+
+  @@index([email])
+}
+
+model BackofficeUserBrandAccess {
+  userId    String
+  brandId   String
+  createdAt DateTime @default(now())
+
+  user  BackofficeUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@id([userId, brandId])
+  @@index([brandId])
+}
+
+model BackofficeAccount {
+  id                String  @id @default(cuid())
+  backofficeUserId  String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user BackofficeUser @relation(fields: [backofficeUserId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([backofficeUserId])
+}
+
+model BackofficeSession {
+  id               String   @id @default(cuid())
+  sessionToken     String   @unique
+  backofficeUserId String
+  expires          DateTime
+
+  user BackofficeUser @relation(fields: [backofficeUserId], references: [id], onDelete: Cascade)
+
+  @@index([backofficeUserId])
+}
+
+model BackofficeVerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@index([identifier])
+}
+
+model BackofficePasswordResetToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([identifier])
+}
+
+model ExternalUser {
+  id            String             @id @default(cuid())
+  brandId       String
+  legacyUserId  String?
+  email         String?
+  name          String?
+  passwordHash  String?
+  emailVerified DateTime?
+  image         String?
+  status        ExternalUserStatus @default(ACTIVE)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  lastLoginAt   DateTime?
+
+  brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  legacyUser  User?                @relation("LegacyUserToExternalUsers", fields: [legacyUserId], references: [id], onDelete: SetNull)
+  accounts    ExternalAccount[]
+  sessions    ExternalSession[]
+  loginEvents ExternalLoginEvent[]
+
+  @@unique([brandId, email])
+  @@index([brandId])
+  @@index([email])
+  @@index([legacyUserId])
+}
+
+model ExternalAccount {
+  id                String  @id @default(cuid())
+  externalUserId    String
+  brandId           String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user  ExternalUser @relation(fields: [externalUserId], references: [id], onDelete: Cascade)
+  brand Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, provider, providerAccountId])
+  @@index([externalUserId])
+  @@index([brandId])
+}
+
+model ExternalSession {
+  id             String   @id @default(cuid())
+  sessionToken   String   @unique
+  externalUserId String
+  expires        DateTime
+
+  user ExternalUser @relation(fields: [externalUserId], references: [id], onDelete: Cascade)
+
+  @@index([externalUserId])
+}
+
+model ExternalLoginEvent {
+  id             String   @id @default(cuid())
+  externalUserId String
+  brandId        String
+  ip             String
+  countryIso2    String?
+  countryName    String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  user  ExternalUser @relation(fields: [externalUserId], references: [id], onDelete: Cascade)
+  brand Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([externalUserId])
+  @@index([brandId])
+  @@index([createdAt])
+}
+
+model ExternalVerificationToken {
+  brandId    String
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, identifier, token])
+  @@index([brandId, identifier])
+}
+
+model ExternalEmailVerificationToken {
+  brandId    String
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, identifier])
+}
+
+model ExternalPasswordResetToken {
+  brandId    String
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, identifier])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  brandId   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  brand   Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  prompts Prompt[]
+
+  @@index([brandId])
+}
+
+model Prompt {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  content     String
+  status      PromptStatus @default(DRAFT)
+
+  // Ordering + tags
+  sortOrder Int      @default(0)
+  tags      String[] @default([])
+
+  brandId    String?
+  categoryId String?
+  brand      Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([status])
+  @@index([categoryId])
+  @@index([title])
+}
+
+// --- Articles (separate from Prompt Library) ---
+
+model ArticleCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  brandId   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  articles Article[]
+
+  @@index([brandId])
+}
+
+model Article {
+  id      String       @id @default(cuid())
+  title   String
+  slug    String       @unique
+  summary String
+  content String
+  status  PromptStatus @default(DRAFT)
+
+  brandId    String?
+  categoryId String?
+  brand      Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category   ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Optional tags (Postgres text[])
+  tags String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brandId])
+  @@index([status])
+  @@index([categoryId])
+  @@index([title])
+}
+
+// --- Leads (durable lead records for cross-referencing / analytics) ---
+
+enum LeadSource {
+  CONTACT
+  CHAT
+}
+
+model Lead {
+  id        String     @id @default(cuid())
+  brandId   String?
+  source    LeadSource
+  name      String?
+  email     String?
+  ip        String?
+  raw       Json?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  brand  Brand?      @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  events LeadEvent[]
+
+  @@index([brandId])
+  @@index([source])
+  @@index([createdAt])
+  @@index([email])
+}
+
+// --- Lead events (append-only timeline; source of truth for Leads + Analytics) ---
+
+model LeadEvent {
+  id             String     @id @default(cuid())
+  brandId        String?
+  source         LeadSource
+  // Optional: link to a durable Lead summary row when available (CONTACT always, CHAT optionally)
+  leadId         String?
+  conversationId String?
+  ip             String?
+  countryIso2    String?
+  countryName    String?
+  userAgent      String?
+  referer        String?
+  raw            Json?
+  createdAt      DateTime   @default(now())
+
+  brand Brand? @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  lead  Lead?  @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([brandId])
+  @@index([source])
+  @@index([createdAt])
+  @@index([leadId])
+  @@index([conversationId])
+}

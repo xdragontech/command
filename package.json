@@ -1,0 +1,47 @@
+{
+  "name": "command",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run -ws --if-present build",
+    "lint": "npm run -ws --if-present lint",
+    "typecheck": "npm run -ws --if-present typecheck",
+    "prisma:generate": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
+    "db:status:preview": "./scripts/with-db-target.sh preview npx prisma migrate status",
+    "db:status:production": "./scripts/with-db-target.sh production npx prisma migrate status",
+    "db:deploy:preview": "./scripts/with-db-target.sh preview npx prisma migrate deploy",
+    "db:deploy:production": "./scripts/with-db-target.sh production npx prisma migrate deploy",
+    "brand:status:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-brand-registry.js",
+    "brand:status:production": "./scripts/with-db-target.sh production node ./scripts/sync-brand-registry.js",
+    "brand:sync:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-brand-registry.js --apply",
+    "brand:sync:production": "./scripts/with-db-target.sh production node ./scripts/sync-brand-registry.js --apply",
+    "brand-email:status:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-brand-email-config.js",
+    "brand-email:status:production": "./scripts/with-db-target.sh production node ./scripts/sync-brand-email-config.js",
+    "brand-email:sync:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-brand-email-config.js --apply",
+    "brand-email:sync:production": "./scripts/with-db-target.sh production node ./scripts/sync-brand-email-config.js --apply",
+    "identity:audit:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-legacy-identities.js",
+    "identity:audit:production": "./scripts/with-db-target.sh production node ./scripts/sync-legacy-identities.js",
+    "identity:sync:preview": "./scripts/with-db-target.sh preview node ./scripts/sync-legacy-identities.js --apply",
+    "identity:sync:production": "./scripts/with-db-target.sh production node ./scripts/sync-legacy-identities.js --apply",
+    "bootstrap-superadmin:status:preview": "./scripts/with-db-target.sh preview node ./scripts/bootstrap-superadmin.js",
+    "bootstrap-superadmin:status:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js",
+    "bootstrap-superadmin:ensure:preview": "./scripts/with-db-target.sh preview node ./scripts/bootstrap-superadmin.js --apply",
+    "bootstrap-superadmin:ensure:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js --apply",
+    "bootstrap-superadmin:recover:preview": "./scripts/with-db-target.sh preview node ./scripts/bootstrap-superadmin.js --apply --recover --clear-mfa",
+    "bootstrap-superadmin:recover:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js --apply --recover --clear-mfa"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.2",
+    "bcryptjs": "^3.0.3",
+    "resend": "^6.9.1"
+  },
+  "devDependencies": {
+    "prisma": "6.19.2",
+    "typescript": "^5.0.0"
+  }
+}
