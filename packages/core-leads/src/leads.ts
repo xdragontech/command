@@ -35,12 +35,13 @@ function parseBrandId(raw: unknown) {
 
 function eventKey(ev: any): string {
   const src = String(ev?.source || "").toUpperCase();
+  const brandScope = String(ev?.brandId || "unscoped");
   if (src === "CHAT") {
-    return `chat:${ev?.conversationId || ev?.leadId || ev?.id}`;
+    return `chat:${brandScope}:${ev?.conversationId || ev?.leadId || ev?.id}`;
   }
 
   const email = (ev?.lead?.email || (ev?.raw as any)?.lead?.email || (ev?.raw as any)?.email || "") as string;
-  return `contact:${ev?.leadId || email || ev?.id}`;
+  return `contact:${brandScope}:${ev?.leadId || email || ev?.id}`;
 }
 
 export function parseLeadKind(raw: unknown): LeadKind {
