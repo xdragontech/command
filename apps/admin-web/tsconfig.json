@@ -7,8 +7,12 @@
     "rootDir": "src",
     "outDir": "dist"
   },
+  "references": [
+    {
+      "path": "../../packages/core-auth-backoffice"
+    }
+  ],
   "include": [
-    "src/**/*",
-    "src/**/*.json"
+    "src/**/*"
   ]
 }

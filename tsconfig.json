@@ -12,6 +12,12 @@
     },
     {
       "path": "./packages/core-email"
+    },
+    {
+      "path": "./packages/core-auth-backoffice"
+    },
+    {
+      "path": "./apps/admin-web"
     }
   ]
 }

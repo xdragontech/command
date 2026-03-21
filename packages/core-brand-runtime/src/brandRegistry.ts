@@ -309,8 +309,8 @@ async function ensureHostAvailability(
   if (!conflicts.length) return;
 
   const details = conflicts
-    .map((conflict) => `${conflict.host} (${conflict.brand.brandKey})`)
-    .sort((left, right) => left.localeCompare(right))
+    .map((conflict: { host: string; brand: { brandKey: string } }) => `${conflict.host} (${conflict.brand.brandKey})`)
+    .sort((left: string, right: string) => left.localeCompare(right))
     .join(", ");
 
   throw new Error(`Host values must be unique across brands. Conflicts: ${details}`);
@@ -329,7 +329,7 @@ export async function listEditableBrands(search = ""): Promise<EditableBrandReco
 
   if (!query) return records;
 
-  return records.filter((brand) =>
+  return records.filter((brand: EditableBrandRecord) =>
     [
       brand.brandKey,
       brand.name,
@@ -387,7 +387,7 @@ export async function updateEditableBrand(id: string, raw: any): Promise<Editabl
   const hosts = buildHostRows(input);
   await ensureHostAvailability(prisma, hosts, id);
 
-  const brand = await prisma.$transaction(async (tx) => {
+  const brand = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.brand.findUniqueOrThrow({ where: { id } });
     await tx.brandHost.deleteMany({ where: { brandId: id } });
     return tx.brand.update({
