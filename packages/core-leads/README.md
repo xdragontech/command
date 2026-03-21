@@ -1,3 +1,3 @@
 # core-leads
 
-Leads and lead-event service layer for `command`.
+Leads, lead-event, and dashboard metrics service layer for `command`.

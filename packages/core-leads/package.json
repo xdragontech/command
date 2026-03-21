@@ -1,5 +1,11 @@
 {
   "name": "@command/core-leads",
   "version": "0.1.0",
-  "private": true
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@command/core-db": "*",
+    "@prisma/client": "6.19.2"
+  }
 }
