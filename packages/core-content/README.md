@@ -1,3 +1,3 @@
 # core-content
 
-Reusable prompts, guides, and resource-access logic for `command`.
+Reusable prompt, guide, article, and resource-access logic for `command`.

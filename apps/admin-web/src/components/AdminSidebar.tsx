@@ -62,14 +62,16 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
         </NavItem>
 
         <div style={{ display: "grid", gap: "10px" }}>
-          <NavItem href="/admin/library" active={active === "library"}>
+          <NavItem href="/admin/library/prompts" active={active === "library"}>
             Library
           </NavItem>
           {onLibrary || active === "library" ? (
             <div style={{ display: "grid", gap: "8px", paddingLeft: "12px" }}>
-              <SubNavItem href="/admin/library" active={pathname === "/admin/library"}>
-                Library Home
+              <SubNavItem href="/admin/library/prompts" active={pathname === "/admin/library/prompts" || pathname === "/admin/library"}>
+                Prompts
               </SubNavItem>
+              <span style={disabledSubNavStyle}>Guides</span>
+              <span style={disabledSubNavStyle}>Articles</span>
             </div>
           ) : null}
         </div>
