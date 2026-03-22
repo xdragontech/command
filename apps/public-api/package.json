@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3020",
-    "build": "npm --prefix ../.. run build:packages && prisma generate --schema=../../prisma/schema.prisma && next build",
+    "build": "prisma generate --schema=../../prisma/schema.prisma && next build",
     "start": "next start -p 3020",
     "typecheck": "tsc --pretty false --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@command/core-auth-external": "*",
+    "@command/core-brand-runtime": "^0.1.0",
     "@command/core-content": "*",
     "@command/core-db": "^0.1.0",
     "@command/core-email": "^0.1.0",
@@ -19,7 +20,9 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@types/node": "^24.5.2",
     "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0"
+    "@types/react-dom": "^18.0.0",
+    "typescript": "^5.0.0"
   }
 }

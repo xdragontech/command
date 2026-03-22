@@ -7,6 +7,7 @@ const nextConfig = {
   },
   transpilePackages: [
     "@command/core-auth-external",
+    "@command/core-brand-runtime",
     "@command/core-content",
     "@command/core-db",
     "@command/core-email",
