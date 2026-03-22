@@ -4,20 +4,18 @@ Reusable backoffice product for brand installs.
 
 ## Current status
 
-This repo is the initial extraction skeleton from the current X Dragon platform. It is not a finished split yet.
+This repo is no longer just a skeleton. It now contains working extraction waves for:
 
-What is already present:
-- canonical repo-split and API contract docs
-- public API OpenAPI source
-- current Prisma schema and migration history
-- bootstrap and sync scripts that will move with the reusable backoffice
-- initial app/package layout for future extraction waves
+- `apps/admin-web`
+- `apps/public-api`
+- core packages for auth, brand runtime, email, content, leads, and DB access
 
-What is not finished yet:
-- admin app implementation
-- public API implementation
-- BFF client integration from public sites
-- install/setup flow
+What is still not finished:
+
+- first-run setup/install flow
+- full deployment packaging for non-X Dragon installs
+- final split cleanup across the public-site BFF boundary
+- broader polish and hardening
 
 ## Intended structure
 
@@ -39,6 +37,21 @@ scripts/
 - [`docs/command-public-api-contract.md`](./docs/command-public-api-contract.md)
 - [`docs/command-bff-session-forwarding-contract.md`](./docs/command-bff-session-forwarding-contract.md)
 - [`docs/command-repo-skeleton-and-bff-extraction-plan.md`](./docs/command-repo-skeleton-and-bff-extraction-plan.md)
+- [`docs/public-api-preview-deployment-and-cutover.md`](./docs/public-api-preview-deployment-and-cutover.md)
+
+## Public API Preview Deployment
+
+The first preview deployment runbook for `apps/public-api` is here:
+
+- [`docs/public-api-preview-deployment-and-cutover.md`](./docs/public-api-preview-deployment-and-cutover.md)
+
+The short version:
+
+- create a separate Vercel project with root `apps/public-api`
+- set `XD_POSTGRES`, `COMMAND_PUBLIC_INTEGRATIONS_JSON`, and the brand email provider envs
+- verify `GET /api/healthz`
+- verify `GET /api/readyz`
+- then point `xdragon-site` preview at that deployment with `COMMAND_PUBLIC_API_BASE_URL` and `COMMAND_PUBLIC_INTEGRATION_KEY`
 
 ## Working principle
 
