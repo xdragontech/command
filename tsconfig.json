@@ -17,6 +17,9 @@
       "path": "./packages/core-auth-backoffice"
     },
     {
+      "path": "./packages/core-auth-external"
+    },
+    {
       "path": "./packages/core-leads"
     },
     {
