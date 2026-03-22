@@ -25,6 +25,9 @@
       "@command/core-auth-backoffice": [
         "packages/core-auth-backoffice/src/index.ts"
       ],
+      "@command/core-auth-external": [
+        "packages/core-auth-external/src/index.ts"
+      ],
       "@command/core-email": [
         "packages/core-email/src/index.ts"
       ],
