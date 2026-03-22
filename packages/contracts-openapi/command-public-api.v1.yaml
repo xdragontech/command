@@ -6,7 +6,8 @@ info:
   description: |
     This is the initial external API contract that brand-specific public websites will consume
     through a server-side BFF/proxy. It is intentionally limited to the current live needs:
-    external auth, account access, password reset, and brand-scoped resource feeds.
+    external auth, account access, password reset, brand-scoped resource feeds, and the current
+    public contact/chat service flows.
 servers:
   - url: https://command.example.com
     description: Example Command install base URL
@@ -17,6 +18,8 @@ tags:
     description: Authenticated external account profile operations
   - name: Resources
     description: Authenticated brand-scoped prompt and guide feeds
+  - name: Services
+    description: Public website service flows such as contact and chat lead intake
 security:
   - IntegrationKeyAuth: []
 paths:
@@ -309,6 +312,70 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/contact:
+    post:
+      tags: [Services]
+      summary: Submit a public website contact request
+      description: |
+        Accepts a public contact form submission, writes lead records, and attempts brand-scoped
+        notification delivery. This endpoint is integration-authenticated but does not require an
+        end-user session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactRequest'
+      responses:
+        '200':
+          description: Contact request accepted and notification sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+        '202':
+          description: Contact request accepted but notification deferred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /v1/chat:
+    post:
+      tags: [Services]
+      summary: Execute the public website chat flow
+      description: |
+        Processes the current conversation turn, applies lead-capture rules, and optionally sends
+        brand-scoped notification email when enough follow-up data has been collected. This
+        endpoint is integration-authenticated but does not require an end-user session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat turn completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     IntegrationKeyAuth:
@@ -634,3 +701,104 @@ components:
           const: true
         item:
           $ref: '#/components/schemas/GuideDetail'
+    ContactRequest:
+      type: object
+      additionalProperties: false
+      required: [name, email, message]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        message:
+          type: string
+    ContactResponse:
+      type: object
+      additionalProperties: false
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        id:
+          type: string
+          nullable: true
+        notification:
+          type: string
+          enum: [sent, deferred]
+          nullable: true
+    ChatMessage:
+      type: object
+      additionalProperties: false
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+    ChatLead:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        company:
+          type: string
+          nullable: true
+        website:
+          type: string
+          nullable: true
+        preferred_contact:
+          anyOf:
+            - type: string
+              enum: [email, phone, text]
+            - type: 'null'
+    ChatRequest:
+      type: object
+      additionalProperties: false
+      required: [messages]
+      properties:
+        conversationId:
+          type: string
+          nullable: true
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        lead:
+          $ref: '#/components/schemas/ChatLead'
+        emailed:
+          type: boolean
+          nullable: true
+    ChatResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, reply, lead, emailed]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        reply:
+          type: string
+        lead:
+          allOf:
+            - $ref: '#/components/schemas/ChatLead'
+            - type: object
+              required: [name, email, phone, company, website, preferred_contact]
+        returnId:
+          type: string
+          nullable: true
+        emailed:
+          type: boolean

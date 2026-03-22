@@ -10,6 +10,7 @@ export type PublicApiReadiness = {
     env: {
       xdPostgres: boolean;
       integrationsJson: boolean;
+      openAiApiKey: boolean;
     };
     database: {
       ok: boolean;
@@ -24,6 +25,7 @@ export type PublicApiReadiness = {
         publicOrigin: string;
         brandResolved: boolean;
         authEmailReady: boolean;
+        notificationEmailReady: boolean;
         error?: string;
       }>;
       error?: string;
@@ -40,6 +42,7 @@ export async function getPublicApiReadiness(): Promise<PublicApiReadiness> {
   const env = {
     xdPostgres: Boolean(String(process.env.XD_POSTGRES || "").trim()),
     integrationsJson: Boolean(String(process.env.COMMAND_PUBLIC_INTEGRATIONS_JSON || "").trim()),
+    openAiApiKey: Boolean(String(process.env.OPENAI_API_KEY || "").trim()),
   };
 
   const database = {
@@ -72,14 +75,23 @@ export async function getPublicApiReadiness(): Promise<PublicApiReadiness> {
           publicOrigin: integration.publicOrigin,
         });
 
-        const emailConfig = await resolveBrandEmailConfig(brand, "auth");
+        const authEmailConfig = await resolveBrandEmailConfig(brand, "auth");
+        const notificationEmailConfig = await resolveBrandEmailConfig(brand, "notification");
         integrations.items.push({
           name: integration.name,
           brandKey: integration.brandKey,
           publicOrigin: integration.publicOrigin,
           brandResolved: true,
-          authEmailReady: emailConfig.ok,
-          ...(emailConfig.ok ? {} : { error: emailConfig.error }),
+          authEmailReady: authEmailConfig.ok,
+          notificationEmailReady: notificationEmailConfig.ok,
+          ...(authEmailConfig.ok && notificationEmailConfig.ok
+            ? {}
+            : {
+                error:
+                  (!authEmailConfig.ok && authEmailConfig.error) ||
+                  (!notificationEmailConfig.ok && notificationEmailConfig.error) ||
+                  undefined,
+              }),
         });
       } catch (error) {
         integrations.items.push({
@@ -88,17 +100,27 @@ export async function getPublicApiReadiness(): Promise<PublicApiReadiness> {
           publicOrigin: integration.publicOrigin,
           brandResolved: false,
           authEmailReady: false,
+          notificationEmailReady: false,
           error: cleanErrorMessage(error),
         });
       }
     }
 
-    integrations.ok = integrations.count > 0 && integrations.items.every((item) => item.brandResolved && item.authEmailReady);
+    integrations.ok =
+      integrations.count > 0 &&
+      integrations.items.every(
+        (item) => item.brandResolved && item.authEmailReady && item.notificationEmailReady
+      );
   } catch (error) {
     integrations.error = cleanErrorMessage(error);
   }
 
-  const ok = env.xdPostgres && env.integrationsJson && database.ok && integrations.ok;
+  const ok =
+    env.xdPostgres &&
+    env.integrationsJson &&
+    env.openAiApiKey &&
+    database.ok &&
+    integrations.ok;
 
   return {
     ok,

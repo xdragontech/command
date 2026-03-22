@@ -18,6 +18,8 @@ Implementation/extraction companion:
 - password reset
 - brand-scoped prompt feed
 - brand-scoped guide feed
+- public contact flow
+- public chat flow
 
 This pass is intentionally narrow. It does not try to freeze every future service into v1.
 
@@ -82,6 +84,11 @@ Deferred from this contract:
 - list guides
 - fetch guide detail by slug
 
+**Services**
+- submit contact requests
+- execute the public website chat flow
+- capture lead follow-up intent and notification triggers
+
 **Recommended v1 Conventions**
 - path prefix: `/v1`
 - JSON responses only
@@ -96,9 +103,8 @@ Deferred from this contract:
 
 **What Is Explicitly Not In v1**
 - admin APIs
-- contact/chat service APIs
 - analytics/leads ingestion APIs for third-party websites
 - partner accounts
 - feature-permission APIs
 
-Those can be added later, but they should not be smuggled into the first public contract without a clearer product need.
+Those can be added later, but they should not be smuggled into the public contract without a clearer product need.
