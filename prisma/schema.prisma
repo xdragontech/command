@@ -418,8 +418,8 @@ model ExternalPasswordResetToken {
 
 model Category {
   id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
+  name      String
+  slug      String
   brandId   String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -428,6 +428,8 @@ model Category {
   prompts Prompt[]
 
   @@index([brandId])
+  @@unique([brandId, name])
+  @@unique([brandId, slug])
 }
 
 model Prompt {
@@ -459,8 +461,8 @@ model Prompt {
 
 model ArticleCategory {
   id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
+  name      String
+  slug      String
   brandId   String?
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
@@ -469,12 +471,14 @@ model ArticleCategory {
   articles Article[]
 
   @@index([brandId])
+  @@unique([brandId, name])
+  @@unique([brandId, slug])
 }
 
 model Article {
   id      String       @id @default(cuid())
   title   String
-  slug    String       @unique
+  slug    String
   summary String
   content String
   status  PromptStatus @default(DRAFT)
@@ -491,6 +495,7 @@ model Article {
   updatedAt DateTime @updatedAt
 
   @@index([brandId])
+  @@unique([brandId, slug])
   @@index([status])
   @@index([categoryId])
   @@index([title])

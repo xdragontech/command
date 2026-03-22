@@ -70,7 +70,9 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
               <SubNavItem href="/admin/library/prompts" active={pathname === "/admin/library/prompts" || pathname === "/admin/library"}>
                 Prompts
               </SubNavItem>
-              <span style={disabledSubNavStyle}>Guides</span>
+              <SubNavItem href="/admin/library/guides" active={pathname === "/admin/library/guides"}>
+                Guides
+              </SubNavItem>
               <span style={disabledSubNavStyle}>Articles</span>
             </div>
           ) : null}

@@ -1,12 +1,19 @@
 import { PromptStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@command/core-db";
+import {
+  assertBrandAccess,
+  ensureExistingBrand,
+  normalizeBrandId,
+  normalizeText,
+  parsePromptStatus,
+  PROMPT_STATUSES,
+  resolveReadableBrandIds,
+  resolveWriteBrandId,
+  slugify,
+  type ContentScope,
+} from "./prompts";
 
-export type ContentScope = {
-  role: "SUPERADMIN" | "STAFF";
-  allowedBrandIds: string[];
-};
-
-export type ContentCategoryRecord = {
+export type ContentGuideCategoryRecord = {
   id: string;
   name: string;
   slug: string;
@@ -15,16 +22,16 @@ export type ContentCategoryRecord = {
   brandName: string | null;
   sortOrder: number;
   createdAt: string;
-  promptCount: number;
+  guideCount: number;
 };
 
-export type ContentPromptRecord = {
+export type ContentGuideRecord = {
   id: string;
   title: string;
-  description: string | null;
+  slug: string;
+  summary: string;
   content: string;
   status: PromptStatus;
-  sortOrder: number;
   tags: string[];
   brandId: string | null;
   brandKey: string | null;
@@ -36,7 +43,7 @@ export type ContentPromptRecord = {
   updatedAt: string;
 };
 
-type CategoryWithBrand = Prisma.CategoryGetPayload<{
+type GuideCategoryWithBrand = Prisma.ArticleCategoryGetPayload<{
   include: {
     brand: {
       select: {
@@ -47,13 +54,13 @@ type CategoryWithBrand = Prisma.CategoryGetPayload<{
     };
     _count: {
       select: {
-        prompts: true;
+        articles: true;
       };
     };
   };
 }>;
 
-type PromptWithRelations = Prisma.PromptGetPayload<{
+type GuideWithRelations = Prisma.ArticleGetPayload<{
   include: {
     brand: {
       select: {
@@ -72,85 +79,25 @@ type PromptWithRelations = Prisma.PromptGetPayload<{
   };
 }>;
 
-const PROMPT_STATUSES: PromptStatus[] = [PromptStatus.DRAFT, PromptStatus.PUBLISHED, PromptStatus.ARCHIVED];
-
-function normalizeText(value: unknown) {
-  return String(value || "").trim();
+function normalizeGuideSlug(input: unknown) {
+  return slugify(String(input || ""));
 }
 
-function normalizeNullableText(value: unknown) {
-  if (value === null) return null;
-  const normalized = normalizeText(value);
-  return normalized || null;
-}
-
-function normalizeBrandId(value: unknown) {
-  const normalized = normalizeText(value);
-  return normalized || null;
-}
-
-function slugify(input: string) {
-  return String(input || "")
-    .toLowerCase()
-    .trim()
-    .replace(/['"]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-function assertBrandAccess(scope: ContentScope, brandId: string | null) {
-  if (scope.role === "SUPERADMIN") return;
-  if (!brandId || !scope.allowedBrandIds.includes(brandId)) {
-    throw new Error("Forbidden brand scope");
+function parseTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((tag) => String(tag).trim()).filter(Boolean);
   }
-}
-
-function resolveReadableBrandIds(scope: ContentScope, requestedBrandId: string | null) {
-  if (scope.role === "SUPERADMIN") {
-    return requestedBrandId ? [requestedBrandId] : null;
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean);
   }
-
-  if (scope.allowedBrandIds.length === 0) return [];
-  if (!requestedBrandId) return scope.allowedBrandIds;
-  assertBrandAccess(scope, requestedBrandId);
-  return [requestedBrandId];
+  return [];
 }
 
-function resolveWriteBrandId(scope: ContentScope, rawBrandId: unknown, options?: { allowSingleBrandFallback?: boolean }) {
-  const requestedBrandId = normalizeBrandId(rawBrandId);
-  const allowSingleBrandFallback = options?.allowSingleBrandFallback !== false;
-
-  if (scope.role === "SUPERADMIN") {
-    if (requestedBrandId) return requestedBrandId;
-    throw new Error("Brand selection is required");
-  }
-
-  if (scope.allowedBrandIds.length === 0) throw new Error("No writable brands available");
-  if (requestedBrandId) {
-    assertBrandAccess(scope, requestedBrandId);
-    return requestedBrandId;
-  }
-  if (allowSingleBrandFallback && scope.allowedBrandIds.length === 1) {
-    return scope.allowedBrandIds[0];
-  }
-  throw new Error("Brand selection is required");
-}
-
-function parsePromptStatus(value: unknown) {
-  return PROMPT_STATUSES.includes(value as PromptStatus) ? (value as PromptStatus) : PromptStatus.DRAFT;
-}
-
-async function ensureExistingBrand(brandId: string) {
-  const brand = await prisma.brand.findUnique({
-    where: { id: brandId },
-    select: { id: true, brandKey: true, name: true },
-  });
-  if (!brand) throw new Error("Brand not found");
-  return brand;
-}
-
-async function ensureUniqueCategoryName(brandId: string, name: string, excludeId?: string) {
-  const existing = await prisma.category.findFirst({
+async function ensureUniqueGuideCategoryName(brandId: string, name: string, excludeId?: string) {
+  const existing = await prisma.articleCategory.findFirst({
     where: {
       brandId,
       name: {
@@ -163,16 +110,16 @@ async function ensureUniqueCategoryName(brandId: string, name: string, excludeId
   });
 
   if (existing) {
-    throw new Error("Category name must be unique within the selected brand");
+    throw new Error("Guide category name must be unique within the selected brand");
   }
 }
 
-async function buildUniqueCategorySlug(brandId: string, name: string, excludeId?: string) {
+async function buildUniqueGuideCategorySlug(brandId: string, name: string, excludeId?: string) {
   const base = slugify(name) || "category";
   let slug = base;
 
   for (let index = 2; index < 100; index += 1) {
-    const existing = await prisma.category.findFirst({
+    const existing = await prisma.articleCategory.findFirst({
       where: {
         brandId,
         slug,
@@ -186,7 +133,22 @@ async function buildUniqueCategorySlug(brandId: string, name: string, excludeId?
   return slug;
 }
 
-function toCategoryRecord(category: CategoryWithBrand): ContentCategoryRecord {
+async function ensureUniqueGuideSlug(brandId: string, slug: string, excludeId?: string) {
+  const existing = await prisma.article.findFirst({
+    where: {
+      brandId,
+      slug,
+      ...(excludeId ? { NOT: { id: excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    throw new Error("Guide slug must be unique within the selected brand");
+  }
+}
+
+function toGuideCategoryRecord(category: GuideCategoryWithBrand): ContentGuideCategoryRecord {
   return {
     id: category.id,
     name: category.name,
@@ -196,45 +158,45 @@ function toCategoryRecord(category: CategoryWithBrand): ContentCategoryRecord {
     brandName: category.brand?.name || null,
     sortOrder: category.sortOrder,
     createdAt: category.createdAt.toISOString(),
-    promptCount: category._count.prompts,
+    guideCount: category._count.articles,
   };
 }
 
-function toPromptRecord(prompt: PromptWithRelations): ContentPromptRecord {
+function toGuideRecord(article: GuideWithRelations): ContentGuideRecord {
   return {
-    id: prompt.id,
-    title: prompt.title,
-    description: prompt.description || null,
-    content: prompt.content,
-    status: prompt.status,
-    sortOrder: prompt.sortOrder,
-    tags: prompt.tags || [],
-    brandId: prompt.brandId || null,
-    brandKey: prompt.brand?.brandKey || null,
-    brandName: prompt.brand?.name || null,
-    categoryId: prompt.categoryId || null,
-    categoryName: prompt.category?.name || null,
-    categorySlug: prompt.category?.slug || null,
-    createdAt: prompt.createdAt.toISOString(),
-    updatedAt: prompt.updatedAt.toISOString(),
+    id: article.id,
+    title: article.title,
+    slug: article.slug,
+    summary: article.summary,
+    content: article.content,
+    status: article.status,
+    tags: article.tags || [],
+    brandId: article.brandId || null,
+    brandKey: article.brand?.brandKey || null,
+    brandName: article.brand?.name || null,
+    categoryId: article.categoryId || null,
+    categoryName: article.category?.name || null,
+    categorySlug: article.category?.slug || null,
+    createdAt: article.createdAt.toISOString(),
+    updatedAt: article.updatedAt.toISOString(),
   };
 }
 
-export async function listContentCategories(params: {
+export async function listContentGuideCategories(params: {
   scope: ContentScope;
   q?: string;
   brandId?: string | null;
 }) {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeBrandId(params.brandId));
-  if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ContentCategoryRecord[];
+  if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ContentGuideCategoryRecord[];
 
   const q = normalizeText(params.q);
-  const where: Prisma.CategoryWhereInput =
+  const where: Prisma.ArticleCategoryWhereInput =
     brandIds === null
       ? {}
       : { brandId: { in: brandIds } };
 
-  const categories = await prisma.category.findMany({
+  const categories = await prisma.articleCategory.findMany({
     where:
       q.length > 0
         ? {
@@ -259,7 +221,7 @@ export async function listContentCategories(params: {
       },
       _count: {
         select: {
-          prompts: true,
+          articles: true,
         },
       },
     },
@@ -267,19 +229,19 @@ export async function listContentCategories(params: {
     take: 500,
   });
 
-  return categories.map(toCategoryRecord);
+  return categories.map(toGuideCategoryRecord);
 }
 
-export async function createContentCategory(scope: ContentScope, input: { name?: unknown; brandId?: unknown }) {
+export async function createContentGuideCategory(scope: ContentScope, input: { name?: unknown; brandId?: unknown }) {
   const name = normalizeText(input.name);
   if (!name) throw new Error("Name is required");
 
   const brandId = resolveWriteBrandId(scope, input.brandId, { allowSingleBrandFallback: true });
   await ensureExistingBrand(brandId);
-  await ensureUniqueCategoryName(brandId, name);
-  const slug = await buildUniqueCategorySlug(brandId, name);
+  await ensureUniqueGuideCategoryName(brandId, name);
+  const slug = await buildUniqueGuideCategorySlug(brandId, name);
 
-  const category = await prisma.category.create({
+  const category = await prisma.articleCategory.create({
     data: {
       brandId,
       name,
@@ -296,17 +258,17 @@ export async function createContentCategory(scope: ContentScope, input: { name?:
       },
       _count: {
         select: {
-          prompts: true,
+          articles: true,
         },
       },
     },
   });
 
-  return toCategoryRecord(category);
+  return toGuideCategoryRecord(category);
 }
 
-export async function updateContentCategory(scope: ContentScope, id: string, input: { name?: unknown }) {
-  const existing = await prisma.category.findUnique({
+export async function updateContentGuideCategory(scope: ContentScope, id: string, input: { name?: unknown }) {
+  const existing = await prisma.articleCategory.findUnique({
     where: { id },
     include: {
       brand: {
@@ -318,25 +280,26 @@ export async function updateContentCategory(scope: ContentScope, id: string, inp
       },
       _count: {
         select: {
-          prompts: true,
+          articles: true,
         },
       },
     },
   });
-  if (!existing) throw new Error("Category not found");
+  if (!existing) throw new Error("Guide category not found");
   assertBrandAccess(scope, existing.brandId);
+
+  const brandId = existing.brandId;
+  if (!brandId) {
+    throw new Error("Guide category is missing brand ownership");
+  }
 
   const name = normalizeText(input.name);
   if (!name) throw new Error("Name is required");
 
-  const brandId = existing.brandId;
-  if (!brandId) {
-    throw new Error("Category is missing brand ownership");
-  }
+  await ensureUniqueGuideCategoryName(brandId, name, id);
+  const slug = await buildUniqueGuideCategorySlug(brandId, name, id);
 
-  await ensureUniqueCategoryName(brandId, name, id);
-  const slug = await buildUniqueCategorySlug(brandId, name, id);
-  const updated = await prisma.category.update({
+  const updated = await prisma.articleCategory.update({
     where: { id },
     data: { name, slug },
     include: {
@@ -349,39 +312,39 @@ export async function updateContentCategory(scope: ContentScope, id: string, inp
       },
       _count: {
         select: {
-          prompts: true,
+          articles: true,
         },
       },
     },
   });
 
-  return toCategoryRecord(updated);
+  return toGuideCategoryRecord(updated);
 }
 
-export async function deleteContentCategory(scope: ContentScope, id: string) {
-  const existing = await prisma.category.findUnique({
+export async function deleteContentGuideCategory(scope: ContentScope, id: string) {
+  const existing = await prisma.articleCategory.findUnique({
     where: { id },
     select: {
       id: true,
       brandId: true,
       _count: {
         select: {
-          prompts: true,
+          articles: true,
         },
       },
     },
   });
-  if (!existing) throw new Error("Category not found");
+  if (!existing) throw new Error("Guide category not found");
   assertBrandAccess(scope, existing.brandId);
 
-  if (existing._count.prompts > 0) {
-    throw new Error("Category cannot be deleted while prompts are still assigned to it");
+  if (existing._count.articles > 0) {
+    throw new Error("Guide category cannot be deleted while guides are still assigned to it");
   }
 
-  await prisma.category.delete({ where: { id } });
+  await prisma.articleCategory.delete({ where: { id } });
 }
 
-export async function listContentPrompts(params: {
+export async function listContentGuides(params: {
   scope: ContentScope;
   q?: string;
   status?: unknown;
@@ -389,19 +352,19 @@ export async function listContentPrompts(params: {
   brandId?: unknown;
 }) {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeBrandId(params.brandId));
-  if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ContentPromptRecord[];
+  if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ContentGuideRecord[];
 
   const q = normalizeText(params.q);
   const status = normalizeText(params.status);
   const categoryId = normalizeBrandId(params.categoryId);
 
-  const where: Prisma.PromptWhereInput = {
+  const where: Prisma.ArticleWhereInput = {
     ...(brandIds === null ? {} : { brandId: { in: brandIds } }),
     ...(status && status !== "ALL" && PROMPT_STATUSES.includes(status as PromptStatus) ? { status: status as PromptStatus } : {}),
     ...(categoryId && categoryId !== "ALL" ? { categoryId } : {}),
   };
 
-  const prompts = await prisma.prompt.findMany({
+  const guides = await prisma.article.findMany({
     where:
       q.length > 0
         ? {
@@ -410,7 +373,8 @@ export async function listContentPrompts(params: {
               {
                 OR: [
                   { title: { contains: q, mode: "insensitive" } },
-                  { description: { contains: q, mode: "insensitive" } },
+                  { slug: { contains: q, mode: "insensitive" } },
+                  { summary: { contains: q, mode: "insensitive" } },
                   { content: { contains: q, mode: "insensitive" } },
                 ],
               },
@@ -433,56 +397,65 @@ export async function listContentPrompts(params: {
         },
       },
     },
-    orderBy: [{ sortOrder: "desc" }, { updatedAt: "desc" }],
+    orderBy: [{ updatedAt: "desc" }],
     take: 500,
   });
 
-  return prompts.map(toPromptRecord);
+  return guides.map(toGuideRecord);
 }
 
-export async function createContentPrompt(
+export async function createContentGuide(
   scope: ContentScope,
   input: {
     title?: unknown;
-    description?: unknown;
+    slug?: unknown;
+    summary?: unknown;
     content?: unknown;
     status?: unknown;
     brandId?: unknown;
     categoryId?: unknown;
+    tags?: unknown;
   }
 ) {
   const title = normalizeText(input.title);
+  const summary = normalizeText(input.summary);
   const content = normalizeText(input.content);
-  const description = normalizeNullableText(input.description);
   const status = parsePromptStatus(input.status);
   const brandId = resolveWriteBrandId(scope, input.brandId, { allowSingleBrandFallback: true });
   const categoryId = normalizeBrandId(input.categoryId);
+  const slug = normalizeGuideSlug(input.slug || title);
+  const tags = parseTags(input.tags);
 
   if (!title) throw new Error("Title is required");
+  if (!slug) throw new Error("Slug is required");
+  if (!summary) throw new Error("Summary is required");
   if (!content) throw new Error("Content is required");
 
   await ensureExistingBrand(brandId);
+  await ensureUniqueGuideSlug(brandId, slug);
 
   if (categoryId) {
-    const category = await prisma.category.findUnique({
+    const category = await prisma.articleCategory.findUnique({
       where: { id: categoryId },
       select: { id: true, brandId: true },
     });
-    if (!category) throw new Error("Category not found");
+    if (!category) throw new Error("Guide category not found");
     assertBrandAccess(scope, category.brandId);
     if (category.brandId !== brandId) {
-      throw new Error("Category brand does not match the selected brand");
+      throw new Error("Guide category brand does not match the selected brand");
     }
   }
 
-  const prompt = await prisma.prompt.create({
+  const guide = await prisma.article.create({
     data: {
       brandId,
       title,
-      description,
+      slug,
+      summary,
       content,
       status,
       categoryId,
+      tags,
     },
     include: {
       brand: {
@@ -502,28 +475,35 @@ export async function createContentPrompt(
     },
   });
 
-  return toPromptRecord(prompt);
+  return toGuideRecord(guide);
 }
 
-export async function updateContentPrompt(
+export async function updateContentGuide(
   scope: ContentScope,
   id: string,
   input: {
     title?: unknown;
-    description?: unknown;
+    slug?: unknown;
+    summary?: unknown;
     content?: unknown;
     status?: unknown;
     categoryId?: unknown;
+    tags?: unknown;
   }
 ) {
-  const existing = await prisma.prompt.findUnique({
+  const existing = await prisma.article.findUnique({
     where: { id },
     select: { id: true, brandId: true },
   });
-  if (!existing) throw new Error("Prompt not found");
+  if (!existing) throw new Error("Guide not found");
   assertBrandAccess(scope, existing.brandId);
 
-  const data: Prisma.PromptUpdateInput = {};
+  const brandId = existing.brandId;
+  if (!brandId) {
+    throw new Error("Guide is missing brand ownership");
+  }
+
+  const data: Prisma.ArticleUpdateInput = {};
 
   if ("title" in input) {
     const title = normalizeText(input.title);
@@ -531,14 +511,23 @@ export async function updateContentPrompt(
     data.title = title;
   }
 
+  if ("slug" in input) {
+    const slug = normalizeGuideSlug(input.slug);
+    if (!slug) throw new Error("Slug is required");
+    await ensureUniqueGuideSlug(brandId, slug, id);
+    data.slug = slug;
+  }
+
+  if ("summary" in input) {
+    const summary = normalizeText(input.summary);
+    if (!summary) throw new Error("Summary is required");
+    data.summary = summary;
+  }
+
   if ("content" in input) {
     const content = normalizeText(input.content);
     if (!content) throw new Error("Content is required");
     data.content = content;
-  }
-
-  if ("description" in input) {
-    data.description = normalizeNullableText(input.description);
   }
 
   if ("status" in input && PROMPT_STATUSES.includes(input.status as PromptStatus)) {
@@ -548,14 +537,14 @@ export async function updateContentPrompt(
   if ("categoryId" in input) {
     const categoryId = normalizeBrandId(input.categoryId);
     if (categoryId) {
-      const category = await prisma.category.findUnique({
+      const category = await prisma.articleCategory.findUnique({
         where: { id: categoryId },
         select: { id: true, brandId: true },
       });
-      if (!category) throw new Error("Category not found");
+      if (!category) throw new Error("Guide category not found");
       assertBrandAccess(scope, category.brandId);
-      if (category.brandId !== existing.brandId) {
-        throw new Error("Category brand does not match the prompt brand");
+      if (category.brandId !== brandId) {
+        throw new Error("Guide category brand does not match the guide brand");
       }
       data.category = { connect: { id: categoryId } };
     } else {
@@ -563,7 +552,11 @@ export async function updateContentPrompt(
     }
   }
 
-  const prompt = await prisma.prompt.update({
+  if ("tags" in input) {
+    data.tags = parseTags(input.tags);
+  }
+
+  const guide = await prisma.article.update({
     where: { id },
     data,
     include: {
@@ -584,29 +577,15 @@ export async function updateContentPrompt(
     },
   });
 
-  return toPromptRecord(prompt);
+  return toGuideRecord(guide);
 }
 
-export async function deleteContentPrompt(scope: ContentScope, id: string) {
-  const existing = await prisma.prompt.findUnique({
+export async function deleteContentGuide(scope: ContentScope, id: string) {
+  const existing = await prisma.article.findUnique({
     where: { id },
     select: { id: true, brandId: true },
   });
-  if (!existing) throw new Error("Prompt not found");
+  if (!existing) throw new Error("Guide not found");
   assertBrandAccess(scope, existing.brandId);
-  await prisma.prompt.delete({ where: { id } });
+  await prisma.article.delete({ where: { id } });
 }
-
-
-export {
-  PROMPT_STATUSES,
-  normalizeText,
-  normalizeNullableText,
-  normalizeBrandId,
-  slugify,
-  assertBrandAccess,
-  resolveReadableBrandIds,
-  resolveWriteBrandId,
-  parsePromptStatus,
-  ensureExistingBrand,
-};

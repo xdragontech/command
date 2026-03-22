@@ -13,7 +13,7 @@ type BrandOption = {
   status: string;
 };
 
-type CategoryRecord = {
+type GuideCategoryRecord = {
   id: string;
   name: string;
   slug: string;
@@ -22,16 +22,16 @@ type CategoryRecord = {
   brandName: string | null;
   sortOrder: number;
   createdAt: string;
-  promptCount: number;
+  guideCount: number;
 };
 
-type PromptRecord = {
+type GuideRecord = {
   id: string;
   title: string;
-  description: string | null;
+  slug: string;
+  summary: string;
   content: string;
   status: PromptStatus;
-  sortOrder: number;
   tags: string[];
   brandId: string | null;
   brandKey: string | null;
@@ -43,59 +43,65 @@ type PromptRecord = {
   updatedAt: string;
 };
 
-type PromptsPageProps = {
+type GuidesPageProps = {
   principal: string;
   role: string;
   brands: string[];
 };
 
-type PromptForm = {
+type GuideForm = {
   title: string;
-  description: string;
+  slug: string;
+  summary: string;
   content: string;
   status: PromptStatus;
   brandId: string;
   categoryId: string;
+  tags: string;
 };
 
-type CategoryForm = {
+type GuideCategoryForm = {
   name: string;
   brandId: string;
 };
 
-const NEW_PROMPT_ID = "__new_prompt__";
-const NEW_CATEGORY_ID = "__new_category__";
+const NEW_GUIDE_ID = "__new_guide__";
+const NEW_GUIDE_CATEGORY_ID = "__new_guide_category__";
 
-function blankPromptForm(brands: BrandOption[]): PromptForm {
+function blankGuideForm(brands: BrandOption[]): GuideForm {
   return {
     title: "",
-    description: "",
+    slug: "",
+    summary: "",
     content: "",
     status: PromptStatus.DRAFT,
     brandId: brands[0]?.id || "",
     categoryId: "",
+    tags: "",
   };
 }
 
-function promptFormFromRecord(prompt: PromptRecord): PromptForm {
+function guideFormFromRecord(guide: GuideRecord): GuideForm {
   return {
-    title: prompt.title,
-    description: prompt.description || "",
-    content: prompt.content,
-    status: prompt.status,
-    brandId: prompt.brandId || "",
-    categoryId: prompt.categoryId || "",
+    title: guide.title,
+    slug: guide.slug,
+    summary: guide.summary,
+    content: guide.content,
+    status: guide.status,
+    brandId: guide.brandId || "",
+    categoryId: guide.categoryId || "",
+    tags: (guide.tags || []).join(", "),
   };
 }
 
-function blankCategoryForm(brands: BrandOption[]): CategoryForm {
+function blankGuideCategoryForm(brands: BrandOption[]): GuideCategoryForm {
   return {
     name: "",
     brandId: brands[0]?.id || "",
   };
 }
 
-function categoryFormFromRecord(category: CategoryRecord): CategoryForm {
+function guideCategoryFormFromRecord(category: GuideCategoryRecord): GuideCategoryForm {
   return {
     name: category.name,
     brandId: category.brandId || "",
@@ -112,44 +118,44 @@ function formatDate(value: string | null) {
 function StatusPill({ status }: { status: PromptStatus }) {
   const style =
     status === PromptStatus.PUBLISHED
-      ? promptStatusToneStyles.success
+      ? toneStyles.success
       : status === PromptStatus.ARCHIVED
-        ? promptStatusToneStyles.slate
-        : promptStatusToneStyles.warning;
+        ? toneStyles.slate
+        : toneStyles.warning;
 
   return <span style={{ ...pillStyle, ...style }}>{status}</span>;
 }
 
-export default function PromptLibraryPage({
+export default function GuidesLibraryPage({
   principal,
   role,
   brands,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brandOptions, setBrandOptions] = useState<BrandOption[]>([]);
-  const [categories, setCategories] = useState<CategoryRecord[]>([]);
-  const [prompts, setPrompts] = useState<PromptRecord[]>([]);
-  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<GuideCategoryRecord[]>([]);
+  const [guides, setGuides] = useState<GuideRecord[]>([]);
+  const [selectedGuideId, setSelectedGuideId] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [promptForm, setPromptForm] = useState<PromptForm | null>(null);
-  const [categoryForm, setCategoryForm] = useState<CategoryForm | null>(null);
+  const [guideForm, setGuideForm] = useState<GuideForm | null>(null);
+  const [categoryForm, setCategoryForm] = useState<GuideCategoryForm | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | PromptStatus>("ALL");
   const [brandFilter, setBrandFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [loading, setLoading] = useState(false);
-  const [savingPrompt, setSavingPrompt] = useState(false);
+  const [savingGuide, setSavingGuide] = useState(false);
   const [savingCategory, setSavingCategory] = useState(false);
-  const [busyPromptAction, setBusyPromptAction] = useState<"delete" | null>(null);
+  const [busyGuideAction, setBusyGuideAction] = useState<"delete" | null>(null);
   const [busyCategoryAction, setBusyCategoryAction] = useState<"delete" | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const selectedPrompt =
-    selectedPromptId && selectedPromptId !== NEW_PROMPT_ID
-      ? prompts.find((prompt) => prompt.id === selectedPromptId) || null
+  const selectedGuide =
+    selectedGuideId && selectedGuideId !== NEW_GUIDE_ID
+      ? guides.find((guide) => guide.id === selectedGuideId) || null
       : null;
   const selectedCategory =
-    selectedCategoryId && selectedCategoryId !== NEW_CATEGORY_ID
+    selectedCategoryId && selectedCategoryId !== NEW_GUIDE_CATEGORY_ID
       ? categories.find((category) => category.id === selectedCategoryId) || null
       : null;
 
@@ -158,13 +164,13 @@ export default function PromptLibraryPage({
     [brandOptions]
   );
 
-  const categoryOptionsForPrompt = useMemo(() => {
-    if (!promptForm?.brandId) return categories;
-    return categories.filter((category) => category.brandId === promptForm.brandId);
-  }, [categories, promptForm?.brandId]);
+  const categoryOptionsForGuide = useMemo(() => {
+    if (!guideForm?.brandId) return categories;
+    return categories.filter((category) => category.brandId === guideForm.brandId);
+  }, [categories, guideForm?.brandId]);
 
   async function loadData(options?: {
-    nextPromptSelection?: string | null;
+    nextGuideSelection?: string | null;
     nextCategorySelection?: string | null;
     nextBrandFilter?: string;
     nextStatusFilter?: "ALL" | PromptStatus;
@@ -180,74 +186,74 @@ export default function PromptLibraryPage({
     setError("");
 
     try {
-      const promptParams = new URLSearchParams();
-      if (resolvedSearch.trim()) promptParams.set("q", resolvedSearch.trim());
-      if (resolvedStatusFilter !== "ALL") promptParams.set("status", resolvedStatusFilter);
-      if (resolvedBrandFilter !== "ALL") promptParams.set("brandId", resolvedBrandFilter);
-      if (resolvedCategoryFilter !== "ALL") promptParams.set("categoryId", resolvedCategoryFilter);
+      const guideParams = new URLSearchParams();
+      if (resolvedSearch.trim()) guideParams.set("q", resolvedSearch.trim());
+      if (resolvedStatusFilter !== "ALL") guideParams.set("status", resolvedStatusFilter);
+      if (resolvedBrandFilter !== "ALL") guideParams.set("brandId", resolvedBrandFilter);
+      if (resolvedCategoryFilter !== "ALL") guideParams.set("categoryId", resolvedCategoryFilter);
 
       const categoryParams = new URLSearchParams();
       if (resolvedBrandFilter !== "ALL") categoryParams.set("brandId", resolvedBrandFilter);
 
-      const [promptsRes, categoriesRes, brandsRes] = await Promise.all([
-        fetch(`/api/admin/library/prompts?${promptParams.toString()}`),
-        fetch(`/api/admin/library/categories?${categoryParams.toString()}`),
+      const [guidesRes, categoriesRes, brandsRes] = await Promise.all([
+        fetch(`/api/admin/library/guides?${guideParams.toString()}`),
+        fetch(`/api/admin/library/guide-categories?${categoryParams.toString()}`),
         fetch("/api/admin/brands"),
       ]);
 
-      const [promptsPayload, categoriesPayload, brandsPayload] = await Promise.all([
-        promptsRes.json().catch(() => null),
+      const [guidesPayload, categoriesPayload, brandsPayload] = await Promise.all([
+        guidesRes.json().catch(() => null),
         categoriesRes.json().catch(() => null),
         brandsRes.json().catch(() => null),
       ]);
 
-      if (!promptsRes.ok || !promptsPayload?.ok) {
-        throw new Error(promptsPayload?.error || "Failed to load prompts");
+      if (!guidesRes.ok || !guidesPayload?.ok) {
+        throw new Error(guidesPayload?.error || "Failed to load guides");
       }
       if (!categoriesRes.ok || !categoriesPayload?.ok) {
-        throw new Error(categoriesPayload?.error || "Failed to load categories");
+        throw new Error(categoriesPayload?.error || "Failed to load guide categories");
       }
       if (!brandsRes.ok || !brandsPayload?.ok) {
         throw new Error(brandsPayload?.error || "Failed to load brands");
       }
 
-      const nextPrompts = Array.isArray(promptsPayload.prompts) ? (promptsPayload.prompts as PromptRecord[]) : [];
+      const nextGuides = Array.isArray(guidesPayload.guides) ? (guidesPayload.guides as GuideRecord[]) : [];
       const nextCategories = Array.isArray(categoriesPayload.categories)
-        ? (categoriesPayload.categories as CategoryRecord[])
+        ? (categoriesPayload.categories as GuideCategoryRecord[])
         : [];
       const nextBrands = Array.isArray(brandsPayload.brands)
         ? (brandsPayload.brands as BrandOption[])
         : [];
 
-      setPrompts(nextPrompts);
+      setGuides(nextGuides);
       setCategories(nextCategories);
       setBrandOptions(nextBrands);
 
-      const desiredPromptId = options?.nextPromptSelection ?? selectedPromptId;
-      if (desiredPromptId === NEW_PROMPT_ID) {
-        setSelectedPromptId(NEW_PROMPT_ID);
-        setPromptForm(blankPromptForm(nextBrands));
+      const desiredGuideId = options?.nextGuideSelection ?? selectedGuideId;
+      if (desiredGuideId === NEW_GUIDE_ID) {
+        setSelectedGuideId(NEW_GUIDE_ID);
+        setGuideForm(blankGuideForm(nextBrands));
       } else {
-        const nextPrompt =
-          (desiredPromptId && nextPrompts.find((prompt) => prompt.id === desiredPromptId)) || nextPrompts[0] || null;
-        setSelectedPromptId(nextPrompt ? nextPrompt.id : NEW_PROMPT_ID);
-        setPromptForm(nextPrompt ? promptFormFromRecord(nextPrompt) : blankPromptForm(nextBrands));
+        const nextGuide =
+          (desiredGuideId && nextGuides.find((guide) => guide.id === desiredGuideId)) || nextGuides[0] || null;
+        setSelectedGuideId(nextGuide ? nextGuide.id : NEW_GUIDE_ID);
+        setGuideForm(nextGuide ? guideFormFromRecord(nextGuide) : blankGuideForm(nextBrands));
       }
 
       const desiredCategoryId = options?.nextCategorySelection ?? selectedCategoryId;
-      if (desiredCategoryId === NEW_CATEGORY_ID) {
-        setSelectedCategoryId(NEW_CATEGORY_ID);
-        setCategoryForm(blankCategoryForm(nextBrands));
+      if (desiredCategoryId === NEW_GUIDE_CATEGORY_ID) {
+        setSelectedCategoryId(NEW_GUIDE_CATEGORY_ID);
+        setCategoryForm(blankGuideCategoryForm(nextBrands));
       } else {
         const nextCategory =
           (desiredCategoryId && nextCategories.find((category) => category.id === desiredCategoryId)) ||
           nextCategories[0] ||
           null;
-        setSelectedCategoryId(nextCategory ? nextCategory.id : NEW_CATEGORY_ID);
-        setCategoryForm(nextCategory ? categoryFormFromRecord(nextCategory) : blankCategoryForm(nextBrands));
+        setSelectedCategoryId(nextCategory ? nextCategory.id : NEW_GUIDE_CATEGORY_ID);
+        setCategoryForm(nextCategory ? guideCategoryFormFromRecord(nextCategory) : blankGuideCategoryForm(nextBrands));
       }
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to load prompts");
+      setError(nextError?.message || "Failed to load guides");
       setNotice("");
     } finally {
       setLoading(false);
@@ -259,175 +265,156 @@ export default function PromptLibraryPage({
   }, []);
 
   useEffect(() => {
-    if (!promptForm) return;
-    if (!promptForm.categoryId) return;
-    if (categoryOptionsForPrompt.some((category) => category.id === promptForm.categoryId)) return;
-    setPromptForm((current) => (current ? { ...current, categoryId: "" } : current));
-  }, [categoryOptionsForPrompt, promptForm]);
+    if (!guideForm) return;
+    if (!guideForm.categoryId) return;
+    if (categoryOptionsForGuide.some((category) => category.id === guideForm.categoryId)) return;
+    setGuideForm((current) => (current ? { ...current, categoryId: "" } : current));
+  }, [categoryOptionsForGuide, guideForm]);
 
-  function startNewPrompt() {
-    setSelectedPromptId(NEW_PROMPT_ID);
-    setPromptForm(blankPromptForm(filteredBrandOptions.length ? filteredBrandOptions : brandOptions));
+  function startNewGuide() {
+    setSelectedGuideId(NEW_GUIDE_ID);
+    setGuideForm(blankGuideForm(filteredBrandOptions.length ? filteredBrandOptions : brandOptions));
     setError("");
     setNotice("");
   }
 
-  function selectPrompt(prompt: PromptRecord) {
-    setSelectedPromptId(prompt.id);
-    setPromptForm(promptFormFromRecord(prompt));
+  function selectGuide(guide: GuideRecord) {
+    setSelectedGuideId(guide.id);
+    setGuideForm(guideFormFromRecord(guide));
     setError("");
     setNotice("");
   }
 
   function startNewCategory() {
-    setSelectedCategoryId(NEW_CATEGORY_ID);
-    setCategoryForm(blankCategoryForm(filteredBrandOptions.length ? filteredBrandOptions : brandOptions));
+    setSelectedCategoryId(NEW_GUIDE_CATEGORY_ID);
+    setCategoryForm(blankGuideCategoryForm(filteredBrandOptions.length ? filteredBrandOptions : brandOptions));
     setError("");
     setNotice("");
   }
 
-  function selectCategory(category: CategoryRecord) {
+  function selectCategory(category: GuideCategoryRecord) {
     setSelectedCategoryId(category.id);
-    setCategoryForm(categoryFormFromRecord(category));
+    setCategoryForm(guideCategoryFormFromRecord(category));
     setError("");
     setNotice("");
   }
 
-  async function savePrompt() {
-    if (!promptForm) return;
-    if (!promptForm.title.trim()) {
-      setError("Prompt title is required");
-      setNotice("");
-      return;
-    }
-    if (!promptForm.content.trim()) {
-      setError("Prompt content is required");
-      setNotice("");
-      return;
-    }
-    if (!promptForm.brandId) {
-      setError("Prompt brand is required");
-      setNotice("");
-      return;
-    }
+  async function saveGuide() {
+    if (!guideForm) return;
+    if (!guideForm.title.trim()) return setLocalError("Guide title is required");
+    if (!guideForm.slug.trim()) return setLocalError("Guide slug is required");
+    if (!guideForm.summary.trim()) return setLocalError("Guide summary is required");
+    if (!guideForm.content.trim()) return setLocalError("Guide content is required");
+    if (!guideForm.brandId) return setLocalError("Guide brand is required");
 
-    setSavingPrompt(true);
-    setError("");
-    setNotice("");
+    setSavingGuide(true);
+    clearMessages();
 
     try {
-      if (selectedPromptId === NEW_PROMPT_ID || !selectedPrompt) {
-        const response = await fetch("/api/admin/library/prompts", {
+      if (selectedGuideId === NEW_GUIDE_ID || !selectedGuide) {
+        const response = await fetch("/api/admin/library/guides", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(promptForm),
+          body: JSON.stringify(guideForm),
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error || "Failed to create prompt");
+          throw new Error(payload?.error || "Failed to create guide");
         }
-        const created = payload.prompt as PromptRecord;
-        setNotice("Prompt created.");
-        await loadData({ nextPromptSelection: created.id });
+        const created = payload.guide as GuideRecord;
+        setNotice("Guide created.");
+        await loadData({ nextGuideSelection: created.id });
       } else {
-        const response = await fetch(`/api/admin/library/prompts/${encodeURIComponent(selectedPrompt.id)}`, {
+        const response = await fetch(`/api/admin/library/guides/${encodeURIComponent(selectedGuide.id)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: promptForm.title,
-            description: promptForm.description,
-            content: promptForm.content,
-            status: promptForm.status,
-            categoryId: promptForm.categoryId || null,
+            title: guideForm.title,
+            slug: guideForm.slug,
+            summary: guideForm.summary,
+            content: guideForm.content,
+            status: guideForm.status,
+            categoryId: guideForm.categoryId || null,
+            tags: guideForm.tags,
           }),
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error || "Failed to update prompt");
+          throw new Error(payload?.error || "Failed to update guide");
         }
-        setNotice("Prompt saved.");
-        await loadData({ nextPromptSelection: selectedPrompt.id });
+        setNotice("Guide saved.");
+        await loadData({ nextGuideSelection: selectedGuide.id });
       }
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to save prompt");
+      setError(nextError?.message || "Failed to save guide");
       setNotice("");
     } finally {
-      setSavingPrompt(false);
+      setSavingGuide(false);
     }
   }
 
-  async function deletePrompt() {
-    if (!selectedPrompt) return;
-    if (!window.confirm(`Delete prompt "${selectedPrompt.title}"?`)) return;
+  async function deleteGuide() {
+    if (!selectedGuide) return;
+    if (!window.confirm(`Delete guide "${selectedGuide.title}"?`)) return;
 
-    setBusyPromptAction("delete");
-    setError("");
-    setNotice("");
+    setBusyGuideAction("delete");
+    clearMessages();
 
     try {
-      const response = await fetch(`/api/admin/library/prompts/${encodeURIComponent(selectedPrompt.id)}`, {
+      const response = await fetch(`/api/admin/library/guides/${encodeURIComponent(selectedGuide.id)}`, {
         method: "DELETE",
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.ok) {
-        throw new Error(payload?.error || "Failed to delete prompt");
+        throw new Error(payload?.error || "Failed to delete guide");
       }
-      setNotice("Prompt deleted.");
-      await loadData({ nextPromptSelection: null });
+      setNotice("Guide deleted.");
+      await loadData({ nextGuideSelection: null });
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to delete prompt");
+      setError(nextError?.message || "Failed to delete guide");
       setNotice("");
     } finally {
-      setBusyPromptAction(null);
+      setBusyGuideAction(null);
     }
   }
 
   async function saveCategory() {
     if (!categoryForm) return;
-    if (!categoryForm.name.trim()) {
-      setError("Category name is required");
-      setNotice("");
-      return;
-    }
-    if (!categoryForm.brandId) {
-      setError("Category brand is required");
-      setNotice("");
-      return;
-    }
+    if (!categoryForm.name.trim()) return setLocalError("Guide category name is required");
+    if (!categoryForm.brandId) return setLocalError("Guide category brand is required");
 
     setSavingCategory(true);
-    setError("");
-    setNotice("");
+    clearMessages();
 
     try {
-      if (selectedCategoryId === NEW_CATEGORY_ID || !selectedCategory) {
-        const response = await fetch("/api/admin/library/categories", {
+      if (selectedCategoryId === NEW_GUIDE_CATEGORY_ID || !selectedCategory) {
+        const response = await fetch("/api/admin/library/guide-categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(categoryForm),
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error || "Failed to create category");
+          throw new Error(payload?.error || "Failed to create guide category");
         }
-        const created = payload.category as CategoryRecord;
-        setNotice("Category created.");
+        const created = payload.category as GuideCategoryRecord;
+        setNotice("Guide category created.");
         await loadData({ nextCategorySelection: created.id });
       } else {
-        const response = await fetch(`/api/admin/library/categories/${encodeURIComponent(selectedCategory.id)}`, {
+        const response = await fetch(`/api/admin/library/guide-categories/${encodeURIComponent(selectedCategory.id)}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: categoryForm.name }),
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.ok) {
-          throw new Error(payload?.error || "Failed to update category");
+          throw new Error(payload?.error || "Failed to update guide category");
         }
-        setNotice("Category saved.");
+        setNotice("Guide category saved.");
         await loadData({ nextCategorySelection: selectedCategory.id });
       }
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to save category");
+      setError(nextError?.message || "Failed to save guide category");
       setNotice("");
     } finally {
       setSavingCategory(false);
@@ -436,24 +423,23 @@ export default function PromptLibraryPage({
 
   async function deleteCategory() {
     if (!selectedCategory) return;
-    if (!window.confirm(`Delete category "${selectedCategory.name}"?`)) return;
+    if (!window.confirm(`Delete guide category "${selectedCategory.name}"?`)) return;
 
     setBusyCategoryAction("delete");
-    setError("");
-    setNotice("");
+    clearMessages();
 
     try {
-      const response = await fetch(`/api/admin/library/categories/${encodeURIComponent(selectedCategory.id)}`, {
+      const response = await fetch(`/api/admin/library/guide-categories/${encodeURIComponent(selectedCategory.id)}`, {
         method: "DELETE",
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.ok) {
-        throw new Error(payload?.error || "Failed to delete category");
+        throw new Error(payload?.error || "Failed to delete guide category");
       }
-      setNotice("Category deleted.");
+      setNotice("Guide category deleted.");
       await loadData({ nextCategorySelection: null });
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to delete category");
+      setError(nextError?.message || "Failed to delete guide category");
       setNotice("");
     } finally {
       setBusyCategoryAction(null);
@@ -483,9 +469,19 @@ export default function PromptLibraryPage({
     });
   }
 
+  function clearMessages() {
+    setError("");
+    setNotice("");
+  }
+
+  function setLocalError(message: string) {
+    setError(message);
+    setNotice("");
+  }
+
   return (
     <AdminLayout
-      title="Command Admin — Library / Prompts"
+      title="Command Admin — Library / Guides"
       sectionLabel="Library"
       loggedInAs={principal}
       role={role}
@@ -493,15 +489,15 @@ export default function PromptLibraryPage({
       active="library"
     >
       <AdminCard
-        title="Prompts"
-        description="Brand-scoped prompt and category management. This is the first extracted library slice in command."
+        title="Guides"
+        description="Brand-scoped guide and guide-category management backed by Article and ArticleCategory with corrected brand-scoped uniqueness."
         actions={
           <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
             <button type="button" onClick={() => void loadData()} disabled={loading} style={secondaryButtonStyle}>
               {loading ? "Refreshing…" : "Refresh"}
             </button>
-            <button type="button" onClick={startNewPrompt} style={primaryButtonStyle}>
-              Add Prompt
+            <button type="button" onClick={startNewGuide} style={primaryButtonStyle}>
+              Add Guide
             </button>
           </div>
         }
@@ -511,14 +507,14 @@ export default function PromptLibraryPage({
             style={{
               display: "grid",
               gap: "12px",
-              gridTemplateColumns: "minmax(0, 1.2fr) repeat(3, minmax(180px, 0.7fr)) auto",
+              gridTemplateColumns: "minmax(0, 1.1fr) repeat(3, minmax(180px, 0.7fr)) auto",
             }}
           >
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onBlur={() => void applyFilters({ search })}
-              placeholder="Search prompts…"
+              placeholder="Search guides…"
               style={inputStyle}
             />
             <select
@@ -544,14 +540,14 @@ export default function PromptLibraryPage({
               onChange={(event) => void applyFilters({ categoryId: event.target.value })}
               style={inputStyle}
             >
-              <option value="ALL">All Categories</option>
+              <option value="ALL">All Guide Categories</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>
               ))}
             </select>
-            <div style={countStyle}>{prompts.length} loaded</div>
+            <div style={countStyle}>{guides.length} loaded</div>
           </div>
 
           {error ? <div style={errorStyle}>{error}</div> : null}
@@ -565,36 +561,36 @@ export default function PromptLibraryPage({
             }}
           >
             <div style={listPanelStyle}>
-              <div style={listHeaderStyle}>Prompt Directory</div>
+              <div style={listHeaderStyle}>Guide Directory</div>
               <div style={{ display: "grid", gap: "10px" }}>
-                {prompts.map((prompt) => {
-                  const active = selectedPromptId === prompt.id;
+                {guides.map((guide) => {
+                  const active = selectedGuideId === guide.id;
                   return (
                     <button
-                      key={prompt.id}
+                      key={guide.id}
                       type="button"
-                      onClick={() => selectPrompt(prompt)}
+                      onClick={() => selectGuide(guide)}
                       style={{
                         ...listItemStyle,
                         ...(active ? listItemActiveStyle : null),
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "flex-start" }}>
-                        <div style={{ fontWeight: 700, color: "#0f172a", textAlign: "left" }}>{prompt.title}</div>
-                        <StatusPill status={prompt.status} />
+                        <div style={{ fontWeight: 700, color: "#0f172a", textAlign: "left" }}>{guide.title}</div>
+                        <StatusPill status={guide.status} />
                       </div>
                       <div style={{ marginTop: "6px", color: "#64748b", textAlign: "left", fontSize: "0.84rem" }}>
-                        {prompt.brandName || "Unknown brand"}
-                        {prompt.categoryName ? ` • ${prompt.categoryName}` : ""}
+                        {guide.brandName || "Unknown brand"}
+                        {guide.categoryName ? ` • ${guide.categoryName}` : ""}
                       </div>
                       <div style={{ marginTop: "8px", color: "#64748b", textAlign: "left", fontSize: "0.8rem" }}>
-                        Updated {formatDate(prompt.updatedAt)}
+                        Updated {formatDate(guide.updatedAt)}
                       </div>
                     </button>
                   );
                 })}
 
-                {!prompts.length ? <div style={emptyStateStyle}>No prompts found for the current filters.</div> : null}
+                {!guides.length ? <div style={emptyStateStyle}>No guides found for the current filters.</div> : null}
               </div>
             </div>
 
@@ -602,39 +598,48 @@ export default function PromptLibraryPage({
               <div style={editorHeaderRowStyle}>
                 <div>
                   <div style={editorTitleStyle}>
-                    {selectedPromptId === NEW_PROMPT_ID || !selectedPrompt ? "New Prompt" : selectedPrompt.title}
+                    {selectedGuideId === NEW_GUIDE_ID || !selectedGuide ? "New Guide" : selectedGuide.title}
                   </div>
                   <div style={editorMetaStyle}>
-                    {selectedPrompt
-                      ? `Created ${formatDate(selectedPrompt.createdAt)} • Updated ${formatDate(selectedPrompt.updatedAt)}`
-                      : "Create a new prompt for a selected brand."}
+                    {selectedGuide
+                      ? `Created ${formatDate(selectedGuide.createdAt)} • Updated ${formatDate(selectedGuide.updatedAt)}`
+                      : "Create a new guide for a selected brand."}
                   </div>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                  {selectedPrompt ? (
+                  {selectedGuide ? (
                     <button
                       type="button"
-                      onClick={deletePrompt}
-                      disabled={busyPromptAction === "delete"}
+                      onClick={deleteGuide}
+                      disabled={busyGuideAction === "delete"}
                       style={dangerButtonStyle}
                     >
-                      {busyPromptAction === "delete" ? "Deleting…" : "Delete Prompt"}
+                      {busyGuideAction === "delete" ? "Deleting…" : "Delete Guide"}
                     </button>
                   ) : null}
-                  <button type="button" onClick={savePrompt} disabled={savingPrompt} style={primaryButtonStyle}>
-                    {savingPrompt ? "Saving…" : selectedPrompt ? "Save Prompt" : "Create Prompt"}
+                  <button type="button" onClick={saveGuide} disabled={savingGuide} style={primaryButtonStyle}>
+                    {savingGuide ? "Saving…" : selectedGuide ? "Save Guide" : "Create Guide"}
                   </button>
                 </div>
               </div>
 
-              {promptForm ? (
+              {guideForm ? (
                 <div style={{ display: "grid", gap: "14px" }}>
                   <div style={formGridStyle}>
                     <label style={fieldLabelStyle}>
                       <span>Title</span>
                       <input
-                        value={promptForm.title}
-                        onChange={(event) => setPromptForm((current) => (current ? { ...current, title: event.target.value } : current))}
+                        value={guideForm.title}
+                        onChange={(event) => setGuideForm((current) => (current ? { ...current, title: event.target.value } : current))}
+                        style={inputStyle}
+                      />
+                    </label>
+
+                    <label style={fieldLabelStyle}>
+                      <span>Slug</span>
+                      <input
+                        value={guideForm.slug}
+                        onChange={(event) => setGuideForm((current) => (current ? { ...current, slug: event.target.value } : current))}
                         style={inputStyle}
                       />
                     </label>
@@ -642,9 +647,9 @@ export default function PromptLibraryPage({
                     <label style={fieldLabelStyle}>
                       <span>Status</span>
                       <select
-                        value={promptForm.status}
+                        value={guideForm.status}
                         onChange={(event) =>
-                          setPromptForm((current) =>
+                          setGuideForm((current) =>
                             current ? { ...current, status: event.target.value as PromptStatus } : current
                           )
                         }
@@ -659,23 +664,23 @@ export default function PromptLibraryPage({
                     <label style={fieldLabelStyle}>
                       <span>Brand</span>
                       <select
-                        value={promptForm.brandId}
+                        value={guideForm.brandId}
                         onChange={(event) =>
-                          setPromptForm((current) =>
+                          setGuideForm((current) =>
                             current
                               ? {
                                   ...current,
                                   brandId: event.target.value,
                                   categoryId:
-                                    categoryOptionsForPrompt.some((category) => category.id === current.categoryId)
+                                    categoryOptionsForGuide.some((category) => category.id === current.categoryId)
                                       ? current.categoryId
                                       : "",
                                 }
                               : current
                           )
                         }
-                        disabled={Boolean(selectedPrompt)}
-                        style={selectedPrompt ? disabledInputStyle : inputStyle}
+                        disabled={Boolean(selectedGuide)}
+                        style={selectedGuide ? disabledInputStyle : inputStyle}
                       >
                         <option value="">Select Brand</option>
                         {filteredBrandOptions.map((brand) => (
@@ -687,30 +692,40 @@ export default function PromptLibraryPage({
                     </label>
 
                     <label style={fieldLabelStyle}>
-                      <span>Category</span>
+                      <span>Guide Category</span>
                       <select
-                        value={promptForm.categoryId}
+                        value={guideForm.categoryId}
                         onChange={(event) =>
-                          setPromptForm((current) => (current ? { ...current, categoryId: event.target.value } : current))
+                          setGuideForm((current) => (current ? { ...current, categoryId: event.target.value } : current))
                         }
                         style={inputStyle}
                       >
                         <option value="">Uncategorized</option>
-                        {categoryOptionsForPrompt.map((category) => (
+                        {categoryOptionsForGuide.map((category) => (
                           <option key={category.id} value={category.id}>
                             {category.name}
                           </option>
                         ))}
                       </select>
                     </label>
+
+                    <label style={fieldLabelStyle}>
+                      <span>Tags</span>
+                      <input
+                        value={guideForm.tags}
+                        onChange={(event) => setGuideForm((current) => (current ? { ...current, tags: event.target.value } : current))}
+                        placeholder="comma, separated, tags"
+                        style={inputStyle}
+                      />
+                    </label>
                   </div>
 
                   <label style={fieldLabelStyle}>
-                    <span>Description</span>
+                    <span>Summary</span>
                     <textarea
-                      value={promptForm.description}
+                      value={guideForm.summary}
                       onChange={(event) =>
-                        setPromptForm((current) => (current ? { ...current, description: event.target.value } : current))
+                        setGuideForm((current) => (current ? { ...current, summary: event.target.value } : current))
                       }
                       rows={3}
                       style={textareaStyle}
@@ -720,9 +735,9 @@ export default function PromptLibraryPage({
                   <label style={fieldLabelStyle}>
                     <span>Content</span>
                     <textarea
-                      value={promptForm.content}
+                      value={guideForm.content}
                       onChange={(event) =>
-                        setPromptForm((current) => (current ? { ...current, content: event.target.value } : current))
+                        setGuideForm((current) => (current ? { ...current, content: event.target.value } : current))
                       }
                       rows={14}
                       style={textareaStyle}
@@ -736,11 +751,11 @@ export default function PromptLibraryPage({
       </AdminCard>
 
       <AdminCard
-        title="Categories"
-        description="Prompt category names and slugs are unique within each brand. Same-named categories across different brands are now supported."
+        title="Guide Categories"
+        description="Guide categories are now brand-scoped at the schema level, so the same category names and slugs can exist in different brands without collision."
         actions={
           <button type="button" onClick={startNewCategory} style={primaryButtonStyle}>
-            Add Category
+            Add Guide Category
           </button>
         }
       >
@@ -752,7 +767,7 @@ export default function PromptLibraryPage({
           }}
         >
           <div style={listPanelStyle}>
-            <div style={listHeaderStyle}>Category Directory</div>
+            <div style={listHeaderStyle}>Guide Category Directory</div>
             <div style={{ display: "grid", gap: "10px" }}>
               {categories.map((category) => {
                 const active = selectedCategoryId === category.id;
@@ -768,13 +783,13 @@ export default function PromptLibraryPage({
                   >
                     <div style={{ fontWeight: 700, color: "#0f172a", textAlign: "left" }}>{category.name}</div>
                     <div style={{ marginTop: "6px", color: "#64748b", textAlign: "left", fontSize: "0.84rem" }}>
-                      {category.brandName || "Unknown brand"} • {category.promptCount} prompt{category.promptCount === 1 ? "" : "s"}
+                      {category.brandName || "Unknown brand"} • {category.guideCount} guide{category.guideCount === 1 ? "" : "s"}
                     </div>
                   </button>
                 );
               })}
 
-              {!categories.length ? <div style={emptyStateStyle}>No categories found for the current brand scope.</div> : null}
+              {!categories.length ? <div style={emptyStateStyle}>No guide categories found for the current brand scope.</div> : null}
             </div>
           </div>
 
@@ -782,12 +797,14 @@ export default function PromptLibraryPage({
             <div style={editorHeaderRowStyle}>
               <div>
                 <div style={editorTitleStyle}>
-                  {selectedCategoryId === NEW_CATEGORY_ID || !selectedCategory ? "New Category" : selectedCategory.name}
+                  {selectedCategoryId === NEW_GUIDE_CATEGORY_ID || !selectedCategory
+                    ? "New Guide Category"
+                    : selectedCategory.name}
                 </div>
                 <div style={editorMetaStyle}>
                   {selectedCategory
-                    ? `${selectedCategory.promptCount} prompt${selectedCategory.promptCount === 1 ? "" : "s"} • Created ${formatDate(selectedCategory.createdAt)}`
-                    : "Create a prompt category for a selected brand."}
+                    ? `${selectedCategory.guideCount} guide${selectedCategory.guideCount === 1 ? "" : "s"} • Created ${formatDate(selectedCategory.createdAt)}`
+                    : "Create a guide category for a selected brand."}
                 </div>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
@@ -853,8 +870,8 @@ export default function PromptLibraryPage({
   );
 }
 
-export const getServerSideProps: GetServerSideProps<PromptsPageProps> = async (ctx) => {
-  const auth = await requireBackofficePage(ctx, { callbackUrl: "/admin/library/prompts" });
+export const getServerSideProps: GetServerSideProps<GuidesPageProps> = async (ctx) => {
+  const auth = await requireBackofficePage(ctx, { callbackUrl: "/admin/library/guides" });
   if (!auth.ok) return auth.response;
 
   return {
@@ -876,7 +893,7 @@ const pillStyle: CSSProperties = {
   letterSpacing: "0.04em",
 };
 
-const promptStatusToneStyles = {
+const toneStyles = {
   success: {
     background: "rgba(34,197,94,0.14)",
     color: "#166534",
