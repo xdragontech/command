@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import type { CSSProperties, ReactNode } from "react";
 
 type AdminSidebarProps = {
-  active: "dashboard" | "accounts" | "library" | "leads" | "analytics" | "settings";
+  active: "dashboard" | "accounts" | "library" | "leads" | "analytics" | "settings" | "scheduling";
 };
 
 export function AdminSidebar({ active }: AdminSidebarProps) {
@@ -11,6 +11,7 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
   const pathname = router.pathname;
   const onAccounts = pathname === "/admin/accounts" || pathname.startsWith("/admin/accounts/");
   const onLibrary = pathname === "/admin/library" || pathname.startsWith("/admin/library/");
+  const onScheduling = pathname === "/admin/scheduling" || pathname.startsWith("/admin/scheduling/");
   const onSettings = pathname === "/admin/settings" || pathname.startsWith("/admin/settings/");
 
   return (
@@ -60,6 +61,31 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
         <NavItem href="/admin/analytics" active={active === "analytics"}>
           Analytics
         </NavItem>
+
+        <div style={{ display: "grid", gap: "10px" }}>
+          <NavItem href="/admin/scheduling/assignments" active={active === "scheduling"}>
+            Scheduling
+          </NavItem>
+          {onScheduling || active === "scheduling" ? (
+            <div style={{ display: "grid", gap: "8px", paddingLeft: "12px" }}>
+              <SubNavItem href="/admin/scheduling/assignments" active={pathname === "/admin/scheduling/assignments" || pathname === "/admin/scheduling"}>
+                Assignments
+              </SubNavItem>
+              <SubNavItem href="/admin/scheduling/series" active={pathname === "/admin/scheduling/series"}>
+                Event Series
+              </SubNavItem>
+              <SubNavItem href="/admin/scheduling/resources" active={pathname === "/admin/scheduling/resources"}>
+                Resources
+              </SubNavItem>
+              <SubNavItem href="/admin/scheduling/participants" active={pathname === "/admin/scheduling/participants"}>
+                Participants
+              </SubNavItem>
+              <SubNavItem href="/admin/scheduling/conflicts" active={pathname === "/admin/scheduling/conflicts"}>
+                Conflicts
+              </SubNavItem>
+            </div>
+          ) : null}
+        </div>
 
         <div style={{ display: "grid", gap: "10px" }}>
           <NavItem href="/admin/library/prompts" active={active === "library"}>

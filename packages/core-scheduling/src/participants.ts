@@ -6,11 +6,17 @@ import {
   normalizeNullableText,
   normalizeText,
   parseParticipantStatus,
+  parseParticipantType,
   resolveReadableBrandIds,
   resolveWriteBrandId,
   slugify,
 } from "./common";
-import type { CreateScheduleParticipantInput, ScheduleParticipantRecord, SchedulingScope } from "./types";
+import type {
+  CreateScheduleParticipantInput,
+  ScheduleParticipantRecord,
+  SchedulingScope,
+  UpdateScheduleParticipantInput,
+} from "./types";
 
 type ParticipantWithBrand = Prisma.ScheduleParticipantGetPayload<{
   include: {
@@ -40,13 +46,13 @@ function toParticipantRecord(participant: ParticipantWithBrand): SchedulePartici
   };
 }
 
-async function buildUniqueParticipantSlug(brandId: string, preferred: string) {
+async function buildUniqueParticipantSlug(brandId: string, preferred: string, excludeId?: string) {
   const base = slugify(preferred) || "participant";
   let slug = base;
 
   for (let index = 2; index < 100; index += 1) {
     const existing = await prisma.scheduleParticipant.findFirst({
-      where: { brandId, slug },
+      where: { brandId, slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
       select: { id: true },
     });
     if (!existing) return slug;
@@ -114,7 +120,7 @@ export async function createScheduleParticipant(params: {
       brandId,
       displayName,
       slug: await buildUniqueParticipantSlug(brandId, normalizeText(params.input.slug) || displayName),
-      type: params.input.type,
+      type: parseParticipantType(params.input.type),
       status: parseParticipantStatus(params.input.status),
       summary: normalizeNullableText(params.input.summary),
       metadata: params.input.metadata,
@@ -131,4 +137,84 @@ export async function createScheduleParticipant(params: {
   });
 
   return toParticipantRecord(participant);
+}
+
+export async function updateScheduleParticipant(params: {
+  scope: SchedulingScope;
+  id: string;
+  input: UpdateScheduleParticipantInput;
+}) {
+  const existing = await prisma.scheduleParticipant.findUnique({
+    where: { id: params.id },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+  if (!existing) throw new Error("Participant not found");
+
+  const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== existing.brandId) throw new Error("Participant brand cannot be reassigned");
+
+  const displayName = normalizeText(params.input.displayName ?? existing.displayName);
+  if (!displayName) throw new Error("Participant display name is required");
+
+  const updated = await prisma.scheduleParticipant.update({
+    where: { id: existing.id },
+    data: {
+      displayName,
+      slug:
+        params.input.slug !== undefined || displayName !== existing.displayName
+          ? await buildUniqueParticipantSlug(brandId, normalizeText(params.input.slug) || displayName, existing.id)
+          : existing.slug,
+      type: params.input.type === undefined ? existing.type : parseParticipantType(params.input.type),
+      status: params.input.status === undefined ? existing.status : parseParticipantStatus(params.input.status),
+      summary: params.input.summary === undefined ? existing.summary : normalizeNullableText(params.input.summary),
+      ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  return toParticipantRecord(updated as ParticipantWithBrand);
+}
+
+export async function deleteScheduleParticipant(params: {
+  scope: SchedulingScope;
+  id: string;
+}) {
+  const existing = await prisma.scheduleParticipant.findUnique({
+    where: { id: params.id },
+    select: { id: true, brandId: true },
+  });
+  if (!existing) throw new Error("Participant not found");
+
+  const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== existing.brandId) throw new Error("Participant brand cannot be reassigned");
+
+  const assignmentCount = await prisma.scheduleAssignment.count({
+    where: {
+      scheduleParticipantId: existing.id,
+      status: { not: "CANCELLED" },
+    },
+  });
+  if (assignmentCount > 0) {
+    throw new Error("Cannot delete a participant that still has schedule assignments");
+  }
+
+  await prisma.scheduleParticipant.delete({
+    where: { id: existing.id },
+  });
 }
