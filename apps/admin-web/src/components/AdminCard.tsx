@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 type AdminCardProps = {
-  title: ReactNode;
+  title: string;
   description?: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
