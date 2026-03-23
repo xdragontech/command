@@ -111,6 +111,9 @@ Status:
   - separate generic operator docs from X Dragon migration runbooks
   - keep historical X Dragon cutover notes only where they are explicitly labeled as migration history
 
+Status:
+- resolved on 2026-03-22 by adding a generic operator install guide, switching public-api examples to generic values, and labeling X Dragon-specific cutover docs as migration history
+
 **P3 Documentation / Historical Context Debt**
 6. Some architecture docs still describe the split through the `xdragon-site` migration lens
 - files:
@@ -122,6 +125,9 @@ Status:
 - recommendation:
   - preserve them as migration-history docs
   - add separate install/product docs that assume no prior knowledge of X Dragon
+
+Status:
+- resolved on 2026-03-22 by separating generic operator docs from the extraction-history docs and labeling the migration-history set explicitly
 
 **Recommended Removal Order**
 1. Replace hardcoded bootstrap identity with install-time config.

@@ -21,12 +21,15 @@ Example:
 ```json
 [
   {
-    "name": "xdragon-preview",
+    "name": "example-site-preview",
     "key": "replace-me",
-    "brandKey": "xdragon",
-    "publicOrigin": "https://staging.xdragon.tech"
+    "brandKey": "example-brand",
+    "publicOrigin": "https://staging.example.com"
   }
 ]
 ```
 
 This app is the network contract boundary for public websites.
+
+Generic operator setup lives in:
+- [`../../docs/operator-installation-guide.md`](../../docs/operator-installation-guide.md)

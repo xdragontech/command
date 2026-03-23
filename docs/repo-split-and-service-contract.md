@@ -1,4 +1,4 @@
-# Repo Split And Service Contract
+# Repo Split And Service Contract (X Dragon Migration History)
 
 **Purpose**
 Define the real split target for the current X Dragon platform:
@@ -8,6 +8,11 @@ Define the real split target for the current X Dragon platform:
 3. a versioned service contract between them
 
 This replaces the narrower idea of “split one Next.js app into two apps.” The real target is two separate projects with a stable integration boundary.
+
+This document is preserved as migration history from the X Dragon extraction. It is useful architectural context, but it is not the primary install guide for new `command` adopters.
+
+For current operator setup, use:
+- [`operator-installation-guide.md`](./operator-installation-guide.md)
 
 **Confirmed Target**
 - `xdragon-site` remains the X Dragon public website repo
@@ -53,7 +58,7 @@ These are separate trust layers and must stay separate in the contract.
 - human-readable documentation layers on top of OpenAPI
 - future public-site builders should be able to integrate against the contract without reading X Dragon app code
 - initial public-site contract docs live in:
-  - [`openapi/command-public-api.v1.yaml`](../openapi/command-public-api.v1.yaml)
+  - [`packages/contracts-openapi/command-public-api.v1.yaml`](../packages/contracts-openapi/command-public-api.v1.yaml)
   - [`docs/command-public-api-contract.md`](./command-public-api-contract.md)
   - [`docs/command-bff-session-forwarding-contract.md`](./command-bff-session-forwarding-contract.md)
   - [`docs/command-repo-skeleton-and-bff-extraction-plan.md`](./command-repo-skeleton-and-bff-extraction-plan.md)

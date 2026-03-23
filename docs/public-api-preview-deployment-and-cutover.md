@@ -1,8 +1,13 @@
-# Command Public API Preview Deployment And Cutover
+# Command Public API Preview Deployment And Cutover (X Dragon Migration History)
 
-This document is the operator runbook for the first real `command/public-api` preview deployment and the matching `xdragon-site` BFF cutover.
+This document records the first real `command/public-api` preview deployment and the matching `xdragon-site` BFF cutover.
 
-## Goal
+It is migration history for the X Dragon extraction, not the generic install guide for new `command` adopters.
+
+For the generic operator path, use:
+- [`operator-installation-guide.md`](./operator-installation-guide.md)
+
+## Historical Goal
 
 Deploy `command/public-api` as its own preview service, verify readiness, then point `xdragon-site` staging at it through the BFF env seam.
 
@@ -93,7 +98,7 @@ After the `xdragon-site` preview env cutover:
 
 ## Rollback
 
-Rollback is intentionally simple at this stage:
+Rollback was intentionally simple at this stage:
 
 1. remove or unset:
    - `COMMAND_PUBLIC_API_BASE_URL`
