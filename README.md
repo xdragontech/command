@@ -12,7 +12,7 @@ This repo is no longer just a skeleton. It now contains working extraction waves
 
 What is still not finished:
 
-- first-run setup/install flow
+- broader setup/install packaging around the new first-run setup flow
 - full deployment packaging for non-X Dragon installs
 - final split cleanup across the public-site BFF boundary
 - broader polish and hardening

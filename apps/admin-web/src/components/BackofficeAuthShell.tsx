@@ -7,6 +7,7 @@ type BackofficeAuthShellProps = {
   title: string;
   description: ReactNode;
   footer?: ReactNode;
+  maxWidth?: number;
   children: ReactNode;
 };
 
@@ -16,6 +17,7 @@ export function BackofficeAuthShell({
   title,
   description,
   footer,
+  maxWidth = 520,
   children,
 }: BackofficeAuthShellProps) {
   return (
@@ -37,7 +39,7 @@ export function BackofficeAuthShell({
         <main
           style={{
             margin: "0 auto",
-            maxWidth: "520px",
+            maxWidth: `${maxWidth}px`,
             padding: "72px 20px 96px",
           }}
         >

@@ -15,8 +15,9 @@ Future first-run app onboarding is defined in:
 - [`setup-onboarding-contract.md`](./setup-onboarding-contract.md)
 
 Current state:
-- the setup page is not implemented yet
-- use this guide plus the current bootstrap/install scripts until that lands
+- the v1 `/setup` route is implemented for uninitialized installs
+- env/deployment secrets and public integration registry values remain operator-owned
+- recovery/automation scripts still exist alongside the app-owned setup path
 
 ## Install Shape
 
@@ -32,7 +33,7 @@ Both apps point at the same install database. Do not create separate databases j
 Before deployment, define:
 - the install database URL
 - the protected bootstrap superadmin email
-- the bootstrap recovery password
+- the bootstrap setup / recovery password
 - the admin-web public URL
 - the public-api public URL
 - the initial public-site integration key and brand mapping
@@ -97,15 +98,17 @@ Recommendation:
    - `GET /api/readyz`
 4. Deploy `apps/admin-web`.
 5. Verify:
-   - `/admin/signin`
-   - staff login
-   - dashboard
-   - brands
-   - configs
-   - security
-6. Run explicit bootstrap ensure/recovery tooling only if needed.
-7. Configure brand email settings in admin-web if the brand is not already ready.
-8. Point the public site BFF at the deployed `public-api`.
+   - if the install is already initialized: `/admin/signin`
+   - if the install is new: `/setup`
+6. For a new install, open `/setup`, unlock it with `BACKOFFICE_BOOTSTRAP_PASSWORD`, and create:
+   - install profile
+   - primary brand
+   - host mapping
+   - brand email metadata
+   - protected bootstrap superadmin record
+7. Run explicit bootstrap ensure/recovery tooling only if needed.
+8. Configure brand email settings in admin-web if the brand is not already ready.
+9. Point the public site BFF at the deployed `public-api`.
 
 ## Bootstrap Superadmin Rule
 
@@ -114,6 +117,7 @@ Recommendation:
 Important:
 - missing this env should not block ordinary admin login
 - but protected-account semantics and bootstrap recovery tooling depend on it being set correctly
+- on uninitialized installs, `/setup` uses `BACKOFFICE_BOOTSTRAP_PASSWORD` both to unlock setup access and to seed the initial bootstrap superadmin password hash
 
 ## Public-site Integration Inputs
 
@@ -127,7 +131,7 @@ The public site needs:
 ## Recommended Smoke Checks
 
 After first deployment:
-- admin sign-in
+- `/setup` on a new install or `/admin/signin` on an existing one
 - MFA enrollment and challenge
 - staff accounts
 - client accounts

@@ -3,7 +3,8 @@
 **Purpose**
 Define the preferred install-time configuration surface for bootstrap identity and initial brand seeding in `command`.
 
-This is the transitional configuration layer before the future setup page owns first-run onboarding.
+This is the transitional configuration layer while the v1 setup page owns DB-backed onboarding but env-owned bootstrap
+and install values still remain operator-managed.
 
 The future app-owned onboarding behavior is defined in:
 - [`setup-onboarding-contract.md`](./setup-onboarding-contract.md)
@@ -24,6 +25,8 @@ The future app-owned onboarding behavior is defined in:
 - `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL`
   - protected bootstrap superadmin identity for the install
 - `BACKOFFICE_BOOTSTRAP_PASSWORD`
+  - setup unlock credential
+  - initial bootstrap superadmin password source during `/setup`
   - password source used by explicit bootstrap ensure/recovery tooling
 - `COMMAND_INSTALL_*`
   - brand/bootstrap values used by the brand sync and related install scripts
@@ -46,4 +49,5 @@ These aliases are transitional only. New installs should use the `COMMAND_INSTAL
 - brand/bootstrap scripts now fail fast when required install values are missing
 - they no longer silently default to X Dragon brand keys, names, or domains
 - the bootstrap superadmin identity no longer falls back to a hardcoded X Dragon email in code
-- `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL` is now required for a correctly configured install until the future setup page owns first-run bootstrap
+- `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL` is required for a correctly configured install
+- `BACKOFFICE_BOOTSTRAP_PASSWORD` is required to unlock `/setup` on uninitialized installs
