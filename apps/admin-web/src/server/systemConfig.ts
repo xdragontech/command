@@ -2,8 +2,9 @@ import { createHash } from "crypto";
 import { BackofficeRole, BackofficeUserStatus } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
+  getConfiguredProtectedBackofficeEmail,
   getBackofficeBootstrapPasswordEnvKey,
-  getProtectedBackofficeEmail,
+  getProtectedBackofficeEmailEnvKey,
 } from "@command/core-config";
 import {
   getBackofficeMfaIssuer,
@@ -125,6 +126,12 @@ const ENV_GROUPS: Array<{
         label: "Backoffice MFA Encryption Key",
         description: "Required before authenticator secrets and recovery codes can be stored safely.",
         kind: "secret",
+      },
+      {
+        key: getProtectedBackofficeEmailEnvKey(),
+        label: "Bootstrap Superadmin Email",
+        description: "Preferred install-time override for the protected bootstrap superadmin email.",
+        kind: "plain",
       },
       {
         key: getBackofficeBootstrapPasswordEnvKey(),
@@ -301,7 +308,7 @@ export async function collectRuntimeStatus(requestHost?: string | null): Promise
   const host = runtimeHost.requestHost || "unknown";
   const bootstrapPasswordKey = getBackofficeBootstrapPasswordEnvKey();
   const bootstrapPasswordPresent = Boolean(getEnvValue(bootstrapPasswordKey));
-  const protectedBootstrapEmail = getProtectedBackofficeEmail();
+  const protectedBootstrapEmail = getConfiguredProtectedBackofficeEmail();
   let bootstrapDiagnostics: BootstrapDiagnostics = {
     user: null,
     configuredBrandCount: 0,
@@ -309,6 +316,12 @@ export async function collectRuntimeStatus(requestHost?: string | null): Promise
   };
 
   try {
+    if (!protectedBootstrapEmail) {
+      throw new Error(
+        `${getProtectedBackofficeEmailEnvKey()} is missing and no protectedEmail is defined in packages/core-config/src/bootstrapConfig.json`
+      );
+    }
+
     const [bootstrapUser, configuredBrandCount] = await Promise.all([
       prisma.backofficeUser.findFirst({
         where: { email: protectedBootstrapEmail },
@@ -434,8 +447,10 @@ export async function collectRuntimeStatus(requestHost?: string | null): Promise
     },
     {
       label: "Bootstrap Superadmin Identity",
-      value: protectedBootstrapEmail,
-      note: "Protected bootstrap backoffice identity for this installation.",
+      value: protectedBootstrapEmail || "Unconfigured",
+      note: protectedBootstrapEmail
+        ? "Protected bootstrap backoffice identity for this installation."
+        : `Missing install-time bootstrap identity configuration. Set ${getProtectedBackofficeEmailEnvKey()} or define protectedEmail in packages/core-config/src/bootstrapConfig.json.`,
     },
     {
       label: "Bootstrap Password Source",

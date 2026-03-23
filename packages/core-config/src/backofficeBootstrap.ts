@@ -12,14 +12,34 @@ function normalizeEnvKey(value: unknown) {
     .toUpperCase();
 }
 
-export const PROTECTED_BACKOFFICE_EMAIL =
-  normalizeEmail(bootstrapConfig.protectedEmail) || "grant@xdragon.tech";
+export const PROTECTED_BACKOFFICE_EMAIL_ENV_KEY =
+  normalizeEnvKey((bootstrapConfig as { protectedEmailEnvKey?: string }).protectedEmailEnvKey) ||
+  "COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL";
 
 export const BACKOFFICE_BOOTSTRAP_PASSWORD_ENV_KEY =
-  normalizeEnvKey(bootstrapConfig.passwordEnvKey) || "BACKOFFICE_BOOTSTRAP_PASSWORD";
+  normalizeEnvKey((bootstrapConfig as { passwordEnvKey?: string }).passwordEnvKey) ||
+  "BACKOFFICE_BOOTSTRAP_PASSWORD";
+
+export function getProtectedBackofficeEmailEnvKey() {
+  return PROTECTED_BACKOFFICE_EMAIL_ENV_KEY;
+}
+
+export function getConfiguredProtectedBackofficeEmail() {
+  return normalizeEmail(
+    process.env[PROTECTED_BACKOFFICE_EMAIL_ENV_KEY] ||
+      (bootstrapConfig as { protectedEmail?: string }).protectedEmail
+  );
+}
 
 export function getProtectedBackofficeEmail() {
-  return PROTECTED_BACKOFFICE_EMAIL;
+  const email = getConfiguredProtectedBackofficeEmail();
+  if (!email) {
+    throw new Error(
+      `${PROTECTED_BACKOFFICE_EMAIL_ENV_KEY} is required or packages/core-config/src/bootstrapConfig.json must define protectedEmail`
+    );
+  }
+
+  return email;
 }
 
 export function getBackofficeBootstrapPasswordEnvKey() {

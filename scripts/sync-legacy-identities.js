@@ -9,6 +9,7 @@ const {
   UserRole,
   UserStatus,
 } = require("@prisma/client");
+const { INSTALL_ENV_KEYS, requireInstallEnv } = require("./install-config");
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes("--apply");
@@ -33,7 +34,7 @@ function usernameSeedFromEmail(email) {
 }
 
 function getBridgeBrandKey() {
-  return normalizeEmail(process.env.BRAND_KEY || "xdragon");
+  return normalizeEmail(requireInstallEnv(INSTALL_ENV_KEYS.brandKey, "Install brand key"));
 }
 
 async function buildUniqueBackofficeUsername(tx, preferred) {
@@ -168,7 +169,7 @@ async function main() {
   }
 
   if (!bridgeBrand) {
-    throw new Error(`No brand exists for BRAND_KEY=${bridgeBrandKey}; run the brand sync first.`);
+    throw new Error(`No brand exists for install brand key ${bridgeBrandKey}; run the brand sync first.`);
   }
 
   const result = await prisma.$transaction(async (tx) => {
