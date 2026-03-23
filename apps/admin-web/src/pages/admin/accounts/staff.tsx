@@ -965,11 +965,11 @@ const secondaryButtonStyle: CSSProperties = {
 };
 
 const infoButtonStyle: CSSProperties = {
-  border: "1px solid rgba(125,211,252,0.35)",
+  border: "1px solid rgba(239,68,68,0.28)",
   borderRadius: "14px",
   padding: "10px 14px",
-  background: "#f0f9ff",
-  color: "#075985",
+  background: "#fff1f2",
+  color: "#991b1b",
   fontSize: "0.88rem",
   fontWeight: 700,
   cursor: "pointer",

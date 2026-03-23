@@ -87,9 +87,9 @@ function PeriodButton({
       disabled={disabled}
       style={{
         borderRadius: "999px",
-        border: active ? "1px solid #1d4ed8" : "1px solid rgba(148,163,184,0.34)",
-        background: active ? "#dbeafe" : "rgba(255,255,255,0.92)",
-        color: active ? "#1d4ed8" : "#334155",
+        border: active ? "1px solid rgba(239,68,68,0.32)" : "1px solid rgba(148,163,184,0.34)",
+        background: active ? "#fee2e2" : "rgba(255,255,255,0.92)",
+        color: active ? "#991b1b" : "#334155",
         padding: "10px 14px",
         fontSize: "0.92rem",
         fontWeight: 700,
