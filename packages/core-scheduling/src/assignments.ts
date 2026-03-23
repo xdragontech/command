@@ -3,6 +3,7 @@ import { prisma } from "@command/core-db";
 import {
   SchedulingConflictError,
   ensureBrand,
+  parseAssignmentKind,
   normalizeNullableId,
   normalizeNullableText,
   normalizeText,
@@ -14,7 +15,12 @@ import {
   toIsoDateOnly,
 } from "./common";
 import { detectScheduleConflicts } from "./conflicts";
-import type { CreateScheduleAssignmentInput, ScheduleAssignmentRecord, SchedulingScope } from "./types";
+import type {
+  CreateScheduleAssignmentInput,
+  ScheduleAssignmentRecord,
+  SchedulingScope,
+  UpdateScheduleAssignmentInput,
+} from "./types";
 
 type AssignmentWithRelations = Prisma.ScheduleAssignmentGetPayload<{
   include: {
@@ -170,123 +176,29 @@ export async function createScheduleAssignment(params: {
   scope: SchedulingScope;
   input: CreateScheduleAssignmentInput;
 }) {
-  const occurrence = await prisma.scheduleEventOccurrence.findUnique({
-    where: { id: params.input.occurrenceId },
-    include: {
-      series: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-  if (!occurrence) throw new Error("Occurrence not found");
-
-  const brandId = resolveWriteBrandId(params.scope, params.input.brandId || occurrence.brandId, {
-    allowSingleBrandFallback: false,
-  });
-  if (brandId !== occurrence.brandId) throw new Error("Assignment brand must match the occurrence brand");
-  const brand = await ensureBrand(brandId);
-
-  const resource = await prisma.scheduleResource.findUnique({
-    where: { id: params.input.resourceId },
-    select: { id: true, brandId: true, name: true, type: true },
-  });
-  if (!resource) throw new Error("Resource not found");
-  if (resource.brandId !== brandId) throw new Error("Resource brand must match the assignment brand");
-
-  const participant = await prisma.scheduleParticipant.findUnique({
-    where: { id: params.input.participantId },
-    select: { id: true, brandId: true, displayName: true, type: true },
-  });
-  if (!participant) throw new Error("Participant not found");
-  if (participant.brandId !== brandId) throw new Error("Participant brand must match the assignment brand");
-
-  const status = parseAssignmentStatus(params.input.status);
-  assertKindMatchesParticipantType(params.input.kind, participant.type);
-  assertResourceSupportsParticipantType(resource.type, participant.type);
-  const startsAtMinutes =
-    params.input.kind === "FULL_DAY"
-      ? occurrence.dayStartsAtMinutes
-      : parseMinuteOfDay(params.input.startsAtMinutes, "Start time");
-  const endsAtMinutes =
-    params.input.kind === "FULL_DAY"
-      ? occurrence.dayEndsAtMinutes
-      : parseMinuteOfDay(params.input.endsAtMinutes, "End time");
-
-  if (endsAtMinutes <= startsAtMinutes) {
-    throw new Error("Assignment end time must be after start time");
-  }
-
-  if (startsAtMinutes < occurrence.dayStartsAtMinutes || endsAtMinutes > occurrence.dayEndsAtMinutes) {
-    throw new Error("Assignment time must fit within the occurrence window");
-  }
-
-  const pendingAssignment = {
-    id: "pending",
+  const {
     brandId,
-    scheduleEventOccurrenceId: occurrence.id,
-    scheduleResourceId: resource.id,
-    scheduleParticipantId: participant.id,
-    kind: params.input.kind,
+    occurrence,
+    resource,
+    participant,
+    kind,
     status,
     startsAtMinutes,
     endsAtMinutes,
-    publicTitle: null,
-    publicSubtitle: null,
-    publicDescription: null,
-    publicLocationLabel: null,
-    publicUrl: null,
-    internalNotes: null,
-    metadata: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    brand,
-    occurrence: {
-      ...occurrence,
-      series: occurrence.series,
-    },
-    resource,
-    participant,
-  } as unknown as AssignmentWithRelations;
-
-  const existingAssignments = await prisma.scheduleAssignment.findMany({
-    where: {
-      brandId,
-      scheduleEventOccurrenceId: occurrence.id,
-      status: { not: "CANCELLED" },
-      OR: [{ scheduleResourceId: resource.id }, { scheduleParticipantId: participant.id }],
-    },
-    include: {
-      occurrence: {
-        include: {
-          series: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-      resource: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      participant: {
-        select: {
-          id: true,
-          displayName: true,
-        },
-      },
+    conflicts,
+  } = await resolveAssignmentMutation({
+    scope: params.scope,
+    input: {
+      occurrenceId: params.input.occurrenceId,
+      resourceId: params.input.resourceId,
+      participantId: params.input.participantId,
+      kind: params.input.kind,
+      status: params.input.status,
+      startsAtMinutes: params.input.startsAtMinutes,
+      endsAtMinutes: params.input.endsAtMinutes,
+      brandId: params.input.brandId,
     },
   });
-
-  const conflicts = detectScheduleConflicts([...existingAssignments, pendingAssignment as any]).filter((conflict) =>
-    conflict.assignmentIds.includes("pending")
-  );
 
   if (conflicts.length > 0 && !params.input.allowConflicts) {
     throw new SchedulingConflictError("Assignment conflicts with the current schedule", conflicts);
@@ -298,7 +210,7 @@ export async function createScheduleAssignment(params: {
       scheduleEventOccurrenceId: occurrence.id,
       scheduleResourceId: resource.id,
       scheduleParticipantId: participant.id,
-      kind: params.input.kind,
+      kind,
       status,
       startsAtMinutes,
       endsAtMinutes,
@@ -346,4 +258,314 @@ export async function createScheduleAssignment(params: {
   });
 
   return toAssignmentRecord(created);
+}
+
+export async function updateScheduleAssignment(params: {
+  scope: SchedulingScope;
+  id: string;
+  input: UpdateScheduleAssignmentInput;
+}) {
+  const existing = await prisma.scheduleAssignment.findUnique({
+    where: { id: params.id },
+    include: {
+      occurrence: {
+        include: {
+          series: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      resource: {
+        select: {
+          id: true,
+          brandId: true,
+          name: true,
+          type: true,
+        },
+      },
+      participant: {
+        select: {
+          id: true,
+          brandId: true,
+          displayName: true,
+          type: true,
+        },
+      },
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+  if (!existing) throw new Error("Assignment not found");
+
+  const {
+    brandId,
+    occurrence,
+    resource,
+    participant,
+    kind,
+    status,
+    startsAtMinutes,
+    endsAtMinutes,
+    conflicts,
+  } = await resolveAssignmentMutation({
+    scope: params.scope,
+    existingAssignmentId: existing.id,
+    input: {
+      occurrenceId: params.input.occurrenceId ?? existing.scheduleEventOccurrenceId,
+      resourceId: params.input.resourceId ?? existing.scheduleResourceId,
+      participantId: params.input.participantId ?? existing.scheduleParticipantId,
+      kind: params.input.kind ?? existing.kind,
+      status: params.input.status ?? existing.status,
+      startsAtMinutes: params.input.startsAtMinutes ?? existing.startsAtMinutes,
+      endsAtMinutes: params.input.endsAtMinutes ?? existing.endsAtMinutes,
+      brandId: existing.brandId,
+    },
+  });
+
+  if (conflicts.length > 0 && !params.input.allowConflicts) {
+    throw new SchedulingConflictError("Assignment conflicts with the current schedule", conflicts);
+  }
+
+  const updated = await prisma.scheduleAssignment.update({
+    where: { id: existing.id },
+    data: {
+      brandId,
+      scheduleEventOccurrenceId: occurrence.id,
+      scheduleResourceId: resource.id,
+      scheduleParticipantId: participant.id,
+      kind,
+      status,
+      startsAtMinutes,
+      endsAtMinutes,
+      ...(params.input.publicTitle !== undefined ? { publicTitle: normalizeNullableText(params.input.publicTitle) } : {}),
+      ...(params.input.publicSubtitle !== undefined ? { publicSubtitle: normalizeNullableText(params.input.publicSubtitle) } : {}),
+      ...(params.input.publicDescription !== undefined
+        ? { publicDescription: normalizeNullableText(params.input.publicDescription) }
+        : {}),
+      ...(params.input.publicLocationLabel !== undefined
+        ? { publicLocationLabel: normalizeNullableText(params.input.publicLocationLabel) }
+        : {}),
+      ...(params.input.publicUrl !== undefined ? { publicUrl: normalizeUrl(params.input.publicUrl) } : {}),
+      ...(params.input.internalNotes !== undefined ? { internalNotes: normalizeNullableText(params.input.internalNotes) } : {}),
+      ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+      occurrence: {
+        include: {
+          series: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      resource: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      participant: {
+        select: {
+          id: true,
+          displayName: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  return toAssignmentRecord(updated);
+}
+
+export async function deleteScheduleAssignment(params: {
+  scope: SchedulingScope;
+  id: string;
+}) {
+  const existing = await prisma.scheduleAssignment.findUnique({
+    where: { id: params.id },
+    select: { id: true, brandId: true },
+  });
+  if (!existing) throw new Error("Assignment not found");
+
+  const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== existing.brandId) throw new Error("Assignment brand cannot be reassigned");
+
+  await prisma.scheduleAssignment.delete({
+    where: { id: existing.id },
+  });
+}
+
+async function resolveAssignmentMutation(params: {
+  scope: SchedulingScope;
+  input: {
+    brandId?: string | null;
+    occurrenceId: string;
+    resourceId: string;
+    participantId: string;
+    kind: ScheduleAssignmentKind | string;
+    status?: unknown;
+    startsAtMinutes?: number | null;
+    endsAtMinutes?: number | null;
+  };
+  existingAssignmentId?: string;
+}) {
+  const occurrence = await prisma.scheduleEventOccurrence.findUnique({
+    where: { id: params.input.occurrenceId },
+    include: {
+      series: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+  if (!occurrence) throw new Error("Occurrence not found");
+
+  const brandId = resolveWriteBrandId(params.scope, params.input.brandId || occurrence.brandId, {
+    allowSingleBrandFallback: false,
+  });
+  if (brandId !== occurrence.brandId) throw new Error("Assignment brand must match the occurrence brand");
+  const brand = await ensureBrand(brandId);
+
+  const resource = await prisma.scheduleResource.findUnique({
+    where: { id: params.input.resourceId },
+    select: { id: true, brandId: true, name: true, type: true },
+  });
+  if (!resource) throw new Error("Resource not found");
+  if (resource.brandId !== brandId) throw new Error("Resource brand must match the assignment brand");
+
+  const participant = await prisma.scheduleParticipant.findUnique({
+    where: { id: params.input.participantId },
+    select: { id: true, brandId: true, displayName: true, type: true },
+  });
+  if (!participant) throw new Error("Participant not found");
+  if (participant.brandId !== brandId) throw new Error("Participant brand must match the assignment brand");
+
+  const kind = parseAssignmentKind(params.input.kind);
+  const status = parseAssignmentStatus(params.input.status);
+  assertKindMatchesParticipantType(kind, participant.type);
+  assertResourceSupportsParticipantType(resource.type, participant.type);
+
+  const startsAtMinutes =
+    kind === "FULL_DAY"
+      ? occurrence.dayStartsAtMinutes
+      : parseMinuteOfDay(params.input.startsAtMinutes, "Start time");
+  const endsAtMinutes =
+    kind === "FULL_DAY"
+      ? occurrence.dayEndsAtMinutes
+      : parseMinuteOfDay(params.input.endsAtMinutes, "End time");
+
+  if (endsAtMinutes <= startsAtMinutes) {
+    throw new Error("Assignment end time must be after start time");
+  }
+
+  if (startsAtMinutes < occurrence.dayStartsAtMinutes || endsAtMinutes > occurrence.dayEndsAtMinutes) {
+    throw new Error("Assignment time must fit within the occurrence window");
+  }
+
+  const pendingAssignment = {
+    id: "pending",
+    brandId,
+    scheduleEventOccurrenceId: occurrence.id,
+    scheduleResourceId: resource.id,
+    scheduleParticipantId: participant.id,
+    kind,
+    status,
+    startsAtMinutes,
+    endsAtMinutes,
+    publicTitle: null,
+    publicSubtitle: null,
+    publicDescription: null,
+    publicLocationLabel: null,
+    publicUrl: null,
+    internalNotes: null,
+    metadata: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    brand,
+    occurrence: {
+      ...occurrence,
+      series: occurrence.series,
+    },
+    resource,
+    participant,
+  } as unknown as AssignmentWithRelations;
+
+  const existingAssignments = await prisma.scheduleAssignment.findMany({
+    where: {
+      brandId,
+      scheduleEventOccurrenceId: occurrence.id,
+      status: { not: "CANCELLED" },
+      ...(params.existingAssignmentId ? { NOT: { id: params.existingAssignmentId } } : {}),
+      OR: [{ scheduleResourceId: resource.id }, { scheduleParticipantId: participant.id }],
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+      occurrence: {
+        include: {
+          series: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      resource: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      participant: {
+        select: {
+          id: true,
+          displayName: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  const conflicts = detectScheduleConflicts([...existingAssignments, pendingAssignment]).filter((conflict) =>
+    conflict.assignmentIds.includes("pending")
+  );
+
+  return {
+    brandId,
+    occurrence,
+    resource,
+    participant,
+    kind,
+    status,
+    startsAtMinutes,
+    endsAtMinutes,
+    conflicts,
+  };
 }

@@ -20,7 +20,12 @@ import {
   weekdayForDate,
   weeksBetween,
 } from "./common";
-import type { CreateScheduleEventSeriesInput, ScheduleEventSeriesRecord, SchedulingScope } from "./types";
+import type {
+  CreateScheduleEventSeriesInput,
+  ScheduleEventSeriesRecord,
+  SchedulingScope,
+  UpdateScheduleEventSeriesInput,
+} from "./types";
 
 type SeriesWithBrand = Prisma.ScheduleEventSeriesGetPayload<{
   include: {
@@ -96,13 +101,13 @@ function buildOccurrenceDates(params: {
   return dates;
 }
 
-async function buildUniqueSeriesSlug(brandId: string, preferred: string) {
+async function buildUniqueSeriesSlug(brandId: string, preferred: string, excludeId?: string) {
   const base = slugify(preferred) || "event-series";
   let slug = base;
 
   for (let index = 2; index < 100; index += 1) {
     const existing = await prisma.scheduleEventSeries.findFirst({
-      where: { brandId, slug },
+      where: { brandId, slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
       select: { id: true },
     });
 
@@ -272,4 +277,203 @@ export async function createScheduleEventSeries(params: {
   });
 
   return toSeriesRecord(series);
+}
+
+export async function updateScheduleEventSeries(params: {
+  scope: SchedulingScope;
+  id: string;
+  input: UpdateScheduleEventSeriesInput;
+}) {
+  const existing = await prisma.scheduleEventSeries.findUnique({
+    where: { id: params.id },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          occurrences: true,
+        },
+      },
+    },
+  });
+  if (!existing) throw new Error("Series not found");
+
+  const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== existing.brandId) throw new Error("Series brand cannot be reassigned");
+
+  const name = normalizeText(params.input.name ?? existing.name);
+  if (!name) throw new Error("Series name is required");
+
+  const description = params.input.description === undefined ? existing.description : normalizeNullableText(params.input.description);
+  const timezone = params.input.timezone === undefined ? existing.timezone : validateTimezone(params.input.timezone);
+  const status = params.input.status === undefined ? existing.status : parseSeriesStatus(params.input.status);
+  const recurrencePattern =
+    params.input.recurrencePattern === undefined
+      ? existing.recurrencePattern
+      : parseRecurrencePattern(params.input.recurrencePattern);
+  const recurrenceInterval =
+    params.input.recurrenceInterval === undefined
+      ? existing.recurrenceInterval
+      : parsePositiveInt(params.input.recurrenceInterval, "Recurrence interval", 1);
+  const recurrenceDays =
+    params.input.recurrenceDays === undefined ? existing.recurrenceDays : normalizeWeekdays(params.input.recurrenceDays);
+  const seasonStartsOn =
+    params.input.seasonStartsOn === undefined
+      ? existing.seasonStartsOn
+      : parseIsoDateOnly(params.input.seasonStartsOn, "Season start");
+  const seasonEndsOn =
+    params.input.seasonEndsOn === undefined ? existing.seasonEndsOn : parseIsoDateOnly(params.input.seasonEndsOn, "Season end");
+  const occurrenceDayStartsAtMinutes =
+    params.input.occurrenceDayStartsAtMinutes === undefined
+      ? existing.occurrenceDayStartsAtMinutes
+      : parseMinuteOfDay(params.input.occurrenceDayStartsAtMinutes, "Occurrence day start", 0);
+  const occurrenceDayEndsAtMinutes =
+    params.input.occurrenceDayEndsAtMinutes === undefined
+      ? existing.occurrenceDayEndsAtMinutes
+      : parseMinuteOfDay(params.input.occurrenceDayEndsAtMinutes, "Occurrence day end", 1440);
+
+  if (occurrenceDayEndsAtMinutes <= occurrenceDayStartsAtMinutes) {
+    throw new Error("Occurrence day end must be after occurrence day start");
+  }
+
+  const recurrenceChanged =
+    recurrencePattern !== existing.recurrencePattern ||
+    recurrenceInterval !== existing.recurrenceInterval ||
+    JSON.stringify(recurrenceDays) !== JSON.stringify(existing.recurrenceDays) ||
+    seasonStartsOn.getTime() !== existing.seasonStartsOn.getTime() ||
+    seasonEndsOn.getTime() !== existing.seasonEndsOn.getTime() ||
+    occurrenceDayStartsAtMinutes !== existing.occurrenceDayStartsAtMinutes ||
+    occurrenceDayEndsAtMinutes !== existing.occurrenceDayEndsAtMinutes;
+
+  const slug =
+    params.input.slug !== undefined || name !== existing.name
+      ? await buildUniqueSeriesSlug(brandId, normalizeText(params.input.slug) || name, existing.id)
+      : existing.slug;
+
+  const nextOccurrenceDates = recurrenceChanged
+    ? buildOccurrenceDates({
+        seasonStartsOn,
+        seasonEndsOn,
+        recurrencePattern,
+        recurrenceInterval,
+        recurrenceDays,
+      })
+    : [];
+
+  if (recurrenceChanged && nextOccurrenceDates.length === 0) {
+    throw new Error("This recurrence does not generate any occurrences within the selected season");
+  }
+
+  if (recurrenceChanged) {
+    const assignmentCount = await prisma.scheduleAssignment.count({
+      where: {
+        scheduleEventOccurrenceId: {
+          in: (
+            await prisma.scheduleEventOccurrence.findMany({
+              where: { scheduleEventSeriesId: existing.id },
+              select: { id: true },
+            })
+          ).map((occurrence) => occurrence.id),
+        },
+        status: { not: "CANCELLED" },
+      },
+    });
+
+    if (assignmentCount > 0) {
+      throw new Error("Cannot change recurrence or occurrence window after assignments exist");
+    }
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.scheduleEventSeries.update({
+      where: { id: existing.id },
+      data: {
+        name,
+        slug,
+        description,
+        timezone,
+        status,
+        recurrencePattern,
+        recurrenceInterval,
+        recurrenceDays,
+        seasonStartsOn,
+        seasonEndsOn,
+        occurrenceDayStartsAtMinutes,
+        occurrenceDayEndsAtMinutes,
+        ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
+      },
+    });
+
+    if (recurrenceChanged) {
+      await tx.scheduleEventOccurrence.deleteMany({
+        where: { scheduleEventSeriesId: existing.id },
+      });
+
+      await tx.scheduleEventOccurrence.createMany({
+        data: nextOccurrenceDates.map((occursOn) => ({
+          brandId,
+          scheduleEventSeriesId: existing.id,
+          occursOn,
+          dayStartsAtMinutes: occurrenceDayStartsAtMinutes,
+          dayEndsAtMinutes: occurrenceDayEndsAtMinutes,
+        })),
+      });
+    }
+
+    return tx.scheduleEventSeries.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            brandKey: true,
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            occurrences: true,
+          },
+        },
+      },
+    });
+  });
+
+  return toSeriesRecord(updated as SeriesWithBrand);
+}
+
+export async function deleteScheduleEventSeries(params: {
+  scope: SchedulingScope;
+  id: string;
+}) {
+  const existing = await prisma.scheduleEventSeries.findUnique({
+    where: { id: params.id },
+    select: { id: true, brandId: true },
+  });
+  if (!existing) throw new Error("Series not found");
+
+  const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== existing.brandId) throw new Error("Series brand cannot be reassigned");
+
+  const assignmentCount = await prisma.scheduleAssignment.count({
+    where: {
+      occurrence: {
+        scheduleEventSeriesId: existing.id,
+      },
+      status: { not: "CANCELLED" },
+    },
+  });
+
+  if (assignmentCount > 0) {
+    throw new Error("Cannot delete a series that still has schedule assignments");
+  }
+
+  await prisma.scheduleEventSeries.delete({
+    where: { id: existing.id },
+  });
 }

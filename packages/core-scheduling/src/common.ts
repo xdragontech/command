@@ -1,17 +1,23 @@
 import {
+  ScheduleAssignmentKind,
   ScheduleAssignmentStatus,
   ScheduleEventSeriesStatus,
+  ScheduleParticipantType,
   ScheduleParticipantStatus,
   ScheduleRecurrencePattern,
+  ScheduleResourceType,
   ScheduleWeekday,
 } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import type { SchedulingScope } from "./types";
 
 export const SCHEDULING_ASSIGNMENT_STATUSES = Object.values(ScheduleAssignmentStatus);
+export const SCHEDULING_ASSIGNMENT_KINDS = Object.values(ScheduleAssignmentKind);
 export const SCHEDULING_SERIES_STATUSES = Object.values(ScheduleEventSeriesStatus);
+export const SCHEDULING_PARTICIPANT_TYPES = Object.values(ScheduleParticipantType);
 export const SCHEDULING_PARTICIPANT_STATUSES = Object.values(ScheduleParticipantStatus);
 export const SCHEDULING_RECURRENCE_PATTERNS = Object.values(ScheduleRecurrencePattern);
+export const SCHEDULING_RESOURCE_TYPES = Object.values(ScheduleResourceType);
 export const SCHEDULING_WEEKDAYS = Object.values(ScheduleWeekday);
 
 export function normalizeText(value: unknown) {
@@ -123,9 +129,33 @@ export function parseParticipantStatus(value: unknown) {
   return SCHEDULING_PARTICIPANT_STATUSES.includes(normalized) ? normalized : ScheduleParticipantStatus.ACTIVE;
 }
 
+export function parseParticipantType(value: unknown) {
+  const normalized = normalizeText(value).toUpperCase() as ScheduleParticipantType;
+  if (!SCHEDULING_PARTICIPANT_TYPES.includes(normalized)) {
+    throw new Error("Participant type is invalid");
+  }
+  return normalized;
+}
+
 export function parseAssignmentStatus(value: unknown) {
   const normalized = normalizeText(value).toUpperCase() as ScheduleAssignmentStatus;
   return SCHEDULING_ASSIGNMENT_STATUSES.includes(normalized) ? normalized : ScheduleAssignmentStatus.DRAFT;
+}
+
+export function parseAssignmentKind(value: unknown) {
+  const normalized = normalizeText(value).toUpperCase() as ScheduleAssignmentKind;
+  if (!SCHEDULING_ASSIGNMENT_KINDS.includes(normalized)) {
+    throw new Error("Assignment kind is invalid");
+  }
+  return normalized;
+}
+
+export function parseResourceType(value: unknown) {
+  const normalized = normalizeText(value).toUpperCase() as ScheduleResourceType;
+  if (!SCHEDULING_RESOURCE_TYPES.includes(normalized)) {
+    throw new Error("Resource type is invalid");
+  }
+  return normalized;
 }
 
 export function normalizeUrl(value: unknown) {

@@ -146,11 +146,37 @@ export type CreateScheduleEventSeriesInput = {
   metadata?: Prisma.InputJsonValue;
 };
 
+export type UpdateScheduleEventSeriesInput = {
+  name?: string;
+  slug?: string;
+  description?: string | null;
+  timezone?: string;
+  status?: ScheduleEventSeriesStatus;
+  recurrencePattern?: ScheduleRecurrencePattern;
+  recurrenceInterval?: number;
+  recurrenceDays?: ScheduleWeekday[] | string[];
+  seasonStartsOn?: string;
+  seasonEndsOn?: string;
+  occurrenceDayStartsAtMinutes?: number;
+  occurrenceDayEndsAtMinutes?: number;
+  metadata?: Prisma.InputJsonValue;
+};
+
 export type CreateScheduleResourceInput = {
   brandId?: string | null;
   name: string;
   slug?: string;
   type: ScheduleResourceType;
+  description?: string | null;
+  sortOrder?: number;
+  isActive?: boolean;
+  metadata?: Prisma.InputJsonValue;
+};
+
+export type UpdateScheduleResourceInput = {
+  name?: string;
+  slug?: string;
+  type?: ScheduleResourceType;
   description?: string | null;
   sortOrder?: number;
   isActive?: boolean;
@@ -167,12 +193,39 @@ export type CreateScheduleParticipantInput = {
   metadata?: Prisma.InputJsonValue;
 };
 
+export type UpdateScheduleParticipantInput = {
+  displayName?: string;
+  slug?: string;
+  type?: ScheduleParticipantType;
+  status?: ScheduleParticipantStatus;
+  summary?: string | null;
+  metadata?: Prisma.InputJsonValue;
+};
+
 export type CreateScheduleAssignmentInput = {
   brandId?: string | null;
   occurrenceId: string;
   resourceId: string;
   participantId: string;
   kind: ScheduleAssignmentKind;
+  status?: ScheduleAssignmentStatus;
+  startsAtMinutes?: number | null;
+  endsAtMinutes?: number | null;
+  publicTitle?: string | null;
+  publicSubtitle?: string | null;
+  publicDescription?: string | null;
+  publicLocationLabel?: string | null;
+  publicUrl?: string | null;
+  internalNotes?: string | null;
+  metadata?: Prisma.InputJsonValue;
+  allowConflicts?: boolean;
+};
+
+export type UpdateScheduleAssignmentInput = {
+  occurrenceId?: string;
+  resourceId?: string;
+  participantId?: string;
+  kind?: ScheduleAssignmentKind;
   status?: ScheduleAssignmentStatus;
   startsAtMinutes?: number | null;
   endsAtMinutes?: number | null;
