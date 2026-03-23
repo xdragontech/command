@@ -317,9 +317,7 @@ export async function collectRuntimeStatus(requestHost?: string | null): Promise
 
   try {
     if (!protectedBootstrapEmail) {
-      throw new Error(
-        `${getProtectedBackofficeEmailEnvKey()} is missing and no protectedEmail is defined in packages/core-config/src/bootstrapConfig.json`
-      );
+      throw new Error(`${getProtectedBackofficeEmailEnvKey()} is missing`);
     }
 
     const [bootstrapUser, configuredBrandCount] = await Promise.all([
@@ -450,7 +448,7 @@ export async function collectRuntimeStatus(requestHost?: string | null): Promise
       value: protectedBootstrapEmail || "Unconfigured",
       note: protectedBootstrapEmail
         ? "Protected bootstrap backoffice identity for this installation."
-        : `Missing install-time bootstrap identity configuration. Set ${getProtectedBackofficeEmailEnvKey()} or define protectedEmail in packages/core-config/src/bootstrapConfig.json.`,
+        : `Missing install-time bootstrap identity configuration. Set ${getProtectedBackofficeEmailEnvKey()}.`,
     },
     {
       label: "Bootstrap Password Source",

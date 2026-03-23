@@ -43,10 +43,4 @@ These aliases are transitional only. New installs should use the `COMMAND_INSTAL
 - brand/bootstrap scripts now fail fast when required install values are missing
 - they no longer silently default to X Dragon brand keys, names, or domains
 - the bootstrap superadmin identity no longer falls back to a hardcoded X Dragon email in code
-
-**Current Transitional Note**
-The repo still carries an install-specific fallback email in [bootstrapConfig.json](/Users/grantr/Projects/command/packages/core-config/src/bootstrapConfig.json) for the current X Dragon deployment.
-
-That keeps the existing install stable while the product transitions toward setup-page-owned configuration.
-
-It should not be treated as the long-term reusable product model.
+- `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL` is now required for a correctly configured install until the future setup page owns first-run bootstrap

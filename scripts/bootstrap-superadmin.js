@@ -39,17 +39,13 @@ const PROTECTED_EMAIL_ENV_KEY = String(bootstrapConfig.protectedEmailEnvKey || "
 const PASSWORD_ENV_KEY = String(bootstrapConfig.passwordEnvKey || "BACKOFFICE_BOOTSTRAP_PASSWORD")
   .trim()
   .toUpperCase();
-const CONFIGURED_PROTECTED_EMAIL = normalizeEmail(
-  process.env[PROTECTED_EMAIL_ENV_KEY] || bootstrapConfig.protectedEmail || ""
-);
+const CONFIGURED_PROTECTED_EMAIL = normalizeEmail(process.env[PROTECTED_EMAIL_ENV_KEY] || "");
 const PROTECTED_EMAIL = CONFIGURED_PROTECTED_EMAIL;
 const DEFAULT_USERNAME = normalizeUsernameSeed(String(PROTECTED_EMAIL || "").split("@")[0] || "") || "bootstrap-admin";
 
 function ensureProtectedEmailConfigured() {
   if (!PROTECTED_EMAIL) {
-    throw new Error(
-      `${PROTECTED_EMAIL_ENV_KEY} is required or packages/core-config/src/bootstrapConfig.json must define protectedEmail.`
-    );
+    throw new Error(`${PROTECTED_EMAIL_ENV_KEY} is required.`);
   }
 
   return PROTECTED_EMAIL;

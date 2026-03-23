@@ -1,5 +1,4 @@
 {
   "protectedEmailEnvKey": "COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL",
-  "protectedEmail": "grant@xdragon.tech",
   "passwordEnvKey": "BACKOFFICE_BOOTSTRAP_PASSWORD"
 }
