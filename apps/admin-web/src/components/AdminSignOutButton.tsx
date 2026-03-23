@@ -21,7 +21,7 @@ export function AdminSignOutButton() {
       style={{
         border: 0,
         borderRadius: "999px",
-        padding: "10px 14px",
+        padding: "8px 12px",
         background: "#0f172a",
         color: "#fff",
         fontSize: "0.9rem",

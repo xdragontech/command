@@ -45,19 +45,19 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
             style={{
               margin: "0 auto",
               maxWidth: "1320px",
-              padding: "20px 20px 18px",
+              padding: "17px 20px 15px",
               display: "flex",
               flexWrap: "nowrap",
               alignItems: "flex-start",
               justifyContent: "space-between",
-              gap: "24px",
+              gap: "20px",
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "22px",
+                gap: "18px",
                 minWidth: 0,
               }}
             >
@@ -69,12 +69,12 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                   flexShrink: 0,
                 }}
               >
-                <img src="/logo.png" alt="X Dragon logo" style={{ height: "58px", width: "auto", display: "block" }} />
+                <img src="/logo.png" alt="X Dragon logo" style={{ height: "49px", width: "auto", display: "block" }} />
                 <div
                   style={{
-                    marginTop: "6px",
+                    marginTop: "5px",
                     fontFamily: "Orbitron, ui-sans-serif, system-ui",
-                    fontSize: "1.75rem",
+                    fontSize: "1.5rem",
                     fontWeight: 600,
                     lineHeight: 1,
                     color: "#111827",
@@ -87,7 +87,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
 
               <div
                 style={{
-                  minHeight: "58px",
+                  minHeight: "49px",
                   display: "flex",
                   alignItems: "center",
                   color: "#4b5563",
@@ -105,7 +105,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                 flexDirection: "column",
                 alignItems: "flex-end",
                 justifyContent: "flex-end",
-                gap: "10px",
+                gap: "8px",
                 flexShrink: 0,
               }}
             >
