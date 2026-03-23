@@ -93,6 +93,9 @@ Status:
 - recommendation:
   - switch placeholders to generic install examples
 
+Status:
+- resolved on 2026-03-22 by replacing X Dragon-specific admin-web placeholder values with generic install-safe examples
+
 5. Public API readmes and deployment docs are still X Dragon instance-oriented
 - files:
   - [`README.md`](/Users/grantr/Projects/command/README.md)
