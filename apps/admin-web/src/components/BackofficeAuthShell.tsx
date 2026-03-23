@@ -29,8 +29,7 @@ export function BackofficeAuthShell({
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "radial-gradient(circle at top, rgba(37,99,235,0.16), transparent 36%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
+          background: "#f1f5f9",
           color: "#0f172a",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -75,7 +74,7 @@ export function BackofficeAuthShell({
             style={{
               borderRadius: "28px",
               border: "1px solid rgba(148,163,184,0.28)",
-              background: "rgba(255,255,255,0.94)",
+              background: "#ffffff",
               padding: "30px",
               boxShadow: "0 28px 70px rgba(15,23,42,0.10)",
             }}
@@ -108,7 +107,7 @@ export function BackofficeAuthShell({
                   marginTop: "24px",
                   borderRadius: "16px",
                   border: "1px solid rgba(148,163,184,0.22)",
-                  background: "#f8fafc",
+                  background: "#ffffff",
                   padding: "14px 16px",
                   color: "#475569",
                   fontSize: "0.82rem",

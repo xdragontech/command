@@ -28,7 +28,7 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
           padding: "18px",
           borderRadius: "24px",
           border: "1px solid rgba(148,163,184,0.24)",
-          background: "rgba(255,255,255,0.92)",
+          background: "#ffffff",
           boxShadow: "0 18px 48px rgba(15,23,42,0.06)",
         }}
       >

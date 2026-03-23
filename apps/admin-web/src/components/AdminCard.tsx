@@ -13,7 +13,7 @@ export function AdminCard({ title, description, actions, children }: AdminCardPr
       style={{
         borderRadius: "24px",
         border: "1px solid rgba(148,163,184,0.24)",
-        background: "rgba(255,255,255,0.95)",
+        background: "#ffffff",
         padding: "24px",
         boxShadow: "0 24px 60px rgba(15,23,42,0.08)",
       }}

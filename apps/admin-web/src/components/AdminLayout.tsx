@@ -23,8 +23,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "radial-gradient(circle at top, rgba(37,99,235,0.12), transparent 34%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
+          background: "#f1f5f9",
           color: "#0f172a",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -96,7 +95,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                 style={{
                   borderRadius: "22px",
                   border: "1px solid rgba(148,163,184,0.24)",
-                  background: "rgba(255,255,255,0.92)",
+                  background: "#ffffff",
                   padding: "18px",
                   boxShadow: "0 18px 48px rgba(15,23,42,0.06)",
                 }}
