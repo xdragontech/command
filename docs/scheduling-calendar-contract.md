@@ -190,6 +190,7 @@ This matches the requirement that duplicates/overlaps be identifiable in a summa
 - schedule resource CRUD
 - schedule participant CRUD
 - assignment CRUD
+- occurrence-level publish / unpublish workflow
 - conflict reporting
 - calendar view rendering
 - public display-detail editing outside the calendar UI
@@ -197,6 +198,7 @@ This matches the requirement that duplicates/overlaps be identifiable in a summa
 Important:
 - the calendar widget must not be the only editing surface
 - details like description, links, media, vendor notes, and public text should be editable in standard forms outside the calendar grid
+- publish-state control should be occurrence-aware so operators can verify what is public before the public site reads it
 
 This matches the existing admin design direction and keeps the calendar from becoming a fragile all-in-one editor.
 
