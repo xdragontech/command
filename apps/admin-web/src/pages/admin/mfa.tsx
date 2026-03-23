@@ -15,6 +15,7 @@ import {
   hasVerifiedBackofficeMfaForRequest,
   resolveBackofficePostAuthDestination,
 } from "../../server/backofficeAuth";
+import { buildSetupRedirect, isInstallInitialized } from "../../server/installState";
 import { getApiRequestHost } from "../../server/requestHost";
 
 type BackofficeMfaPageProps = {
@@ -25,6 +26,10 @@ type BackofficeMfaPageProps = {
 };
 
 export const getServerSideProps: GetServerSideProps<BackofficeMfaPageProps> = async (ctx) => {
+  if (!(await isInstallInitialized())) {
+    return buildSetupRedirect();
+  }
+
   const session = await getServerSession(ctx.req, ctx.res, authOptions);
   const runtimeHost = await getRuntimeHostConfig(getApiRequestHost(ctx.req));
   const callbackUrl = typeof ctx.query.callbackUrl === "string" ? ctx.query.callbackUrl : null;
