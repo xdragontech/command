@@ -1,6 +1,7 @@
 import type { CSSProperties, FormEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useMemo, useState } from "react";
+import type { SetupInitializationResult } from "../server/setupInitialization";
 import { BackofficeAuthShell } from "../components/BackofficeAuthShell";
 import {
   buildPostSetupRedirect,
@@ -67,6 +68,45 @@ export default function SetupPage({
   const [fromEmail, setFromEmail] = useState("");
   const [replyToEmail, setReplyToEmail] = useState("");
   const [supportEmail, setSupportEmail] = useState("");
+  const [completion, setCompletion] = useState<SetupInitializationResult | null>(null);
+
+  const completionArtifacts = useMemo(() => {
+    if (!completion) return null;
+
+    const productionIntegration = JSON.stringify(
+      {
+        name: `${completion.brandKey}-site-production`,
+        key: "<generate-long-random-secret>",
+        brandKey: completion.brandKey,
+        publicOrigin: `https://${completion.productionPublicHost}`,
+      },
+      null,
+      2
+    );
+
+    const previewIntegration = JSON.stringify(
+      {
+        name: `${completion.brandKey}-site-preview`,
+        key: "<generate-long-random-secret>",
+        brandKey: completion.brandKey,
+        publicOrigin: `https://${completion.previewPublicHost}`,
+      },
+      null,
+      2
+    );
+
+    const publicSiteEnvBlock = [
+      "COMMAND_PUBLIC_API_BASE_URL=https://<your-command-public-api-origin>",
+      "COMMAND_PUBLIC_INTEGRATION_KEY=<same secret as the production integration key above>",
+      "COMMAND_BFF_SESSION_SECRET=<generate-another-long-random-secret>",
+    ].join("\n");
+
+    return {
+      productionIntegration,
+      previewIntegration,
+      publicSiteEnvBlock,
+    };
+  }, [completion]);
 
   async function onUnlock(event: FormEvent) {
     event.preventDefault();
@@ -127,7 +167,7 @@ export default function SetupPage({
         return;
       }
 
-      window.location.assign(payload?.result?.redirectTo || "/admin/signin");
+      setCompletion(payload?.result || null);
     } catch {
       setSubmitError("Setup initialization failed");
     } finally {
@@ -153,7 +193,113 @@ export default function SetupPage({
       }
       maxWidth={760}
     >
-      {!unlocked ? (
+      {completion ? (
+        <>
+          <div style={successStyle}>Setup complete. Review the operator handoff below before signing in.</div>
+
+          <div style={infoPanelStyle}>
+            <div style={sectionTitleStyle}>Install Summary</div>
+            <div style={gridStyle}>
+              <div style={metricCardStyle}>
+                <div style={metricLabelStyle}>Install</div>
+                <div style={summaryValueStyle}>{completion.installDisplayName}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={metricLabelStyle}>Primary brand</div>
+                <div style={summaryValueStyle}>{completion.brandName}</div>
+                <div style={prereqDetailStyle}>{completion.brandKey}</div>
+              </div>
+              <div style={metricCardStyle}>
+                <div style={metricLabelStyle}>Bootstrap email</div>
+                <div style={summaryValueStyle}>{completion.bootstrapEmail}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={sectionPanelStyle}>
+            <div style={sectionTitleStyle}>Configured Hosts</div>
+            <div style={{ display: "grid", gap: "10px" }}>
+              <div style={hostRowStyle}>
+                <span style={hostLabelStyle}>Apex</span>
+                <code style={codeInlineStyle}>{completion.apexHost}</code>
+              </div>
+              <div style={hostRowStyle}>
+                <span style={hostLabelStyle}>Production public</span>
+                <code style={codeInlineStyle}>{completion.productionPublicHost}</code>
+              </div>
+              <div style={hostRowStyle}>
+                <span style={hostLabelStyle}>Production admin</span>
+                <code style={codeInlineStyle}>{completion.productionAdminHost}</code>
+              </div>
+              <div style={hostRowStyle}>
+                <span style={hostLabelStyle}>Preview public</span>
+                <code style={codeInlineStyle}>{completion.previewPublicHost}</code>
+              </div>
+              <div style={hostRowStyle}>
+                <span style={hostLabelStyle}>Preview admin</span>
+                <code style={codeInlineStyle}>{completion.previewAdminHost}</code>
+              </div>
+            </div>
+          </div>
+
+          <div style={sectionPanelStyle}>
+            <div style={sectionTitleStyle}>Brand Email Metadata</div>
+            <div style={paragraphStyle}>
+              Email status is <strong>{completion.emailStatus}</strong>. Provider secret env key is{" "}
+              <code style={codeInlineStyle}>{completion.providerSecretRef}</code>.
+            </div>
+            <div style={paragraphStyle}>
+              Sender email: <code style={codeInlineStyle}>{completion.fromEmail || "Not set"}</code>
+            </div>
+            <div style={paragraphStyle}>
+              Support / notification email: <code style={codeInlineStyle}>{completion.supportEmail || "Not set"}</code>
+            </div>
+            <div style={warningStyle}>
+              Final email readiness still belongs to deployed runtime envs. Confirm it through the public-api
+              <code> /api/readyz</code> check after you wire integrations.
+            </div>
+          </div>
+
+          <div style={sectionPanelStyle}>
+            <div style={sectionTitleStyle}>Public API Integration Payload</div>
+            <div style={paragraphStyle}>
+              Add at least the production entry below to <code>COMMAND_PUBLIC_INTEGRATIONS_JSON</code> on the
+              <code> public-api</code> deployment. The preview entry is optional but recommended if you will run a
+              preview public site.
+            </div>
+            <div style={codeSectionLabelStyle}>Production entry</div>
+            <pre style={codeBlockStyle}>{completionArtifacts?.productionIntegration}</pre>
+            <div style={codeSectionLabelStyle}>Preview entry</div>
+            <pre style={codeBlockStyle}>{completionArtifacts?.previewIntegration}</pre>
+          </div>
+
+          <div style={sectionPanelStyle}>
+            <div style={sectionTitleStyle}>Public Site BFF Handoff</div>
+            <div style={paragraphStyle}>
+              Set these on the brand public site after the matching integration key exists in
+              <code> COMMAND_PUBLIC_INTEGRATIONS_JSON</code>.
+            </div>
+            <pre style={codeBlockStyle}>{completionArtifacts?.publicSiteEnvBlock}</pre>
+            <div style={warningStyle}>
+              <strong>Do not invent the API origin.</strong> Use the actual deployed public-api origin for this install.
+              The setup page cannot know that value safely.
+            </div>
+          </div>
+
+          <div style={sectionPanelStyle}>
+            <div style={sectionTitleStyle}>Next Steps</div>
+            <ol style={orderedListStyle}>
+              <li>Set the production integration entry on the public-api deployment.</li>
+              <li>Set the matching BFF envs on the brand public site.</li>
+              <li>Verify <code>/api/readyz</code> on public-api.</li>
+              <li>Sign in to admin-web with <code>{completion.bootstrapEmail}</code> and the current <code>BACKOFFICE_BOOTSTRAP_PASSWORD</code>.</li>
+            </ol>
+            <a href={completion.redirectTo} style={primaryLinkStyle}>
+              Continue To Admin Sign-In
+            </a>
+          </div>
+        </>
+      ) : !unlocked ? (
         <>
           {unlockError ? <div style={errorStyle}>{unlockError}</div> : null}
 
@@ -611,6 +757,20 @@ const primaryButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
+const primaryLinkStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "100%",
+  borderRadius: "14px",
+  padding: "13px 16px",
+  background: "#0f172a",
+  color: "#fff",
+  fontSize: "0.98rem",
+  fontWeight: 700,
+  textDecoration: "none",
+};
+
 const errorStyle: CSSProperties = {
   borderRadius: "14px",
   border: "1px solid rgba(239,68,68,0.24)",
@@ -620,6 +780,16 @@ const errorStyle: CSSProperties = {
   marginBottom: "18px",
 };
 
+const successStyle: CSSProperties = {
+  borderRadius: "14px",
+  border: "1px solid rgba(16,185,129,0.24)",
+  background: "#ecfdf5",
+  color: "#065f46",
+  padding: "12px 14px",
+  marginBottom: "18px",
+  fontWeight: 700,
+};
+
 const warningStyle: CSSProperties = {
   borderRadius: "16px",
   border: "1px solid rgba(245,158,11,0.22)",
@@ -627,5 +797,65 @@ const warningStyle: CSSProperties = {
   color: "#92400e",
   padding: "14px 16px",
   fontSize: "0.88rem",
+  lineHeight: 1.6,
+};
+
+const codeBlockStyle: CSSProperties = {
+  margin: 0,
+  borderRadius: "16px",
+  border: "1px solid rgba(148,163,184,0.22)",
+  background: "#0f172a",
+  color: "#e2e8f0",
+  padding: "14px 16px",
+  overflowX: "auto",
+  fontSize: "0.84rem",
+  lineHeight: 1.6,
+};
+
+const codeInlineStyle: CSSProperties = {
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+  fontSize: "0.9em",
+};
+
+const codeSectionLabelStyle: CSSProperties = {
+  fontSize: "0.8rem",
+  fontWeight: 700,
+  color: "#475569",
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+};
+
+const hostRowStyle: CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: "16px",
+  alignItems: "center",
+  borderRadius: "14px",
+  border: "1px solid rgba(148,163,184,0.18)",
+  background: "#f8fafc",
+  padding: "12px 14px",
+};
+
+const hostLabelStyle: CSSProperties = {
+  fontSize: "0.88rem",
+  fontWeight: 700,
+  color: "#0f172a",
+};
+
+const summaryValueStyle: CSSProperties = {
+  marginTop: "8px",
+  fontSize: "1rem",
+  fontWeight: 800,
+  color: "#0f172a",
+  lineHeight: 1.4,
+  wordBreak: "break-word",
+};
+
+const orderedListStyle: CSSProperties = {
+  margin: 0,
+  paddingLeft: "18px",
+  color: "#475569",
+  display: "grid",
+  gap: "10px",
   lineHeight: 1.6,
 };

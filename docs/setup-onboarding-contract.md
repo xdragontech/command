@@ -178,14 +178,17 @@ This gating should be explicit and centralized, not duplicated across pages.
 
 ## Completion Output
 
-V1 may redirect directly to `/admin/signin` after successful setup.
-
-Future polish may add an intermediate completion screen showing:
+V1 should end on an intermediate completion screen showing:
 - setup complete status
 - configured bootstrap email
 - configured brand and host summary
-- email readiness status
+- brand email metadata summary
+- the exact `COMMAND_PUBLIC_INTEGRATIONS_JSON` entry shape for the new brand
+- the public-site BFF env handoff values the operator still needs to set
 - remaining operator actions, if any
+
+Then it should link onward to:
+- `/admin/signin`
 
 ## Explicit Non-Goals For V1
 
