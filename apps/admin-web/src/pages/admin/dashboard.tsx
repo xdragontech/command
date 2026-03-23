@@ -102,13 +102,13 @@ function PeriodButton({
   );
 }
 
-function SummaryCard({ label, value, tone }: { label: string; value: string; tone?: "blue" | "slate" | "amber" }) {
+function SummaryCard({ label, value, tone }: { label: string; value: string; tone?: "red" | "slate" | "amber" }) {
   const palette =
     tone === "amber"
       ? { bg: "rgba(245, 158, 11, 0.08)", border: "rgba(245, 158, 11, 0.22)", value: "#92400e" }
       : tone === "slate"
         ? { bg: "rgba(15, 23, 42, 0.05)", border: "rgba(148, 163, 184, 0.24)", value: "#0f172a" }
-        : { bg: "rgba(37, 99, 235, 0.08)", border: "rgba(37, 99, 235, 0.2)", value: "#1d4ed8" };
+        : { bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", value: "#b91c1c" };
 
   return (
     <div
@@ -144,7 +144,7 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
     <div style={{ display: "grid", gap: "12px" }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", color: "#475569", fontSize: "0.9rem" }}>
         <span style={legendStyle}>
-          <span style={{ ...legendDotStyle, background: "#2563eb" }} />
+          <span style={{ ...legendDotStyle, background: "#b91c1c" }} />
           Signups
         </span>
         <span style={legendStyle}>
@@ -165,7 +165,7 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
         }}
       >
         <path d={loginsPath} fill="none" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
-        <path d={signupsPath} fill="none" stroke="#2563eb" strokeWidth="3.5" strokeLinecap="round" />
+        <path d={signupsPath} fill="none" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
       </svg>
 
       <div
@@ -361,7 +361,7 @@ export default function DashboardPage({
               gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
             }}
           >
-            <SummaryCard label="Signups" value={formatCount(metrics.totals.signups)} />
+            <SummaryCard label="Signups" value={formatCount(metrics.totals.signups)} tone="red" />
             <SummaryCard label="Logins" value={formatCount(metrics.totals.logins)} tone="slate" />
             <SummaryCard label="Tracked Login IPs" value={formatCount(metrics.ipGroups.length)} tone="amber" />
           </div>
