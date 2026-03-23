@@ -23,27 +23,30 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
       <div
         style={{
           minHeight: "100vh",
-          background: "#f1f5f9",
+          background: "#f8fafc",
           color: "#0f172a",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         }}
       >
-        <main
+        <header
           style={{
-            margin: "0 auto",
-            maxWidth: "1320px",
-            padding: "40px 20px 72px",
+            width: "100%",
+            background: "#ffffff",
+            borderBottom: "1px solid rgba(148,163,184,0.18)",
+            boxShadow: "0 1px 0 rgba(15,23,42,0.02)",
           }}
         >
-          <section
+          <div
             style={{
+              margin: "0 auto",
+              maxWidth: "1320px",
+              padding: "16px 20px",
               display: "flex",
               flexWrap: "wrap",
-              alignItems: "flex-start",
+              alignItems: "center",
               justifyContent: "space-between",
-              gap: "18px",
-              marginBottom: "24px",
+              gap: "16px 20px",
             }}
           >
             <div>
@@ -61,69 +64,68 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
               <h1
                 style={{
                   margin: 0,
-                  fontSize: "2.15rem",
-                  lineHeight: 1.05,
+                  fontSize: "1.9rem",
+                  lineHeight: 1.02,
                   letterSpacing: "-0.04em",
                 }}
               >
                 Command Admin
               </h1>
-              <p
-                style={{
-                  margin: "12px 0 0",
-                  fontSize: "1rem",
-                  lineHeight: 1.65,
-                  color: "#475569",
-                  maxWidth: "72ch",
-                }}
-              >
-                This repo now owns backoffice authentication and the early admin shell. The remaining screens will land in
-                controlled extraction waves.
-              </p>
             </div>
 
             <div
               style={{
-                display: "grid",
-                gap: "14px",
-                minWidth: "280px",
-                maxWidth: "360px",
-                width: "100%",
+                display: "flex",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "14px 18px",
               }}
             >
               <div
                 style={{
-                  borderRadius: "22px",
-                  border: "1px solid rgba(148,163,184,0.24)",
-                  background: "#ffffff",
-                  padding: "18px",
-                  boxShadow: "0 18px 48px rgba(15,23,42,0.06)",
+                  display: "grid",
+                  gap: "10px",
                 }}
               >
-                <div style={eyebrowStyle}>Signed In As</div>
-                <div style={valueStyle}>{loggedInAs || "Unknown"}</div>
-                <div style={{ ...eyebrowStyle, marginTop: "16px" }}>Role</div>
-                <div style={valueStyle}>{role}</div>
-                <div style={{ ...eyebrowStyle, marginTop: "16px" }}>Brand Scope</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+                <div style={metaRowStyle}>
+                  <span style={eyebrowStyle}>Signed In As</span>
+                  <span style={valueStyle}>{loggedInAs || "Unknown"}</span>
+                </div>
+                <div style={metaRowStyle}>
+                  <span style={eyebrowStyle}>Role</span>
+                  <span style={valueStyle}>{role}</span>
+                </div>
+                <div style={metaRowStyle}>
+                  <span style={eyebrowStyle}>Brand Scope</span>
                   {brands.length ? (
-                    brands.map((brand) => (
-                      <span key={brand} style={brandChipStyle}>
-                        {brand}
-                      </span>
-                    ))
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
+                      {brands.map((brand) => (
+                        <span key={brand} style={brandChipStyle}>
+                          {brand}
+                        </span>
+                      ))}
+                    </div>
                   ) : (
                     <span style={{ color: "#64748b", fontSize: "0.92rem" }}>No brands assigned</span>
                   )}
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
                 <AdminSignOutButton />
               </div>
             </div>
-          </section>
+          </div>
+        </header>
 
+        <main
+          style={{
+            margin: "0 auto",
+            maxWidth: "1320px",
+            padding: "24px 20px 72px",
+          }}
+        >
           <section
             style={{
               display: "grid",
@@ -149,10 +151,10 @@ const eyebrowStyle: CSSProperties = {
 };
 
 const valueStyle: CSSProperties = {
-  marginTop: "6px",
-  fontSize: "0.98rem",
+  fontSize: "0.94rem",
   fontWeight: 700,
   color: "#0f172a",
+  textAlign: "right",
 };
 
 const brandChipStyle: CSSProperties = {
@@ -162,4 +164,12 @@ const brandChipStyle: CSSProperties = {
   color: "#0f172a",
   fontSize: "0.82rem",
   fontWeight: 700,
+};
+
+const metaRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "10px 12px",
 };
