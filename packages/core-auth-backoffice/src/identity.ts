@@ -6,7 +6,7 @@ import {
   BrandStatus,
   type Prisma,
 } from "@prisma/client";
-import { getProtectedBackofficeEmail } from "@command/core-config";
+import { getConfiguredProtectedBackofficeEmail } from "@command/core-config";
 import { prisma } from "@command/core-db";
 import { deriveBackofficeMfaState, type BackofficeMfaState } from "./mfa";
 import {
@@ -149,7 +149,8 @@ function toBackofficeAuthUser(state: BackofficeIdentityState): BackofficeAuthUse
 
 export function isProtectedBackofficeIdentity(email: string | null | undefined, _username: string | null | undefined): boolean {
   const normalizedEmail = normalizeEmail(email);
-  return Boolean(normalizedEmail && normalizedEmail === getProtectedBackofficeEmail());
+  const protectedEmail = getConfiguredProtectedBackofficeEmail();
+  return Boolean(normalizedEmail && protectedEmail && normalizedEmail === protectedEmail);
 }
 
 async function fetchBackofficeUserByIdentifier(identifier: string): Promise<BackofficeUserWithAccess | null> {
