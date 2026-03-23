@@ -117,11 +117,11 @@ function SummaryCard({ label, value, tone }: { label: string; value: string; ton
         borderRadius: "12px",
         border: `1px solid ${palette.border}`,
         background: palette.bg,
-        padding: "18px",
+        padding: "10px 12px",
       }}
     >
       <div style={summaryLabelStyle}>{label}</div>
-      <div style={{ marginTop: "8px", fontSize: "1.9rem", fontWeight: 800, color: palette.value }}>{value}</div>
+      <div style={{ marginTop: "4px", fontSize: "1.15rem", fontWeight: 800, color: palette.value }}>{value}</div>
     </div>
   );
 }
@@ -369,12 +369,14 @@ export default function DashboardPage({
           <div
             style={{
               display: "grid",
-              gap: "14px",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "10px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(108px, 1fr))",
             }}
           >
             <SummaryCard label="Signups" value={formatCount(metrics.totals.signups)} tone="red" />
             <SummaryCard label="Logins" value={formatCount(metrics.totals.logins)} tone="slate" />
+            <SummaryCard label="Leads" value={formatCount(metrics.totals.leads)} tone="amber" />
+            <SummaryCard label="Chat Leads" value={formatCount(metrics.totals.chatLeads)} tone="amber" />
             <SummaryCard label="Tracked Login IPs" value={formatCount(metrics.ipGroups.length)} tone="amber" />
           </div>
 
@@ -434,7 +436,7 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (ctx
 
 const summaryLabelStyle: CSSProperties = {
   color: "#64748b",
-  fontSize: "0.76rem",
+  fontSize: "0.62rem",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
 };
