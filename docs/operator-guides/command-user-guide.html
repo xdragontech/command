@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Command User Guide</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #111827; margin: 42px; line-height: 1.55; font-size: 12pt; }
+    h1 { font-size: 26pt; margin: 0 0 8px 0; color: #7f1d1d; }
+    h2 { font-size: 17pt; margin: 26px 0 8px 0; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    h3 { font-size: 13pt; margin: 18px 0 6px 0; color: #111827; }
+    p, li { margin: 0 0 8px 0; }
+    ul, ol { margin: 8px 0 12px 22px; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; text-align: left; }
+    th { background: #f3f4f6; font-weight: 700; }
+    code { font-family: "SFMono-Regular", Menlo, monospace; background: #f3f4f6; padding: 1px 4px; }
+    .meta td:first-child { width: 180px; font-weight: 700; background: #f9fafb; }
+    .note { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 14px 0; }
+    .warning { background: #fff7ed; border: 1px solid #fdba74; padding: 12px 14px; margin: 14px 0; }
+    .small { color: #4b5563; font-size: 10.5pt; }
+  </style>
+</head>
+<body>
+  <h1>X Dragon Command Back Office</h1>
+  <div class="small">User Guide</div>
+
+  <table class="meta">
+    <tr><td>Audience</td><td>Daily backoffice users and operators</td></tr>
+    <tr><td>Purpose</td><td>Explain what each major feature is, what it does, and how to use it in day-to-day operations.</td></tr>
+    <tr><td>Repository Scope</td><td>Reflects the checked-out <code>main</code> branch at commit <code>b13028c</code>.</td></tr>
+  </table>
+
+  <div class="warning">
+    This user guide only covers features that exist in the checked-out repository snapshot. It does not document later scheduling/calendar work that is not present in this branch.
+  </div>
+
+  <h2>1. Getting Started</h2>
+
+  <h3>What It Is</h3>
+  <p>Command is the administrative backoffice for managing brands, operators, public client accounts, content, leads, and installation diagnostics.</p>
+
+  <h3>What It Does</h3>
+  <ul>
+    <li>Controls who can access the backoffice</li>
+    <li>Controls brand runtime settings such as hostnames and brand email configuration</li>
+    <li>Stores and manages prompts and guides</li>
+    <li>Shows lead and analytics data</li>
+  </ul>
+
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open the backoffice sign-in page.</li>
+    <li>Sign in with your backoffice credentials.</li>
+    <li>If MFA is enabled on your account, complete the authenticator code challenge.</li>
+    <li>Use the left navigation to move between Dashboard, Analytics, Leads, Accounts, Library, and Settings.</li>
+  </ol>
+
+  <div class="note">
+    Superadmins can manage all brands and operator accounts. Staff users are automatically limited to the brands assigned to them.
+  </div>
+
+  <h2>2. Dashboard</h2>
+  <h3>What It Is</h3>
+  <p>The operational summary screen for signups, logins, login IP activity, and signup-country breakdowns.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Shows period-based metrics for Today, 7 Days, and 30 Days</li>
+    <li>Shows top signup countries from stored login geography</li>
+    <li>Shows top login IPs from recorded login events</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Dashboard</code>.</li>
+    <li>Select the time period from the period buttons.</li>
+    <li>Review headline counts, the trend chart, country summary, and login IP table.</li>
+    <li>Use this page for operational monitoring, not editing.</li>
+  </ol>
+
+  <h2>3. Analytics</h2>
+  <h3>What It Is</h3>
+  <p>A read-only lead analytics view built from the lead-event stream.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Shows deduped total leads</li>
+    <li>Separates contact leads and chat leads</li>
+    <li>Shows a 7-day summary and brand breakdown</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Analytics</code>.</li>
+    <li>Click <code>Refresh</code> to reload the current numbers.</li>
+    <li>Use the top cards for totals and the lower table for brand comparison.</li>
+  </ol>
+
+  <h2>4. Leads</h2>
+  <h3>What It Is</h3>
+  <p>A searchable operational table of recent contact and chat leads.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Filters by source and brand</li>
+    <li>Searches by name, email, and other displayed values</li>
+    <li>Exports the visible result set to CSV or JSON</li>
+    <li>Allows operators to copy the raw JSON payload for a lead row</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Leads</code>.</li>
+    <li>Filter by source or brand as needed.</li>
+    <li>Use search to narrow the table.</li>
+    <li>Export the current filtered result set when you need to share or archive it.</li>
+  </ol>
+
+  <h2>5. Staff Accounts</h2>
+  <h3>What It Is</h3>
+  <p>The operator-management screen for backoffice staff and superadmin identities.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Creates staff and superadmin accounts</li>
+    <li>Assigns brand access to staff</li>
+    <li>Blocks, unblocks, and deletes accounts</li>
+    <li>Generates invite links and password reset links</li>
+    <li>Resets authenticator MFA when needed</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Accounts / Staff</code>.</li>
+    <li>Select an existing user from the directory, or click <code>Add Staff</code>.</li>
+    <li>Set username, email, role, password, and brand assignments.</li>
+    <li>Use <code>Create &amp; Invite</code> when you want a one-time invite link instead of setting final credentials manually.</li>
+    <li>Use <code>Reset MFA</code> only when an operator has lost access to their authenticator setup.</li>
+  </ol>
+
+  <h2>6. Client Accounts</h2>
+  <h3>What It Is</h3>
+  <p>The management screen for brand-scoped external/public users.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Creates and edits external client accounts</li>
+    <li>Assigns them to a brand</li>
+    <li>Marks email as verified when needed</li>
+    <li>Blocks, unblocks, or deletes accounts</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Accounts / Clients</code>.</li>
+    <li>Select a client account or click <code>Add Client</code>.</li>
+    <li>Enter client name, email, brand, and password if creating a new account.</li>
+    <li>Use <code>Mark Verified</code> only when you intentionally need to bypass the normal email-verification flow.</li>
+    <li>Use <code>Block</code> or <code>Unblock</code> to control sign-in eligibility.</li>
+  </ol>
+
+  <h2>7. Brands</h2>
+  <h3>What It Is</h3>
+  <p>The live source-of-truth screen for brand identity, runtime host mapping, and brand email configuration.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Creates and edits brands</li>
+    <li>Stores production and preview public/admin hosts</li>
+    <li>Stores apex host routing</li>
+    <li>Stores brand email settings such as status, from name/email, reply-to, support email, and provider secret reference</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Settings / Brands</code>.</li>
+    <li>Select a brand or click <code>Add Brand</code>.</li>
+    <li>Set the brand key and brand name.</li>
+    <li>Configure production and preview public/admin hosts.</li>
+    <li>Set brand email configuration and activate it only when email is ready for that brand.</li>
+    <li>Save the brand. Runtime host recognition depends on these saved database values.</li>
+  </ol>
+
+  <h2>8. Configs</h2>
+  <h3>What It Is</h3>
+  <p>A read-only diagnostics screen for install-level runtime and service configuration.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Shows env presence or absence</li>
+    <li>Shows masked/fingerprinted secrets and database URL summaries</li>
+    <li>Shows runtime status and database connectivity checks</li>
+    <li>Shows what the running installation is actually using</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Settings / Configs</code>.</li>
+    <li>Review the runtime, auth, and service groups.</li>
+    <li>Use this screen to confirm state, not to edit values.</li>
+    <li>Go to <code>Settings / Brands</code> for brand-level editable runtime config.</li>
+  </ol>
+
+  <h2>9. Security</h2>
+  <h3>What It Is</h3>
+  <p>The per-operator MFA management screen for authenticator-app enrollment.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Shows MFA status, method, enablement date, and recovery-code generation state</li>
+    <li>Starts MFA setup</li>
+    <li>Displays QR code, setup secret, setup URI, and recovery codes during enrollment</li>
+    <li>Verifies setup with a 6-digit authenticator code</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Settings / Security</code>.</li>
+    <li>If MFA is disabled, click <code>Set Up Authenticator</code>.</li>
+    <li>Scan the QR code or copy the setup secret into your authenticator app.</li>
+    <li>Save the recovery codes before completing setup.</li>
+    <li>Enter a current 6-digit code to finish enrollment.</li>
+  </ol>
+
+  <h2>10. Prompt Library</h2>
+  <h3>What It Is</h3>
+  <p>The brand-scoped prompt management area.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Creates, edits, publishes, archives, and deletes prompts</li>
+    <li>Creates and edits prompt categories</li>
+    <li>Filters by status, brand, category, and search</li>
+    <li>Keeps category uniqueness within each brand only</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Library / Prompts</code>.</li>
+    <li>Use the top filters to narrow the list.</li>
+    <li>Select an existing prompt or click <code>Add Prompt</code>.</li>
+    <li>Set title, status, brand, category, description, and content.</li>
+    <li>Save when ready. Use the Categories card to maintain prompt categories separately.</li>
+  </ol>
+
+  <h2>11. Guide Library</h2>
+  <h3>What It Is</h3>
+  <p>The brand-scoped guide management area, backed by the article tables.</p>
+  <h3>What It Does</h3>
+  <ul>
+    <li>Creates, edits, publishes, archives, and deletes guides</li>
+    <li>Creates and edits guide categories</li>
+    <li>Stores slug, summary, content, category, and tags</li>
+    <li>Enforces brand-scoped uniqueness for category names, category slugs, and guide slugs</li>
+  </ul>
+  <h3>How To Use It</h3>
+  <ol>
+    <li>Open <code>Library / Guides</code>.</li>
+    <li>Filter by status, brand, category, and search.</li>
+    <li>Select a guide or click <code>Add Guide</code>.</li>
+    <li>Set title, slug, status, brand, guide category, tags, summary, and content.</li>
+    <li>Use the lower Guide Categories section to manage guide categories independently.</li>
+  </ol>
+
+  <h2>12. Common Operating Rules</h2>
+  <ul>
+    <li>Use superadmin accounts for install-wide administration only.</li>
+    <li>Use staff accounts when you want brand-scoped operational access.</li>
+    <li>Do not use Configs to “edit” runtime state; it is intentionally read-only.</li>
+    <li>Treat Brand configuration as live runtime config: host and email mistakes there affect real behavior.</li>
+    <li>Use the public-api contract for website integration; do not integrate websites against admin-web internal routes.</li>
+  </ul>
+</body>
+</html>

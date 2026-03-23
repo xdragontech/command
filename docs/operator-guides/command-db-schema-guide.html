@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Command DB Schema Guide</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #111827; margin: 42px; line-height: 1.55; font-size: 12pt; }
+    h1 { font-size: 26pt; margin: 0 0 8px 0; color: #7f1d1d; }
+    h2 { font-size: 17pt; margin: 26px 0 8px 0; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    h3 { font-size: 13pt; margin: 18px 0 6px 0; color: #111827; }
+    p, li { margin: 0 0 8px 0; }
+    ul { margin: 8px 0 12px 22px; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; text-align: left; }
+    th { background: #f3f4f6; font-weight: 700; }
+    code { font-family: "SFMono-Regular", Menlo, monospace; background: #f3f4f6; padding: 1px 4px; }
+    .meta td:first-child { width: 180px; font-weight: 700; background: #f9fafb; }
+    .note { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 14px 0; }
+    .warning { background: #fff7ed; border: 1px solid #fdba74; padding: 12px 14px; margin: 14px 0; }
+    .small { color: #4b5563; font-size: 10.5pt; }
+  </style>
+</head>
+<body>
+  <h1>X Dragon Command Back Office</h1>
+  <div class="small">DB Schema Guide</div>
+
+  <table class="meta">
+    <tr><td>Audience</td><td>Technical reviewers, operators, and developers</td></tr>
+    <tr><td>Purpose</td><td>Summarize the current Prisma schema, describe the tables by feature domain, and explain the main data relationships and hierarchy.</td></tr>
+    <tr><td>Schema Source</td><td><code>prisma/schema.prisma</code> at commit <code>b13028c</code></td></tr>
+  </table>
+
+  <div class="warning">
+    This schema guide reflects the current checked-out schema only. Scheduling/calendar tables discussed in later planning are not present in this snapshot.
+  </div>
+
+  <h2>1. Schema Overview</h2>
+  <p>The schema is organized around six main domains:</p>
+  <ol>
+    <li>Legacy user/auth tables</li>
+    <li>Brand and runtime configuration</li>
+    <li>Backoffice operator identity</li>
+    <li>External/client identity</li>
+    <li>Content (prompts and guides)</li>
+    <li>Leads and lead events</li>
+  </ol>
+
+  <div class="note">
+    The most important structural rule in this schema is <strong>brand scoping</strong>. Many operational tables are anchored under <code>Brand</code>, which is the installation’s primary tenant/context boundary.
+  </div>
+
+  <h2>2. Core Enums</h2>
+  <table>
+    <tr><th>Enum</th><th>Values</th><th>Used For</th></tr>
+    <tr><td><code>BrandStatus</code></td><td>SETUP_PENDING, ACTIVE, DISABLED</td><td>Brand lifecycle and runtime readiness</td></tr>
+    <tr><td><code>BrandEnvironment</code></td><td>PRODUCTION, PREVIEW</td><td>Host mapping by environment</td></tr>
+    <tr><td><code>BrandHostKind</code></td><td>PUBLIC, ADMIN, APEX, ALIAS</td><td>Brand hostname types</td></tr>
+    <tr><td><code>BrandEmailConfigStatus</code></td><td>ACTIVE, INACTIVE</td><td>Brand email readiness</td></tr>
+    <tr><td><code>BrandEmailProvider</code></td><td>RESEND</td><td>Current supported brand email provider</td></tr>
+    <tr><td><code>BackofficeRole</code></td><td>SUPERADMIN, STAFF</td><td>Backoffice operator authorization</td></tr>
+    <tr><td><code>BackofficeUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Backoffice sign-in status</td></tr>
+    <tr><td><code>BackofficeMfaMethod</code></td><td>AUTHENTICATOR_APP</td><td>Backoffice MFA method</td></tr>
+    <tr><td><code>ExternalUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Public/client account status</td></tr>
+    <tr><td><code>PromptStatus</code></td><td>DRAFT, PUBLISHED, ARCHIVED</td><td>Prompt and guide/article publishing state</td></tr>
+    <tr><td><code>LeadSource</code></td><td>CONTACT, CHAT</td><td>Lead origin</td></tr>
+  </table>
+
+  <h2>3. Data Hierarchy</h2>
+  <ul>
+    <li><strong>Install-wide identity</strong>: legacy <code>User</code> tables and backoffice operator tables</li>
+    <li><strong>Brand</strong> sits at the center of runtime configuration and brand-scoped operational data</li>
+    <li><strong>Backoffice users</strong> gain brand access through the join table <code>BackofficeUserBrandAccess</code></li>
+    <li><strong>External users</strong> are directly brand-scoped</li>
+    <li><strong>Prompts, guides, guide categories, leads, and lead events</strong> can all be brand-scoped</li>
+  </ul>
+
+  <h2>4. Domain: Legacy Auth And User Tables</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>User</code></td><td>Legacy user table still present in the shared schema</td><td>Owns <code>Account</code>, <code>Session</code>, <code>LoginEvent</code>, and optional links to <code>ExternalUser</code>.</td></tr>
+    <tr><td><code>Account</code></td><td>Legacy auth provider linkage</td><td>Standard provider/account identifier pair tied to <code>User</code>.</td></tr>
+    <tr><td><code>Session</code></td><td>Legacy user session records</td><td>Session token + expiry for <code>User</code>.</td></tr>
+    <tr><td><code>EmailVerificationToken</code></td><td>Email verification token storage</td><td>Token and expiry keyed by identifier.</td></tr>
+    <tr><td><code>VerificationToken</code></td><td>General verification token storage</td><td>Unique by <code>(identifier, token)</code>.</td></tr>
+    <tr><td><code>PasswordResetToken</code></td><td>Legacy password reset flow</td><td>Stores the hashed token, not the raw token.</td></tr>
+    <tr><td><code>LoginEvent</code></td><td>Legacy login audit/history</td><td>Captures IP, optional country, user agent, and timestamp.</td></tr>
+  </table>
+
+  <h2>5. Domain: Brand And Runtime Configuration</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>Brand</code></td><td>Top-level brand/tenant record</td><td>Parent for hosts, email config, content, leads, staff access, and external identities.</td></tr>
+    <tr><td><code>BrandHost</code></td><td>Host routing map for a brand</td><td>Stores host, environment, kind, and canonical flag. Host value is globally unique.</td></tr>
+    <tr><td><code>BrandEmailConfig</code></td><td>Brand email settings</td><td>One-to-one with <code>Brand</code>; stores provider, status, from/reply/support addresses, and provider secret reference.</td></tr>
+  </table>
+
+  <h2>6. Domain: Backoffice Identity</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>BackofficeUser</code></td><td>Primary operator account table</td><td>Stores username, optional email, password hash, role, status, MFA data, and last selected brand key.</td></tr>
+    <tr><td><code>BackofficeUserBrandAccess</code></td><td>Brand access join table</td><td>Composite primary key <code>(userId, brandId)</code>; grants staff brand scope.</td></tr>
+    <tr><td><code>BackofficeAccount</code></td><td>Backoffice auth provider linkage</td><td>Provider/account table for backoffice identities.</td></tr>
+    <tr><td><code>BackofficeSession</code></td><td>Backoffice session table</td><td>Stores session tokens and expiry for <code>BackofficeUser</code>.</td></tr>
+    <tr><td><code>BackofficeVerificationToken</code></td><td>Verification token storage</td><td>Used for backoffice verification flows.</td></tr>
+    <tr><td><code>BackofficePasswordResetToken</code></td><td>Backoffice password reset storage</td><td>Stores reset token, identifier, expiry, and creation time.</td></tr>
+  </table>
+
+  <h2>7. Domain: External / Client Identity</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>ExternalUser</code></td><td>Brand-scoped public/client account</td><td>Unique by <code>(brandId, email)</code>; optional legacy user link; owns sessions, accounts, and login events.</td></tr>
+    <tr><td><code>ExternalAccount</code></td><td>External auth provider linkage</td><td>Unique by <code>(brandId, provider, providerAccountId)</code>.</td></tr>
+    <tr><td><code>ExternalSession</code></td><td>External session storage</td><td>Opaque session tokens used by the BFF/public-api model.</td></tr>
+    <tr><td><code>ExternalLoginEvent</code></td><td>External login audit/history</td><td>Captures brand-scoped IP, country, user agent, and timestamp.</td></tr>
+    <tr><td><code>ExternalVerificationToken</code></td><td>Brand-scoped verification token</td><td>Unique by <code>(brandId, identifier, token)</code>.</td></tr>
+    <tr><td><code>ExternalEmailVerificationToken</code></td><td>Brand-scoped email verification token</td><td>Indexed by brand and identifier.</td></tr>
+    <tr><td><code>ExternalPasswordResetToken</code></td><td>Brand-scoped password reset token</td><td>Indexed by brand and identifier and includes creation time.</td></tr>
+  </table>
+
+  <h2>8. Domain: Content</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>Category</code></td><td>Prompt category table</td><td>Brand-scoped uniqueness on <code>(brandId, name)</code> and <code>(brandId, slug)</code>.</td></tr>
+    <tr><td><code>Prompt</code></td><td>Prompt library content</td><td>Stores title, description, content, status, sort order, tags, and optional brand/category links.</td></tr>
+    <tr><td><code>ArticleCategory</code></td><td>Guide/article category table</td><td>Brand-scoped uniqueness on name and slug, parallel to prompt categories.</td></tr>
+    <tr><td><code>Article</code></td><td>Guide/article content table</td><td>Stores title, slug, summary, content, status, tags, and optional brand/category links. <code>(brandId, slug)</code> is unique.</td></tr>
+  </table>
+
+  <p>Important content rule: categories and guide categories are <strong>brand-scoped</strong>, which means the same category name can be reused in different brands without collision.</p>
+
+  <h2>9. Domain: Leads</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>Lead</code></td><td>Durable lead summary row</td><td>Optional brand scope; stores source, name, email, IP, and raw payload.</td></tr>
+    <tr><td><code>LeadEvent</code></td><td>Append-only lead event stream</td><td>Source of truth for lead analytics and lead history; may optionally link back to <code>Lead</code>.</td></tr>
+  </table>
+
+  <p>The code explicitly treats <code>LeadEvent</code> as the analytics source of truth. Dashboard and analytics counts are deduped from event data rather than simple raw-event totals.</p>
+
+  <h2>10. Relationship Notes By Feature</h2>
+  <ul>
+    <li><strong>Brand → Host mapping:</strong> each brand can own multiple hosts, separated by environment and host kind.</li>
+    <li><strong>Brand → External users:</strong> public/client accounts are directly brand-scoped.</li>
+    <li><strong>BackofficeUser ↔ Brand:</strong> staff access is many-to-many through <code>BackofficeUserBrandAccess</code>.</li>
+    <li><strong>Prompt / Article content:</strong> both can optionally be unscoped, but the backoffice UI is built around brand-scoped management.</li>
+    <li><strong>LeadEvent → Lead:</strong> lead events may point to a durable lead row when one exists, but analytics still read the event stream.</li>
+  </ul>
+
+  <h2>11. Practical Hierarchy Summary</h2>
+  <pre>Brand
+  ├─ BrandHost
+  ├─ BrandEmailConfig
+  ├─ BackofficeUserBrandAccess
+  ├─ ExternalUser
+  │   ├─ ExternalAccount
+  │   ├─ ExternalSession
+  │   └─ ExternalLoginEvent
+  ├─ ExternalVerificationToken / ExternalEmailVerificationToken / ExternalPasswordResetToken
+  ├─ Category
+  │   └─ Prompt
+  ├─ ArticleCategory
+  │   └─ Article
+  ├─ Lead
+  │   └─ LeadEvent
+  └─ LeadEvent</pre>
+
+  <h2>12. Review Notes</h2>
+  <ul>
+    <li>The schema still contains legacy user/auth tables alongside newer backoffice and external identity domains.</li>
+    <li>The public-api contract assumes external identity and brand-scoped resources from this schema.</li>
+    <li>No scheduling/calendar schema exists in this branch, so seeded scheduling smoke work cannot be validated against this snapshot alone.</li>
+  </ul>
+</body>
+</html>
