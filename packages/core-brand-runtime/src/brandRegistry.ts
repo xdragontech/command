@@ -18,6 +18,8 @@ type BrandWithHosts = Prisma.BrandGetPayload<{
   };
 }>;
 
+type EditableBrandPersistenceClient = Pick<Prisma.TransactionClient, "brand" | "brandHost"> | Pick<typeof prisma, "brand" | "brandHost">;
+
 export type EditableBrandEmailConfig = {
   status: BrandEmailConfigStatus;
   provider: BrandEmailProvider;
@@ -287,6 +289,10 @@ function validateBrandInput(raw: any): EditableBrandInput {
   };
 }
 
+export function validateEditableBrandInput(raw: any): EditableBrandInput {
+  return validateBrandInput(raw);
+}
+
 async function ensureHostAvailability(
   client: Pick<typeof prisma, "brandHost">,
   hosts: ReturnType<typeof buildHostRows>,
@@ -352,46 +358,54 @@ export async function listEditableBrands(search = ""): Promise<EditableBrandReco
 }
 
 export async function createEditableBrand(raw: any): Promise<EditableBrandRecord> {
-  const input = validateBrandInput(raw);
-  const hosts = buildHostRows(input);
-  await ensureHostAvailability(prisma, hosts);
-
-  const brand = await prisma.brand.create({
-    data: {
-      brandKey: input.brandKey,
-      name: input.name,
-      status: input.status,
-      hosts: {
-        create: hosts,
-      },
-      emailConfig: {
-        create: {
-          status: input.emailConfig.status,
-          provider: input.emailConfig.provider,
-          providerSecretRef: input.emailConfig.providerSecretRef,
-          fromName: input.emailConfig.fromName || null,
-          fromEmail: input.emailConfig.fromEmail || null,
-          replyToEmail: input.emailConfig.replyToEmail || null,
-          supportEmail: input.emailConfig.supportEmail || null,
-        },
-      },
-    },
-    include: { hosts: true, emailConfig: true },
-  });
-
-  return mapBrandToEditorRecord(brand);
+  return saveEditableBrandWithClient(prisma, raw);
 }
 
 export async function updateEditableBrand(id: string, raw: any): Promise<EditableBrandRecord> {
+  return saveEditableBrandWithClient(prisma, raw, id);
+}
+
+export async function saveEditableBrandWithClient(
+  client: EditableBrandPersistenceClient,
+  raw: any,
+  existingBrandId?: string
+): Promise<EditableBrandRecord> {
   const input = validateBrandInput(raw);
   const hosts = buildHostRows(input);
-  await ensureHostAvailability(prisma, hosts, id);
+  await ensureHostAvailability(client as any, hosts, existingBrandId);
 
-  const brand = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    await tx.brand.findUniqueOrThrow({ where: { id } });
-    await tx.brandHost.deleteMany({ where: { brandId: id } });
-    return tx.brand.update({
-      where: { id },
+  if (!existingBrandId) {
+    const brand = await client.brand.create({
+      data: {
+        brandKey: input.brandKey,
+        name: input.name,
+        status: input.status,
+        hosts: {
+          create: hosts,
+        },
+        emailConfig: {
+          create: {
+            status: input.emailConfig.status,
+            provider: input.emailConfig.provider,
+            providerSecretRef: input.emailConfig.providerSecretRef,
+            fromName: input.emailConfig.fromName || null,
+            fromEmail: input.emailConfig.fromEmail || null,
+            replyToEmail: input.emailConfig.replyToEmail || null,
+            supportEmail: input.emailConfig.supportEmail || null,
+          },
+        },
+      },
+      include: { hosts: true, emailConfig: true },
+    });
+
+    return mapBrandToEditorRecord(brand);
+  }
+
+  await client.brand.findUniqueOrThrow({ where: { id: existingBrandId } });
+  await client.brandHost.deleteMany({ where: { brandId: existingBrandId } });
+
+  const brand = await client.brand.update({
+      where: { id: existingBrandId },
       data: {
         brandKey: input.brandKey,
         name: input.name,
@@ -423,7 +437,6 @@ export async function updateEditableBrand(id: string, raw: any): Promise<Editabl
         },
       },
       include: { hosts: true, emailConfig: true },
-    });
   });
 
   return mapBrandToEditorRecord(brand);

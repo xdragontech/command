@@ -1,6 +1,7 @@
 import type { GetServerSidePropsResult } from "next";
 import { prisma } from "@command/core-db";
 import {
+  getBackofficeBootstrapPasswordEnvKey,
   getConfiguredProtectedBackofficeEmail,
   getProtectedBackofficeEmailEnvKey,
 } from "@command/core-config";
@@ -87,8 +88,8 @@ export function collectSetupPrerequisites(): SetupPrerequisiteItem[] {
     summarizeEnvPresence("NEXTAUTH_SECRET", "NextAuth Secret", true),
     summarizeEnvPresence("BACKOFFICE_MFA_ENCRYPTION_KEY", "Backoffice MFA Encryption Key", true),
     summarizeEnvPresence(getProtectedBackofficeEmailEnvKey(), "Bootstrap Superadmin Email", true),
+    summarizeEnvPresence(getBackofficeBootstrapPasswordEnvKey(), "Setup Access Password", true),
     summarizeEnvPresence("BACKOFFICE_MFA_ISSUER", "Backoffice MFA Issuer", false),
-    summarizeEnvPresence("BACKOFFICE_BOOTSTRAP_PASSWORD", "Bootstrap Recovery Password", false),
   ];
 }
 

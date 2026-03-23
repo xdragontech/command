@@ -1,7 +1,7 @@
 # Setup Onboarding Contract
 
 **Purpose**
-Define the first-run setup page contract for `command` before implementation.
+Define the first-run setup page contract for `command`.
 
 This document exists to prevent a sloppy outcome where the setup page becomes a second bootstrap path with unclear ownership. The page must become the DB-backed onboarding surface, while env/deployment secrets remain operator-owned.
 
@@ -38,6 +38,8 @@ Before `/setup` can be used, these install-level envs must already exist:
 
 Recommended but not strictly required to render the page:
 - `BACKOFFICE_MFA_ISSUER`
+
+Required to unlock and complete the page:
 - `BACKOFFICE_BOOTSTRAP_PASSWORD`
 
 Reason:
@@ -72,8 +74,6 @@ Recommended required inputs:
 - production admin host
 - preview public host
 - preview admin host
-- bootstrap superadmin password
-- bootstrap superadmin password confirmation
 
 Recommended email section:
 - email enabled toggle or status
@@ -124,7 +124,7 @@ The setup page should:
 - read that email
 - show it clearly as the protected bootstrap account email
 - create the bootstrap user record if it does not exist
-- set the submitted password hash directly in the DB
+- set the initial password hash from the configured `BACKOFFICE_BOOTSTRAP_PASSWORD`
 
 It should **not** ask the operator to choose a different bootstrap email at runtime in v1.
 
@@ -178,15 +178,14 @@ This gating should be explicit and centralized, not duplicated across pages.
 
 ## Completion Output
 
-After successful setup, the page should show:
+V1 may redirect directly to `/admin/signin` after successful setup.
+
+Future polish may add an intermediate completion screen showing:
 - setup complete status
 - configured bootstrap email
 - configured brand and host summary
 - email readiness status
 - remaining operator actions, if any
-
-Then it should route to:
-- `/admin/signin`
 
 ## Explicit Non-Goals For V1
 
@@ -207,9 +206,11 @@ After the page is implemented:
 
 ## Recommendation
 
-Implement the setup page in two passes:
+Implemented in two passes:
 
 1. contract-backed install state and gating
 2. the actual `/setup` UI and transaction flow
 
-Do not start with the page UI first. Without explicit install-state ownership and route gating, the UI will become another fragile bootstrap surface instead of the product entry point.
+Remaining follow-up:
+- broaden packaging/onboarding around the setup flow
+- eventually replace the bootstrap-password gate with a more explicit install-claim model if product requirements demand it
