@@ -18,6 +18,10 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
     <>
       <Head>
         <title>{title}</title>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </Head>
 
       <div
@@ -41,80 +45,72 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
             style={{
               margin: "0 auto",
               maxWidth: "1320px",
-              padding: "16px 20px",
+              padding: "20px 20px 18px",
               display: "flex",
-              flexWrap: "wrap",
-              alignItems: "center",
+              flexWrap: "nowrap",
+              alignItems: "flex-start",
               justifyContent: "space-between",
-              gap: "16px 20px",
+              gap: "24px",
             }}
           >
-            <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: "22px",
+                minWidth: 0,
+              }}
+            >
               <div
                 style={{
-                  fontSize: "0.82rem",
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  color: "#475569",
-                  marginBottom: "10px",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  flexShrink: 0,
+                }}
+              >
+                <img src="/logo.png" alt="X Dragon logo" style={{ height: "58px", width: "auto", display: "block" }} />
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontFamily: "Orbitron, ui-sans-serif, system-ui",
+                    fontSize: "1.75rem",
+                    fontWeight: 600,
+                    lineHeight: 1,
+                    color: "#111827",
+                    letterSpacing: "-0.03em",
+                  }}
+                >
+                  Command
+                </div>
+              </div>
+
+              <div
+                style={{
+                  minHeight: "58px",
+                  display: "flex",
+                  alignItems: "center",
+                  color: "#4b5563",
+                  fontSize: "0.98rem",
+                  fontWeight: 500,
                 }}
               >
                 {sectionLabel}
               </div>
-              <h1
-                style={{
-                  margin: 0,
-                  fontSize: "1.9rem",
-                  lineHeight: 1.02,
-                  letterSpacing: "-0.04em",
-                }}
-              >
-                Command Admin
-              </h1>
             </div>
 
             <div
               style={{
                 display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
+                flexDirection: "column",
+                alignItems: "flex-end",
                 justifyContent: "flex-end",
-                gap: "14px 18px",
+                gap: "10px",
+                flexShrink: 0,
               }}
             >
-              <div
-                style={{
-                  display: "grid",
-                  gap: "10px",
-                }}
-              >
-                <div style={metaRowStyle}>
-                  <span style={eyebrowStyle}>Signed In As</span>
-                  <span style={valueStyle}>{loggedInAs || "Unknown"}</span>
-                </div>
-                <div style={metaRowStyle}>
-                  <span style={eyebrowStyle}>Role</span>
-                  <span style={valueStyle}>{role}</span>
-                </div>
-                <div style={metaRowStyle}>
-                  <span style={eyebrowStyle}>Brand Scope</span>
-                  {brands.length ? (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
-                      {brands.map((brand) => (
-                        <span key={brand} style={brandChipStyle}>
-                          {brand}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span style={{ color: "#64748b", fontSize: "0.92rem" }}>No brands assigned</span>
-                  )}
-                </div>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
-                <AdminSignOutButton />
-              </div>
+              <AdminSignOutButton />
+              {loggedInAs ? <div style={loggedInStyle}>Logged in as: {loggedInAs}</div> : null}
             </div>
           </div>
         </header>
@@ -143,33 +139,8 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
   );
 }
 
-const eyebrowStyle: CSSProperties = {
-  color: "#64748b",
-  fontSize: "0.78rem",
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-};
-
-const valueStyle: CSSProperties = {
-  fontSize: "0.94rem",
-  fontWeight: 700,
-  color: "#0f172a",
-  textAlign: "right",
-};
-
-const brandChipStyle: CSSProperties = {
-  padding: "6px 10px",
-  borderRadius: "999px",
-  background: "#e2e8f0",
-  color: "#0f172a",
-  fontSize: "0.82rem",
-  fontWeight: 700,
-};
-
-const metaRowStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "10px 12px",
+const loggedInStyle: CSSProperties = {
+  color: "#52525b",
+  fontSize: "0.95rem",
+  fontWeight: 500,
 };
