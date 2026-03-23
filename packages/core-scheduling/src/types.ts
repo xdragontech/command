@@ -221,6 +221,54 @@ export type CreateScheduleAssignmentInput = {
   allowConflicts?: boolean;
 };
 
+export type PublicScheduleFeedRange = {
+  from: string;
+  to: string;
+};
+
+export type PublicScheduleEntry = {
+  id: string;
+  kind: ScheduleAssignmentKind;
+  status: ScheduleAssignmentStatus;
+  allDay: boolean;
+  occursOn: string;
+  timezone: string;
+  start: string;
+  end: string;
+  startsAtMinutes: number;
+  endsAtMinutes: number;
+  timeLabel: string;
+  occurrenceWindowLabel: string;
+  sequence: number | null;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  locationLabel: string;
+  url: string | null;
+  eventSeries: {
+    id: string;
+    slug: string;
+    name: string;
+  };
+  occurrence: {
+    id: string;
+    name: string | null;
+    status: ScheduleEventOccurrenceStatus;
+  };
+  resource: {
+    id: string;
+    slug: string;
+    name: string;
+    type: ScheduleResourceType;
+  };
+  participant: {
+    id: string;
+    slug: string;
+    displayName: string;
+    type: ScheduleParticipantType;
+  };
+};
+
 export type UpdateScheduleAssignmentInput = {
   occurrenceId?: string;
   resourceId?: string;

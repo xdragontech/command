@@ -18,6 +18,8 @@ tags:
     description: Authenticated external account profile operations
   - name: Resources
     description: Authenticated brand-scoped prompt and guide feeds
+  - name: Scheduling
+    description: Integration-authenticated published schedule feeds for public websites
   - name: Services
     description: Public website service flows such as contact and chat lead intake
 security:
@@ -312,6 +314,173 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /v1/schedule/calendar:
+    get:
+      tags: [Scheduling]
+      summary: List published schedule entries for calendar rendering
+      description: |
+        Returns published schedule entries for the integration's brand context. This endpoint is
+        integration-authenticated but does not require an end-user session because the returned
+        data is intended for public website rendering.
+      parameters:
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Inclusive start date for the requested schedule range.
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Inclusive end date for the requested schedule range.
+        - in: query
+          name: occurrenceDate
+          schema:
+            type: string
+            format: date
+          description: Exact occurrence date shortcut.
+        - in: query
+          name: eventSeries
+          schema:
+            type: string
+          description: Exact event-series slug or name filter.
+        - in: query
+          name: participantType
+          schema:
+            type: string
+            enum: [ENTERTAINMENT, FOOD_VENDOR, MARKET_VENDOR]
+        - in: query
+          name: resource
+          schema:
+            type: string
+          description: Exact resource slug or name filter.
+        - in: query
+          name: location
+          schema:
+            type: string
+          description: Alias for the resource filter.
+        - in: query
+          name: resourceType
+          schema:
+            type: string
+            enum: [STAGE, FOOD_SPOT, MARKET_SPOT, OTHER]
+        - in: query
+          name: sequence
+          schema:
+            type: integer
+            minimum: 1
+          description: Entertainment sequence filter derived from time order within a resource/day.
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Free-text search across titles, participants, event series, and locations.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 300
+      responses:
+        '200':
+          description: Calendar feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleCalendarResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/schedule/list:
+    get:
+      tags: [Scheduling]
+      summary: List published schedule entries for public listing UIs
+      description: |
+        Returns published schedule entries in list form for the integration's brand context. This
+        endpoint is integration-authenticated but does not require an end-user session.
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Exact occurrence date shortcut.
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+          description: Inclusive start date for the requested schedule range.
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+          description: Inclusive end date for the requested schedule range.
+        - in: query
+          name: occurrenceDate
+          schema:
+            type: string
+            format: date
+          description: Alias for exact occurrence date filtering.
+        - in: query
+          name: eventSeries
+          schema:
+            type: string
+          description: Exact event-series slug or name filter.
+        - in: query
+          name: participantType
+          schema:
+            type: string
+            enum: [ENTERTAINMENT, FOOD_VENDOR, MARKET_VENDOR]
+        - in: query
+          name: resource
+          schema:
+            type: string
+          description: Exact resource slug or name filter.
+        - in: query
+          name: location
+          schema:
+            type: string
+          description: Alias for the resource filter.
+        - in: query
+          name: resourceType
+          schema:
+            type: string
+            enum: [STAGE, FOOD_SPOT, MARKET_SPOT, OTHER]
+        - in: query
+          name: sequence
+          schema:
+            type: integer
+            minimum: 1
+          description: Entertainment sequence filter derived from time order within a resource/day.
+        - in: query
+          name: q
+          schema:
+            type: string
+          description: Free-text search across titles, participants, event series, and locations.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        '200':
+          description: Schedule listing feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /v1/contact:
     post:
       tags: [Services]
@@ -701,6 +870,175 @@ components:
           const: true
         item:
           $ref: '#/components/schemas/GuideDetail'
+    ScheduleRange:
+      type: object
+      additionalProperties: false
+      required: [from, to]
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+    ScheduleSeriesRef:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name]
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+    ScheduleOccurrenceRef:
+      type: object
+      additionalProperties: false
+      required: [id, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [SCHEDULED, CANCELLED]
+    ScheduleResourceRef:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, type]
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [STAGE, FOOD_SPOT, MARKET_SPOT, OTHER]
+    ScheduleParticipantRef:
+      type: object
+      additionalProperties: false
+      required: [id, slug, displayName, type]
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        displayName:
+          type: string
+        type:
+          type: string
+          enum: [ENTERTAINMENT, FOOD_VENDOR, MARKET_VENDOR]
+    ScheduleEntry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - status
+        - allDay
+        - occursOn
+        - timezone
+        - start
+        - end
+        - startsAtMinutes
+        - endsAtMinutes
+        - timeLabel
+        - occurrenceWindowLabel
+        - title
+        - locationLabel
+        - eventSeries
+        - occurrence
+        - resource
+        - participant
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [TIMED_SLOT, FULL_DAY]
+        status:
+          type: string
+          enum: [DRAFT, PUBLISHED, CANCELLED]
+        allDay:
+          type: boolean
+        occursOn:
+          type: string
+          format: date
+        timezone:
+          type: string
+        start:
+          type: string
+          description: Local schedule start value. For all-day items this is the occurrence date.
+        end:
+          type: string
+          description: Local schedule end value. For all-day items this is the exclusive next date.
+        startsAtMinutes:
+          type: integer
+        endsAtMinutes:
+          type: integer
+        timeLabel:
+          type: string
+        occurrenceWindowLabel:
+          type: string
+        sequence:
+          type: integer
+          minimum: 1
+          nullable: true
+        title:
+          type: string
+        subtitle:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        locationLabel:
+          type: string
+        url:
+          type: string
+          format: uri
+          nullable: true
+        eventSeries:
+          $ref: '#/components/schemas/ScheduleSeriesRef'
+        occurrence:
+          $ref: '#/components/schemas/ScheduleOccurrenceRef'
+        resource:
+          $ref: '#/components/schemas/ScheduleResourceRef'
+        participant:
+          $ref: '#/components/schemas/ScheduleParticipantRef'
+    ScheduleCalendarResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, range, items]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        range:
+          $ref: '#/components/schemas/ScheduleRange'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleEntry'
+    ScheduleListResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, range, items]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        range:
+          $ref: '#/components/schemas/ScheduleRange'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleEntry'
     ContactRequest:
       type: object
       additionalProperties: false

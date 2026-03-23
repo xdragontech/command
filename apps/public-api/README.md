@@ -7,6 +7,7 @@ Current v1 ownership:
 - account read/update
 - password reset
 - guides/prompts/resources
+- published schedule calendar/list feeds
 
 Important current constraint:
 - the v1 integration registry is env-backed, not DB-backed
