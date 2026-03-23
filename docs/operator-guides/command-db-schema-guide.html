@@ -9,14 +9,14 @@
     h2 { font-size: 17pt; margin: 26px 0 8px 0; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
     h3 { font-size: 13pt; margin: 18px 0 6px 0; color: #111827; }
     p, li { margin: 0 0 8px 0; }
-    ul { margin: 8px 0 12px 22px; padding: 0; }
+    ul, ol { margin: 8px 0 12px 22px; padding: 0; }
     table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
     th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; text-align: left; }
     th { background: #f3f4f6; font-weight: 700; }
     code { font-family: "SFMono-Regular", Menlo, monospace; background: #f3f4f6; padding: 1px 4px; }
+    pre { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; overflow: auto; white-space: pre-wrap; }
     .meta td:first-child { width: 180px; font-weight: 700; background: #f9fafb; }
     .note { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 14px 0; }
-    .warning { background: #fff7ed; border: 1px solid #fdba74; padding: 12px 14px; margin: 14px 0; }
     .small { color: #4b5563; font-size: 10.5pt; }
   </style>
 </head>
@@ -27,26 +27,28 @@
   <table class="meta">
     <tr><td>Audience</td><td>Technical reviewers, operators, and developers</td></tr>
     <tr><td>Purpose</td><td>Summarize the current Prisma schema, describe the tables by feature domain, and explain the main data relationships and hierarchy.</td></tr>
-    <tr><td>Schema Source</td><td><code>prisma/schema.prisma</code> at commit <code>b13028c</code></td></tr>
+    <tr><td>Schema Source</td><td><code>prisma/schema.prisma</code> in the current checked-out source as of 2026-03-23</td></tr>
   </table>
 
-  <div class="warning">
-    This schema guide reflects the current checked-out schema only. Scheduling/calendar tables discussed in later planning are not present in this snapshot.
+  <div class="note">
+    This schema now includes install setup state and the phase-1 scheduling domain alongside the earlier identity, brand, content, and lead tables.
   </div>
 
   <h2>1. Schema Overview</h2>
-  <p>The schema is organized around six main domains:</p>
+  <p>The schema is organized around eight main domains:</p>
   <ol>
     <li>Legacy user/auth tables</li>
     <li>Brand and runtime configuration</li>
+    <li>Scheduling</li>
+    <li>Install setup state</li>
     <li>Backoffice operator identity</li>
     <li>External/client identity</li>
-    <li>Content (prompts and guides)</li>
+    <li>Content (prompts, guides, and articles)</li>
     <li>Leads and lead events</li>
   </ol>
 
   <div class="note">
-    The most important structural rule in this schema is <strong>brand scoping</strong>. Many operational tables are anchored under <code>Brand</code>, which is the installation’s primary tenant/context boundary.
+    The most important structural rule is <strong>brand scoping</strong>. Most operational tables are anchored under <code>Brand</code>, which is the install’s primary tenant/context boundary.
   </div>
 
   <h2>2. Core Enums</h2>
@@ -57,21 +59,33 @@
     <tr><td><code>BrandHostKind</code></td><td>PUBLIC, ADMIN, APEX, ALIAS</td><td>Brand hostname types</td></tr>
     <tr><td><code>BrandEmailConfigStatus</code></td><td>ACTIVE, INACTIVE</td><td>Brand email readiness</td></tr>
     <tr><td><code>BrandEmailProvider</code></td><td>RESEND</td><td>Current supported brand email provider</td></tr>
-    <tr><td><code>BackofficeRole</code></td><td>SUPERADMIN, STAFF</td><td>Backoffice operator authorization</td></tr>
+    <tr><td><code>ScheduleEventSeriesStatus</code></td><td>DRAFT, ACTIVE, ARCHIVED</td><td>Schedule series lifecycle</td></tr>
+    <tr><td><code>ScheduleRecurrencePattern</code></td><td>NONE, WEEKLY</td><td>Series recurrence strategy</td></tr>
+    <tr><td><code>ScheduleWeekday</code></td><td>SUNDAY ... SATURDAY</td><td>Series weekly recurrence days</td></tr>
+    <tr><td><code>ScheduleEventOccurrenceStatus</code></td><td>SCHEDULED, CANCELLED</td><td>Occurrence lifecycle</td></tr>
+    <tr><td><code>ScheduleResourceType</code></td><td>STAGE, FOOD_SPOT, MARKET_SPOT, OTHER</td><td>Resource classification</td></tr>
+    <tr><td><code>ScheduleParticipantType</code></td><td>ENTERTAINMENT, FOOD_VENDOR, MARKET_VENDOR</td><td>Schedulable participant classification</td></tr>
+    <tr><td><code>ScheduleParticipantStatus</code></td><td>ACTIVE, INACTIVE</td><td>Participant availability state</td></tr>
+    <tr><td><code>ScheduleAssignmentKind</code></td><td>TIMED_SLOT, FULL_DAY</td><td>Assignment behavior</td></tr>
+    <tr><td><code>ScheduleAssignmentStatus</code></td><td>DRAFT, PUBLISHED, CANCELLED</td><td>Assignment public visibility state</td></tr>
+    <tr><td><code>BackofficeRole</code></td><td>SUPERADMIN, STAFF</td><td>Backoffice authorization</td></tr>
     <tr><td><code>BackofficeUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Backoffice sign-in status</td></tr>
     <tr><td><code>BackofficeMfaMethod</code></td><td>AUTHENTICATOR_APP</td><td>Backoffice MFA method</td></tr>
     <tr><td><code>ExternalUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Public/client account status</td></tr>
-    <tr><td><code>PromptStatus</code></td><td>DRAFT, PUBLISHED, ARCHIVED</td><td>Prompt and guide/article publishing state</td></tr>
+    <tr><td><code>UserStatus</code></td><td>ACTIVE, SUSPENDED</td><td>Legacy user status</td></tr>
+    <tr><td><code>UserRole</code></td><td>ADMIN, USER</td><td>Legacy user role</td></tr>
+    <tr><td><code>PromptStatus</code></td><td>DRAFT, PUBLISHED, ARCHIVED</td><td>Prompt and article publishing state</td></tr>
     <tr><td><code>LeadSource</code></td><td>CONTACT, CHAT</td><td>Lead origin</td></tr>
   </table>
 
   <h2>3. Data Hierarchy</h2>
   <ul>
-    <li><strong>Install-wide identity</strong>: legacy <code>User</code> tables and backoffice operator tables</li>
-    <li><strong>Brand</strong> sits at the center of runtime configuration and brand-scoped operational data</li>
-    <li><strong>Backoffice users</strong> gain brand access through the join table <code>BackofficeUserBrandAccess</code></li>
-    <li><strong>External users</strong> are directly brand-scoped</li>
-    <li><strong>Prompts, guides, guide categories, leads, and lead events</strong> can all be brand-scoped</li>
+    <li><strong>InstallProfile</strong> records whether the install is initialized and which brand is primary.</li>
+    <li><strong>Brand</strong> sits at the center of runtime configuration, scheduling, content, public identities, and lead data.</li>
+    <li><strong>Backoffice users</strong> gain brand access through the join table <code>BackofficeUserBrandAccess</code>.</li>
+    <li><strong>External users</strong> are directly brand-scoped.</li>
+    <li><strong>Scheduling</strong> hangs under brand through series, occurrences, resources, participants, and assignments.</li>
+    <li><strong>Prompts, articles, and leads</strong> are also brand-scoped or optionally brand-linked.</li>
   </ul>
 
   <h2>4. Domain: Legacy Auth And User Tables</h2>
@@ -89,12 +103,30 @@
   <h2>5. Domain: Brand And Runtime Configuration</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
-    <tr><td><code>Brand</code></td><td>Top-level brand/tenant record</td><td>Parent for hosts, email config, content, leads, staff access, and external identities.</td></tr>
+    <tr><td><code>Brand</code></td><td>Top-level brand/tenant record</td><td>Parent for hosts, email config, scheduling, content, leads, staff access, and external identities.</td></tr>
     <tr><td><code>BrandHost</code></td><td>Host routing map for a brand</td><td>Stores host, environment, kind, and canonical flag. Host value is globally unique.</td></tr>
-    <tr><td><code>BrandEmailConfig</code></td><td>Brand email settings</td><td>One-to-one with <code>Brand</code>; stores provider, status, from/reply/support addresses, and provider secret reference.</td></tr>
+    <tr><td><code>BrandEmailConfig</code></td><td>Brand email settings</td><td>One-to-one with <code>Brand</code>; stores provider, status, sender identity, support email, provider secret reference, and provider settings JSON.</td></tr>
   </table>
 
-  <h2>6. Domain: Backoffice Identity</h2>
+  <h2>6. Domain: Scheduling</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>ScheduleEventSeries</code></td><td>Top-level recurring or one-off event program</td><td>Brand-scoped; stores slug, timezone, recurrence pattern, recurrence days, season window, day window, status, and metadata.</td></tr>
+    <tr><td><code>ScheduleEventOccurrence</code></td><td>Materialized occurrence for a series</td><td>Belongs to a series and brand; unique by <code>(scheduleEventSeriesId, occursOn)</code>.</td></tr>
+    <tr><td><code>ScheduleResource</code></td><td>Named stage, booth, spot, or other schedulable location</td><td>Brand-scoped; unique by brand/name and brand/slug; stores type, sort order, active state, and metadata.</td></tr>
+    <tr><td><code>ScheduleParticipant</code></td><td>Unified schedulable record</td><td>Brand-scoped; stores participant type, status, display name, summary, slug, and metadata.</td></tr>
+    <tr><td><code>ScheduleAssignment</code></td><td>Actual schedule placement</td><td>Connects one occurrence, one resource, and one participant. Stores kind, publish state, start/end minutes, public display fields, notes, and metadata.</td></tr>
+  </table>
+
+  <p>Important scheduling rule: publish state lives on assignments, while conflicts and occurrence-level visibility decisions are enforced in the backend service layer.</p>
+
+  <h2>7. Domain: Install Setup State</h2>
+  <table>
+    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
+    <tr><td><code>InstallProfile</code></td><td>Singleton install setup state record</td><td>Uses fixed ID <code>install</code>; stores display name, setup completion timestamp, and primary brand reference.</td></tr>
+  </table>
+
+  <h2>8. Domain: Backoffice Identity</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
     <tr><td><code>BackofficeUser</code></td><td>Primary operator account table</td><td>Stores username, optional email, password hash, role, status, MFA data, and last selected brand key.</td></tr>
@@ -105,7 +137,7 @@
     <tr><td><code>BackofficePasswordResetToken</code></td><td>Backoffice password reset storage</td><td>Stores reset token, identifier, expiry, and creation time.</td></tr>
   </table>
 
-  <h2>7. Domain: External / Client Identity</h2>
+  <h2>9. Domain: External / Client Identity</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
     <tr><td><code>ExternalUser</code></td><td>Brand-scoped public/client account</td><td>Unique by <code>(brandId, email)</code>; optional legacy user link; owns sessions, accounts, and login events.</td></tr>
@@ -117,39 +149,52 @@
     <tr><td><code>ExternalPasswordResetToken</code></td><td>Brand-scoped password reset token</td><td>Indexed by brand and identifier and includes creation time.</td></tr>
   </table>
 
-  <h2>8. Domain: Content</h2>
+  <h2>10. Domain: Content</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
     <tr><td><code>Category</code></td><td>Prompt category table</td><td>Brand-scoped uniqueness on <code>(brandId, name)</code> and <code>(brandId, slug)</code>.</td></tr>
-    <tr><td><code>Prompt</code></td><td>Prompt library content</td><td>Stores title, description, content, status, sort order, tags, and optional brand/category links.</td></tr>
+    <tr><td><code>Prompt</code></td><td>Prompt library content</td><td>Stores title, description, content, publish status, sort order, tags, and optional brand/category links.</td></tr>
     <tr><td><code>ArticleCategory</code></td><td>Guide/article category table</td><td>Brand-scoped uniqueness on name and slug, parallel to prompt categories.</td></tr>
-    <tr><td><code>Article</code></td><td>Guide/article content table</td><td>Stores title, slug, summary, content, status, tags, and optional brand/category links. <code>(brandId, slug)</code> is unique.</td></tr>
+    <tr><td><code>Article</code></td><td>Guide/article content table</td><td>Stores title, slug, summary, content, publish status, tags, and optional brand/category links. <code>(brandId, slug)</code> is unique.</td></tr>
   </table>
 
-  <p>Important content rule: categories and guide categories are <strong>brand-scoped</strong>, which means the same category name can be reused in different brands without collision.</p>
+  <p>Important content rule: categories and article categories are <strong>brand-scoped</strong>, which means the same category name can be reused in different brands without collision.</p>
 
-  <h2>9. Domain: Leads</h2>
+  <h2>11. Domain: Leads</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
     <tr><td><code>Lead</code></td><td>Durable lead summary row</td><td>Optional brand scope; stores source, name, email, IP, and raw payload.</td></tr>
     <tr><td><code>LeadEvent</code></td><td>Append-only lead event stream</td><td>Source of truth for lead analytics and lead history; may optionally link back to <code>Lead</code>.</td></tr>
   </table>
 
-  <p>The code explicitly treats <code>LeadEvent</code> as the analytics source of truth. Dashboard and analytics counts are deduped from event data rather than simple raw-event totals.</p>
+  <p>The code treats <code>LeadEvent</code> as the analytics source of truth. Dashboard and analytics counts are derived from event data rather than simple raw-event totals.</p>
 
-  <h2>10. Relationship Notes By Feature</h2>
+  <h2>12. Relationship Notes By Feature</h2>
   <ul>
+    <li><strong>InstallProfile → Brand:</strong> the install can point to one primary brand but brands remain independent runtime records.</li>
     <li><strong>Brand → Host mapping:</strong> each brand can own multiple hosts, separated by environment and host kind.</li>
-    <li><strong>Brand → External users:</strong> public/client accounts are directly brand-scoped.</li>
+    <li><strong>Brand → Scheduling:</strong> series, occurrences, resources, participants, and assignments all remain brand-scoped.</li>
+    <li><strong>ScheduleEventSeries → ScheduleEventOccurrence:</strong> one-to-many, with explicit materialized occurrences for recurrence safety.</li>
+    <li><strong>ScheduleEventOccurrence / ScheduleResource / ScheduleParticipant → ScheduleAssignment:</strong> assignments are the concrete join point for scheduled behavior.</li>
     <li><strong>BackofficeUser ↔ Brand:</strong> staff access is many-to-many through <code>BackofficeUserBrandAccess</code>.</li>
-    <li><strong>Prompt / Article content:</strong> both can optionally be unscoped, but the backoffice UI is built around brand-scoped management.</li>
+    <li><strong>Brand → External users:</strong> public/client accounts are directly brand-scoped.</li>
+    <li><strong>Prompt / Article content:</strong> both can optionally be unscoped at the schema level, but the backoffice is built around brand-scoped management.</li>
     <li><strong>LeadEvent → Lead:</strong> lead events may point to a durable lead row when one exists, but analytics still read the event stream.</li>
   </ul>
 
-  <h2>11. Practical Hierarchy Summary</h2>
-  <pre>Brand
+  <h2>13. Practical Hierarchy Summary</h2>
+  <pre>InstallProfile
+
+Brand
   ├─ BrandHost
   ├─ BrandEmailConfig
+  ├─ ScheduleEventSeries
+  │   └─ ScheduleEventOccurrence
+  │       └─ ScheduleAssignment
+  ├─ ScheduleResource
+  │   └─ ScheduleAssignment
+  ├─ ScheduleParticipant
+  │   └─ ScheduleAssignment
   ├─ BackofficeUserBrandAccess
   ├─ ExternalUser
   │   ├─ ExternalAccount
@@ -164,11 +209,12 @@
   │   └─ LeadEvent
   └─ LeadEvent</pre>
 
-  <h2>12. Review Notes</h2>
+  <h2>14. Review Notes</h2>
   <ul>
     <li>The schema still contains legacy user/auth tables alongside newer backoffice and external identity domains.</li>
-    <li>The public-api contract assumes external identity and brand-scoped resources from this schema.</li>
-    <li>No scheduling/calendar schema exists in this branch, so seeded scheduling smoke work cannot be validated against this snapshot alone.</li>
+    <li>The public-api contract depends on the external identity, brand, content, lead, and scheduling parts of this schema.</li>
+    <li>The scheduling domain is intentionally phase-1 shaped: it supports approved/schedulable entities now, while future application-review linkage is deferred.</li>
+    <li><code>InstallProfile</code> is the explicit install-initialization marker. Setup should not be inferred indirectly from “no brands” or “no users”.</li>
   </ul>
 </body>
 </html>
