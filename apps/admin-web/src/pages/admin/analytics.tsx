@@ -136,7 +136,7 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
         title="Brand Breakdown"
         description="Lead totals grouped by brand using the same deduped contact rules as the headline cards."
       >
-        <div style={{ overflowX: "auto", borderRadius: "20px", border: "1px solid rgba(148,163,184,0.24)" }}>
+        <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
           <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
@@ -193,7 +193,7 @@ function StatCard({ label, value, hint }: { label: string; value: string; hint?:
   return (
     <div
       style={{
-        borderRadius: "20px",
+        borderRadius: "12px",
         border: "1px solid rgba(148,163,184,0.24)",
         background: "rgba(255,255,255,0.95)",
         padding: "18px",
@@ -211,7 +211,7 @@ function formatCount(value: number) {
 }
 
 const primaryButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid #b91c1c",
   background: "#b91c1c",
   color: "#ffffff",
@@ -238,7 +238,7 @@ const tableCellStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(248,113,113,0.28)",
   background: "rgba(254,242,242,0.94)",
   color: "#991b1b",
@@ -247,7 +247,7 @@ const errorStyle: CSSProperties = {
 };
 
 const readOnlyNoticeStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(248,250,252,0.95)",
   color: "#334155",
@@ -256,7 +256,7 @@ const readOnlyNoticeStyle: CSSProperties = {
 };
 
 const notesPanelStyle: CSSProperties = {
-  borderRadius: "20px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(248,250,252,0.95)",
   padding: "16px 18px",

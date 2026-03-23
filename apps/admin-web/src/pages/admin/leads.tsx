@@ -239,7 +239,7 @@ export default function LeadsPage({ principal, role, brands }: InferGetServerSid
           {error ? <div style={errorStyle}>{error}</div> : null}
           {notice ? <div style={noticeStyle}>{notice}</div> : null}
 
-          <div style={{ overflowX: "auto", borderRadius: "20px", border: "1px solid rgba(148,163,184,0.24)" }}>
+          <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
             <table style={{ width: "100%", minWidth: "1020px", borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
@@ -313,7 +313,7 @@ export const getServerSideProps: GetServerSideProps<LeadsProps> = async (ctx) =>
 
 const inputStyle: CSSProperties = {
   width: "100%",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.34)",
   background: "rgba(255,255,255,0.95)",
   padding: "12px 14px",
@@ -330,7 +330,7 @@ const countStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid #b91c1c",
   background: "#b91c1c",
   color: "#ffffff",
@@ -341,7 +341,7 @@ const primaryButtonStyle: CSSProperties = {
 };
 
 const secondaryButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.34)",
   background: "rgba(255,255,255,0.95)",
   color: "#0f172a",
@@ -370,7 +370,7 @@ const tableCellStyle: CSSProperties = {
 const sourceChipBaseStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "6px 10px",
   fontSize: "0.8rem",
   fontWeight: 700,
@@ -391,7 +391,7 @@ const sourceChipContactStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(248,113,113,0.28)",
   background: "rgba(254,242,242,0.94)",
   color: "#991b1b",
@@ -400,7 +400,7 @@ const errorStyle: CSSProperties = {
 };
 
 const noticeStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(34,197,94,0.22)",
   background: "rgba(240,253,244,0.95)",
   color: "#166534",

@@ -7,7 +7,7 @@ export function AdminPlaceholderNotice({ title, body }: AdminPlaceholderNoticePr
   return (
     <div
       style={{
-        borderRadius: "18px",
+        borderRadius: "12px",
         border: "1px solid rgba(148,163,184,0.22)",
         background: "#f8fafc",
         padding: "18px 20px",

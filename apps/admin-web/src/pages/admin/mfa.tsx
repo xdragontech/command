@@ -180,7 +180,7 @@ const labelStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   width: "100%",
   border: "1px solid rgba(148,163,184,0.45)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 14px",
   fontSize: "1rem",
   outline: "none",
@@ -191,7 +191,7 @@ const inputStyle: CSSProperties = {
 const primaryButtonStyle: CSSProperties = {
   width: "100%",
   border: 0,
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "13px 16px",
   background: "#0f172a",
   color: "#fff",
@@ -201,7 +201,7 @@ const primaryButtonStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.24)",
   background: "#fef2f2",
   color: "#991b1b",
@@ -210,7 +210,7 @@ const errorStyle: CSSProperties = {
 };
 
 const successStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(16,185,129,0.24)",
   background: "#ecfdf5",
   color: "#065f46",

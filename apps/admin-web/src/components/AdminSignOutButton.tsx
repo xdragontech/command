@@ -20,7 +20,7 @@ export function AdminSignOutButton() {
       disabled={busy}
       style={{
         border: 0,
-        borderRadius: "999px",
+        borderRadius: "12px",
         padding: "8px 12px",
         background: "#0f172a",
         color: "#fff",

@@ -867,7 +867,7 @@ const splitLayoutStyle: CSSProperties = {
 };
 
 const panelStyle: CSSProperties = {
-  borderRadius: "22px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "20px",
@@ -878,7 +878,7 @@ const panelStyle: CSSProperties = {
 const userCardStyle: CSSProperties = {
   width: "100%",
   textAlign: "left",
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   color: "#0f172a",
@@ -934,7 +934,7 @@ const labelStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   width: "100%",
   border: "1px solid rgba(148,163,184,0.45)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 14px",
   fontSize: "1rem",
   outline: "none",
@@ -944,7 +944,7 @@ const inputStyle: CSSProperties = {
 
 const primaryButtonStyle: CSSProperties = {
   border: 0,
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 16px",
   background: "#0f172a",
   color: "#fff",
@@ -955,7 +955,7 @@ const primaryButtonStyle: CSSProperties = {
 
 const secondaryButtonStyle: CSSProperties = {
   border: "1px solid rgba(148,163,184,0.38)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fff",
   color: "#0f172a",
@@ -966,7 +966,7 @@ const secondaryButtonStyle: CSSProperties = {
 
 const infoButtonStyle: CSSProperties = {
   border: "1px solid rgba(239,68,68,0.28)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fff1f2",
   color: "#991b1b",
@@ -977,7 +977,7 @@ const infoButtonStyle: CSSProperties = {
 
 const successButtonStyle: CSSProperties = {
   border: "1px solid rgba(16,185,129,0.28)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#ecfdf5",
   color: "#065f46",
@@ -988,7 +988,7 @@ const successButtonStyle: CSSProperties = {
 
 const warningButtonStyle: CSSProperties = {
   border: "1px solid rgba(245,158,11,0.28)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fffbeb",
   color: "#92400e",
@@ -999,7 +999,7 @@ const warningButtonStyle: CSSProperties = {
 
 const dangerButtonStyle: CSSProperties = {
   border: "1px solid rgba(239,68,68,0.28)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fff1f2",
   color: "#991b1b",
@@ -1009,7 +1009,7 @@ const dangerButtonStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.24)",
   background: "#fef2f2",
   color: "#991b1b",
@@ -1017,7 +1017,7 @@ const errorStyle: CSSProperties = {
 };
 
 const successStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(16,185,129,0.24)",
   background: "#ecfdf5",
   color: "#065f46",
@@ -1025,14 +1025,14 @@ const successStyle: CSSProperties = {
 };
 
 const mutedPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "16px 18px",
 };
 
 const panelNoteStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "14px 16px",
@@ -1042,7 +1042,7 @@ const panelNoteStyle: CSSProperties = {
 };
 
 const warningStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(245,158,11,0.24)",
   background: "#fffbeb",
   color: "#92400e",
@@ -1051,7 +1051,7 @@ const warningStyle: CSSProperties = {
 };
 
 const infoPanelStyle: CSSProperties = {
-  borderRadius: "20px",
+  borderRadius: "12px",
   border: "1px solid rgba(125,211,252,0.32)",
   background: "#f0f9ff",
   padding: "18px",
@@ -1100,7 +1100,7 @@ const checkboxCardStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "12px",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "14px 16px",
@@ -1115,7 +1115,7 @@ const statGridStyle: CSSProperties = {
 };
 
 const metricCardStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "16px",
@@ -1139,7 +1139,7 @@ const metricValueStyle: CSSProperties = {
 
 const codeBoxStyle: CSSProperties = {
   marginTop: "12px",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(125,211,252,0.35)",
   background: "#fff",
   padding: "12px 14px",
@@ -1154,7 +1154,7 @@ const pillStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "6px 10px",
   fontSize: "0.76rem",
   fontWeight: 700,

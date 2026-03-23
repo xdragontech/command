@@ -396,7 +396,7 @@ const statGridStyle: CSSProperties = {
 };
 
 const metricCardStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "16px",
@@ -423,14 +423,14 @@ const pillStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "6px 10px",
   fontSize: "0.8rem",
   fontWeight: 700,
 };
 
 const mutedBoxStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "20px",
@@ -438,14 +438,14 @@ const mutedBoxStyle: CSSProperties = {
 };
 
 const mutedPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "20px",
 };
 
 const warningStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(245,158,11,0.24)",
   background: "#fffbeb",
   color: "#92400e",
@@ -454,7 +454,7 @@ const warningStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.24)",
   background: "#fef2f2",
   color: "#991b1b",
@@ -463,7 +463,7 @@ const errorStyle: CSSProperties = {
 };
 
 const successStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(16,185,129,0.24)",
   background: "#ecfdf5",
   color: "#065f46",
@@ -478,7 +478,7 @@ const twoColumnStyle: CSSProperties = {
 };
 
 const panelStyle: CSSProperties = {
-  borderRadius: "22px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "#fff",
   padding: "20px",
@@ -502,7 +502,7 @@ const qrBoxStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "16px",
@@ -512,7 +512,7 @@ const qrBoxStyle: CSSProperties = {
 const qrImageStyle: CSSProperties = {
   width: "240px",
   height: "240px",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "8px",
@@ -527,7 +527,7 @@ const mutedTextStyle: CSSProperties = {
 
 const codeBoxStyle: CSSProperties = {
   marginTop: "10px",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "12px 14px",
@@ -546,7 +546,7 @@ const recoveryGridStyle: CSSProperties = {
 };
 
 const recoveryCodeStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "10px 12px",
@@ -558,7 +558,7 @@ const recoveryCodeStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   width: "100%",
   border: "1px solid rgba(148,163,184,0.45)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 14px",
   fontSize: "1rem",
   outline: "none",
@@ -568,7 +568,7 @@ const inputStyle: CSSProperties = {
 
 const primaryButtonStyle: CSSProperties = {
   border: 0,
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 16px",
   background: "#0f172a",
   color: "#fff",
@@ -579,7 +579,7 @@ const primaryButtonStyle: CSSProperties = {
 
 const secondaryButtonStyle: CSSProperties = {
   border: "1px solid rgba(148,163,184,0.38)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fff",
   color: "#0f172a",
@@ -590,7 +590,7 @@ const secondaryButtonStyle: CSSProperties = {
 
 const dangerButtonStyle: CSSProperties = {
   border: "1px solid rgba(239,68,68,0.28)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 16px",
   background: "#fff1f2",
   color: "#991b1b",

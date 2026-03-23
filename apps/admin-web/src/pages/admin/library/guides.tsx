@@ -886,7 +886,7 @@ export const getServerSideProps: GetServerSideProps<GuidesPageProps> = async (ct
 const pillStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "6px 10px",
   fontSize: "0.78rem",
   fontWeight: 700,
@@ -910,7 +910,7 @@ const toneStyles = {
 
 const inputStyle: CSSProperties = {
   width: "100%",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.34)",
   background: "rgba(255,255,255,0.95)",
   padding: "12px 14px",
@@ -932,7 +932,7 @@ const textareaStyle: CSSProperties = {
 };
 
 const primaryButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid #b91c1c",
   background: "#b91c1c",
   color: "#ffffff",
@@ -943,7 +943,7 @@ const primaryButtonStyle: CSSProperties = {
 };
 
 const secondaryButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.34)",
   background: "rgba(255,255,255,0.95)",
   color: "#0f172a",
@@ -954,7 +954,7 @@ const secondaryButtonStyle: CSSProperties = {
 };
 
 const dangerButtonStyle: CSSProperties = {
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.35)",
   background: "rgba(254,242,242,0.95)",
   color: "#991b1b",
@@ -973,7 +973,7 @@ const countStyle: CSSProperties = {
 };
 
 const listPanelStyle: CSSProperties = {
-  borderRadius: "20px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(248,250,252,0.95)",
   padding: "18px",
@@ -991,7 +991,7 @@ const listHeaderStyle: CSSProperties = {
 const listItemStyle: CSSProperties = {
   width: "100%",
   textAlign: "left",
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(255,255,255,0.96)",
   padding: "14px",
@@ -1004,7 +1004,7 @@ const listItemActiveStyle: CSSProperties = {
 };
 
 const editorPanelStyle: CSSProperties = {
-  borderRadius: "20px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(255,255,255,0.96)",
   padding: "20px",
@@ -1047,7 +1047,7 @@ const fieldLabelStyle: CSSProperties = {
 };
 
 const emptyStateStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px dashed rgba(148,163,184,0.34)",
   background: "rgba(255,255,255,0.88)",
   padding: "16px",
@@ -1057,7 +1057,7 @@ const emptyStateStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(248,113,113,0.28)",
   background: "rgba(254,242,242,0.94)",
   color: "#991b1b",
@@ -1066,7 +1066,7 @@ const errorStyle: CSSProperties = {
 };
 
 const noticeStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(34,197,94,0.22)",
   background: "rgba(240,253,244,0.95)",
   color: "#166534",
@@ -1075,7 +1075,7 @@ const noticeStyle: CSSProperties = {
 };
 
 const metaNoteStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(248,250,252,0.95)",
   padding: "12px 14px",

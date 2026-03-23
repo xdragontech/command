@@ -238,7 +238,7 @@ const primaryLinkStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   textDecoration: "none",
-  borderRadius: "999px",
+  borderRadius: "12px",
   border: "1px solid #b91c1c",
   background: "#b91c1c",
   color: "#ffffff",
@@ -254,7 +254,7 @@ const summaryGridStyle: CSSProperties = {
 };
 
 const summaryCardStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.24)",
   background: "rgba(248,250,252,0.95)",
   padding: "16px 18px",
@@ -276,7 +276,7 @@ const summaryValueStyle: CSSProperties = {
 
 const calloutStyle: CSSProperties = {
   marginTop: "18px",
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(59,130,246,0.22)",
   background: "rgba(239,246,255,0.95)",
   color: "#1e3a8a",
@@ -295,7 +295,7 @@ const rowStyle: CSSProperties = {
   gap: "16px",
   alignItems: "center",
   padding: "14px 16px",
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "rgba(248,250,252,0.95)",
 };
@@ -318,7 +318,7 @@ const metaRightStyle: CSSProperties = {
 const statusPillStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "6px 10px",
   fontSize: "0.78rem",
   fontWeight: 700,
@@ -349,6 +349,6 @@ const errorStateStyle: CSSProperties = {
   color: "#991b1b",
   background: "rgba(254,242,242,0.95)",
   border: "1px solid rgba(239,68,68,0.2)",
-  borderRadius: "16px",
+  borderRadius: "12px",
   padding: "14px 16px",
 };
