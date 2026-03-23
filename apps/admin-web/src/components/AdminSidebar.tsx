@@ -63,12 +63,15 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
         </NavItem>
 
         <div style={{ display: "grid", gap: "10px" }}>
-          <NavItem href="/admin/scheduling/calendar" active={active === "scheduling"}>
+          <NavItem href="/admin/scheduling/planner" active={active === "scheduling"}>
             Scheduling
           </NavItem>
           {onScheduling || active === "scheduling" ? (
             <div style={{ display: "grid", gap: "8px", paddingLeft: "12px" }}>
-              <SubNavItem href="/admin/scheduling/calendar" active={pathname === "/admin/scheduling/calendar" || pathname === "/admin/scheduling"}>
+              <SubNavItem href="/admin/scheduling/planner" active={pathname === "/admin/scheduling/planner" || pathname === "/admin/scheduling"}>
+                Planner
+              </SubNavItem>
+              <SubNavItem href="/admin/scheduling/calendar" active={pathname === "/admin/scheduling/calendar"}>
                 Calendar
               </SubNavItem>
               <SubNavItem href="/admin/scheduling/assignments" active={pathname === "/admin/scheduling/assignments"}>
