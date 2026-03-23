@@ -26,7 +26,7 @@ export function AdminSidebar({ active }: AdminSidebarProps) {
           display: "grid",
           gap: "10px",
           padding: "18px",
-          borderRadius: "24px",
+          borderRadius: "12px",
           border: "1px solid rgba(148,163,184,0.24)",
           background: "#ffffff",
           boxShadow: "0 18px 48px rgba(15,23,42,0.06)",
@@ -110,7 +110,7 @@ function NavItem({ href, active, children }: { href: string; active: boolean; ch
       style={{
         display: "block",
         textDecoration: "none",
-        borderRadius: "16px",
+        borderRadius: "12px",
         padding: "12px 14px",
         background: active ? "#0f172a" : "#e2e8f0",
         color: active ? "#fff" : "#0f172a",
@@ -130,7 +130,7 @@ function SubNavItem({ href, active, children }: { href: string; active: boolean;
       style={{
         display: "block",
         textDecoration: "none",
-        borderRadius: "14px",
+        borderRadius: "12px",
         padding: "10px 12px",
         background: active ? "#dc2626" : "#f1f5f9",
         color: active ? "#fff" : "#334155",
@@ -145,7 +145,7 @@ function SubNavItem({ href, active, children }: { href: string; active: boolean;
 
 const disabledSubNavStyle: CSSProperties = {
   display: "block",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 12px",
   background: "#e2e8f0",
   color: "#64748b",

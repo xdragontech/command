@@ -586,7 +586,7 @@ export default function SetupPage({
 }
 
 const infoPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "18px",
@@ -607,7 +607,7 @@ const gridStyle: CSSProperties = {
 };
 
 const metricCardStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.18)",
   background: "rgba(255,255,255,0.9)",
   padding: "14px",
@@ -634,7 +634,7 @@ const paragraphStyle: CSSProperties = {
 };
 
 const prereqRowStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.18)",
   background: "rgba(255,255,255,0.92)",
   padding: "14px 16px",
@@ -664,7 +664,7 @@ const pillBaseStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "999px",
+  borderRadius: "12px",
   padding: "3px 8px",
   fontSize: "0.7rem",
   fontWeight: 700,
@@ -699,7 +699,7 @@ const statusMissingStyle: CSSProperties = {
 };
 
 const nextStepStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(245,158,11,0.22)",
   background: "#fffbeb",
   color: "#92400e",
@@ -709,7 +709,7 @@ const nextStepStyle: CSSProperties = {
 };
 
 const sectionPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#ffffff",
   padding: "18px",
@@ -737,7 +737,7 @@ const labelStyle: CSSProperties = {
 const inputStyle: CSSProperties = {
   width: "100%",
   border: "1px solid rgba(148,163,184,0.45)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "12px 14px",
   fontSize: "0.98rem",
   outline: "none",
@@ -748,7 +748,7 @@ const inputStyle: CSSProperties = {
 const primaryButtonStyle: CSSProperties = {
   width: "100%",
   border: 0,
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "13px 16px",
   background: "#0f172a",
   color: "#fff",
@@ -762,7 +762,7 @@ const primaryLinkStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   width: "100%",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "13px 16px",
   background: "#0f172a",
   color: "#fff",
@@ -772,7 +772,7 @@ const primaryLinkStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.24)",
   background: "#fef2f2",
   color: "#991b1b",
@@ -781,7 +781,7 @@ const errorStyle: CSSProperties = {
 };
 
 const successStyle: CSSProperties = {
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(16,185,129,0.24)",
   background: "#ecfdf5",
   color: "#065f46",
@@ -791,7 +791,7 @@ const successStyle: CSSProperties = {
 };
 
 const warningStyle: CSSProperties = {
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(245,158,11,0.22)",
   background: "#fffbeb",
   color: "#92400e",
@@ -802,7 +802,7 @@ const warningStyle: CSSProperties = {
 
 const codeBlockStyle: CSSProperties = {
   margin: 0,
-  borderRadius: "16px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#0f172a",
   color: "#e2e8f0",
@@ -830,7 +830,7 @@ const hostRowStyle: CSSProperties = {
   justifyContent: "space-between",
   gap: "16px",
   alignItems: "center",
-  borderRadius: "14px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.18)",
   background: "#f8fafc",
   padding: "12px 14px",

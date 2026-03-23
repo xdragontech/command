@@ -72,7 +72,7 @@ export function BackofficeAuthShell({
 
           <section
             style={{
-              borderRadius: "28px",
+              borderRadius: "12px",
               border: "1px solid rgba(148,163,184,0.28)",
               background: "#ffffff",
               padding: "30px",
@@ -105,7 +105,7 @@ export function BackofficeAuthShell({
               <div
                 style={{
                   marginTop: "24px",
-                  borderRadius: "16px",
+                  borderRadius: "12px",
                   border: "1px solid rgba(148,163,184,0.22)",
                   background: "#ffffff",
                   padding: "14px 16px",

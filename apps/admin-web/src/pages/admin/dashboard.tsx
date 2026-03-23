@@ -86,7 +86,7 @@ function PeriodButton({
       onClick={onClick}
       disabled={disabled}
       style={{
-        borderRadius: "999px",
+        borderRadius: "12px",
         border: active ? "1px solid rgba(239,68,68,0.32)" : "1px solid rgba(148,163,184,0.34)",
         background: active ? "#fee2e2" : "rgba(255,255,255,0.92)",
         color: active ? "#991b1b" : "#334155",
@@ -113,7 +113,7 @@ function SummaryCard({ label, value, tone }: { label: string; value: string; ton
   return (
     <div
       style={{
-        borderRadius: "20px",
+        borderRadius: "12px",
         border: `1px solid ${palette.border}`,
         background: palette.bg,
         padding: "18px",
@@ -158,7 +158,7 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
         style={{
           width: "100%",
           height: "240px",
-          borderRadius: "20px",
+          borderRadius: "12px",
           border: "1px solid rgba(148,163,184,0.24)",
           background:
             "linear-gradient(180deg, rgba(248,250,252,0.94) 0%, rgba(226,232,240,0.82) 100%)",
@@ -206,7 +206,7 @@ function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
           </div>
           <div
             style={{
-              borderRadius: "999px",
+              borderRadius: "12px",
               background: "#e2e8f0",
               overflow: "hidden",
               height: "10px",
@@ -216,7 +216,7 @@ function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
               style={{
                 width: `${Math.max(8, (row.count / maxValue) * 100)}%`,
                 height: "100%",
-                borderRadius: "999px",
+                borderRadius: "12px",
                 background: "linear-gradient(90deg, #2563eb 0%, #0f172a 100%)",
               }}
             />
@@ -235,7 +235,7 @@ function LoginIpTable({ metrics }: { metrics: DashboardMetrics }) {
   }
 
   return (
-    <div style={{ overflowX: "auto", borderRadius: "20px", border: "1px solid rgba(148,163,184,0.24)" }}>
+    <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
       <table style={{ width: "100%", minWidth: "560px", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
@@ -342,7 +342,7 @@ export default function DashboardPage({
           {error ? (
             <div
               style={{
-                borderRadius: "18px",
+                borderRadius: "12px",
                 border: "1px solid rgba(248,113,113,0.28)",
                 background: "rgba(254,242,242,0.94)",
                 color: "#991b1b",
@@ -437,7 +437,7 @@ const legendStyle: CSSProperties = {
 const legendDotStyle: CSSProperties = {
   width: "12px",
   height: "12px",
-  borderRadius: "999px",
+  borderRadius: "12px",
 };
 
 const tableHeaderStyle: CSSProperties = {
@@ -456,7 +456,7 @@ const tableCellStyle: CSSProperties = {
 };
 
 const emptyStateStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px dashed rgba(148,163,184,0.38)",
   background: "rgba(248,250,252,0.9)",
   padding: "18px",

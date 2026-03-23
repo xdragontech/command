@@ -238,7 +238,7 @@ const sectionDescriptionStyle: CSSProperties = {
 
 const tableWrapStyle: CSSProperties = {
   overflowX: "auto",
-  borderRadius: "20px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
 };
 
@@ -310,7 +310,7 @@ const metaLabelStyle: CSSProperties = {
 };
 
 const subPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   padding: "18px",
@@ -331,7 +331,7 @@ const statusGridStyle: CSSProperties = {
 };
 
 const metricCardStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   padding: "16px",
@@ -363,7 +363,7 @@ const paragraphStyle: CSSProperties = {
 
 const secondaryButtonStyle: CSSProperties = {
   border: "1px solid rgba(148,163,184,0.38)",
-  borderRadius: "14px",
+  borderRadius: "12px",
   padding: "10px 14px",
   background: "#fff",
   color: "#0f172a",
@@ -373,7 +373,7 @@ const secondaryButtonStyle: CSSProperties = {
 };
 
 const infoPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(59,130,246,0.22)",
   background: "#eff6ff",
   color: "#1d4ed8",
@@ -381,7 +381,7 @@ const infoPanelStyle: CSSProperties = {
 };
 
 const mutedPanelStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#f8fafc",
   color: "#475569",
@@ -389,7 +389,7 @@ const mutedPanelStyle: CSSProperties = {
 };
 
 const errorStyle: CSSProperties = {
-  borderRadius: "18px",
+  borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.24)",
   background: "#fef2f2",
   color: "#991b1b",
@@ -406,7 +406,7 @@ const pillStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   padding: "6px 10px",
-  borderRadius: "999px",
+  borderRadius: "12px",
   fontSize: "0.76rem",
   fontWeight: 700,
   letterSpacing: "0.04em",

@@ -11,7 +11,7 @@ export function AdminCard({ title, description, actions, children }: AdminCardPr
   return (
     <section
       style={{
-        borderRadius: "24px",
+        borderRadius: "12px",
         border: "1px solid rgba(148,163,184,0.24)",
         background: "#ffffff",
         padding: "24px",
