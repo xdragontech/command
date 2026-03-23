@@ -23,6 +23,9 @@
       "path": "./packages/core-leads"
     },
     {
+      "path": "./packages/core-scheduling"
+    },
+    {
       "path": "./packages/core-content"
     }
   ]

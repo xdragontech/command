@@ -34,6 +34,9 @@
       "@command/core-leads": [
         "packages/core-leads/src/index.ts"
       ],
+      "@command/core-scheduling": [
+        "packages/core-scheduling/src/index.ts"
+      ],
       "@command/core-content": [
         "packages/core-content/src/index.ts"
       ]

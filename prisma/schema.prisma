@@ -161,6 +161,61 @@ enum PromptStatus {
   ARCHIVED
 }
 
+enum ScheduleEventSeriesStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ScheduleRecurrencePattern {
+  NONE
+  WEEKLY
+}
+
+enum ScheduleWeekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum ScheduleEventOccurrenceStatus {
+  SCHEDULED
+  CANCELLED
+}
+
+enum ScheduleResourceType {
+  STAGE
+  FOOD_SPOT
+  MARKET_SPOT
+  OTHER
+}
+
+enum ScheduleParticipantType {
+  ENTERTAINMENT
+  FOOD_VENDOR
+  MARKET_VENDOR
+}
+
+enum ScheduleParticipantStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ScheduleAssignmentKind {
+  TIMED_SLOT
+  FULL_DAY
+}
+
+enum ScheduleAssignmentStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
 model Brand {
   id        String      @id @default(cuid())
   brandKey  String      @unique
@@ -177,6 +232,11 @@ model Brand {
   articles                        Article[]
   leads                           Lead[]
   leadEvents                      LeadEvent[]
+  scheduleEventSerieses           ScheduleEventSeries[]
+  scheduleEventOccurrences        ScheduleEventOccurrence[]
+  scheduleResources               ScheduleResource[]
+  scheduleParticipants            ScheduleParticipant[]
+  scheduleAssignments             ScheduleAssignment[]
   staffAccesses                   BackofficeUserBrandAccess[]
   externalUsers                   ExternalUser[]
   externalAccounts                ExternalAccount[]
@@ -216,6 +276,135 @@ model BrandEmailConfig {
   updatedAt         DateTime               @updatedAt
 
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model ScheduleEventSeries {
+  id                         String                    @id @default(cuid())
+  brandId                    String
+  name                       String
+  slug                       String
+  description                String?
+  timezone                   String
+  status                     ScheduleEventSeriesStatus @default(DRAFT)
+  recurrencePattern          ScheduleRecurrencePattern @default(NONE)
+  recurrenceInterval         Int                       @default(1)
+  recurrenceDays             ScheduleWeekday[]         @default([])
+  seasonStartsOn             DateTime
+  seasonEndsOn               DateTime
+  occurrenceDayStartsAtMinutes Int                     @default(0)
+  occurrenceDayEndsAtMinutes Int                       @default(1440)
+  metadata                   Json?
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
+
+  brand       Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  occurrences ScheduleEventOccurrence[]
+
+  @@index([brandId])
+  @@index([status])
+  @@index([seasonStartsOn, seasonEndsOn])
+  @@unique([brandId, slug])
+}
+
+model ScheduleEventOccurrence {
+  id                       String                        @id @default(cuid())
+  brandId                  String
+  scheduleEventSeriesId    String
+  name                     String?
+  occursOn                 DateTime
+  dayStartsAtMinutes       Int
+  dayEndsAtMinutes         Int
+  status                   ScheduleEventOccurrenceStatus @default(SCHEDULED)
+  metadata                 Json?
+  createdAt                DateTime                      @default(now())
+  updatedAt                DateTime                      @updatedAt
+
+  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series      ScheduleEventSeries @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  assignments ScheduleAssignment[]
+
+  @@index([brandId])
+  @@index([scheduleEventSeriesId])
+  @@index([occursOn])
+  @@index([brandId, occursOn])
+  @@unique([scheduleEventSeriesId, occursOn])
+}
+
+model ScheduleResource {
+  id          String               @id @default(cuid())
+  brandId     String
+  name        String
+  slug        String
+  type        ScheduleResourceType
+  description String?
+  sortOrder   Int                  @default(0)
+  isActive    Boolean              @default(true)
+  metadata    Json?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  assignments ScheduleAssignment[]
+
+  @@index([brandId])
+  @@index([type, isActive])
+  @@unique([brandId, slug])
+  @@unique([brandId, name])
+}
+
+model ScheduleParticipant {
+  id          String                    @id @default(cuid())
+  brandId     String
+  displayName String
+  slug        String
+  type        ScheduleParticipantType
+  status      ScheduleParticipantStatus @default(ACTIVE)
+  summary     String?
+  metadata    Json?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  assignments ScheduleAssignment[]
+
+  @@index([brandId])
+  @@index([type, status])
+  @@index([displayName])
+  @@unique([brandId, slug])
+}
+
+model ScheduleAssignment {
+  id                        String                   @id @default(cuid())
+  brandId                   String
+  scheduleEventOccurrenceId String
+  scheduleResourceId        String
+  scheduleParticipantId     String
+  kind                      ScheduleAssignmentKind
+  status                    ScheduleAssignmentStatus @default(DRAFT)
+  startsAtMinutes           Int
+  endsAtMinutes             Int
+  publicTitle               String?
+  publicSubtitle            String?
+  publicDescription         String?
+  publicLocationLabel       String?
+  publicUrl                 String?
+  internalNotes             String?
+  metadata                  Json?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  brand       Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  occurrence  ScheduleEventOccurrence @relation(fields: [scheduleEventOccurrenceId], references: [id], onDelete: Cascade)
+  resource    ScheduleResource        @relation(fields: [scheduleResourceId], references: [id], onDelete: Cascade)
+  participant ScheduleParticipant     @relation(fields: [scheduleParticipantId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([scheduleEventOccurrenceId])
+  @@index([brandId, scheduleEventOccurrenceId])
+  @@index([scheduleResourceId])
+  @@index([scheduleParticipantId])
+  @@index([status])
+  @@unique([scheduleEventOccurrenceId, scheduleResourceId, scheduleParticipantId, startsAtMinutes, endsAtMinutes])
 }
 
 model InstallProfile {
