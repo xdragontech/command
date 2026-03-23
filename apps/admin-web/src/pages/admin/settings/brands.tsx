@@ -487,7 +487,7 @@ export default function BrandsPage({
                         <input
                           value={form.brandKey}
                           onChange={(event) => updateField("brandKey", event.target.value)}
-                          placeholder="xdragon"
+                          placeholder="example-brand"
                           style={inputStyle}
                         />
                       </label>
@@ -497,7 +497,7 @@ export default function BrandsPage({
                         <input
                           value={form.name}
                           onChange={(event) => updateField("name", event.target.value)}
-                          placeholder="X Dragon"
+                          placeholder="Example Brand"
                           style={inputStyle}
                         />
                       </label>
@@ -522,7 +522,7 @@ export default function BrandsPage({
                         <input
                           value={form.apexHost}
                           onChange={(event) => updateField("apexHost", event.target.value)}
-                          placeholder="xdragon.tech"
+                          placeholder="example.com"
                           style={inputStyle}
                         />
                       </label>
@@ -537,7 +537,7 @@ export default function BrandsPage({
                             <input
                               value={form.productionPublicHost}
                               onChange={(event) => updateField("productionPublicHost", event.target.value)}
-                              placeholder="www.xdragon.tech"
+                              placeholder="www.example.com"
                               style={inputStyle}
                             />
                           </label>
@@ -547,7 +547,7 @@ export default function BrandsPage({
                             <input
                               value={form.productionAdminHost}
                               onChange={(event) => updateField("productionAdminHost", event.target.value)}
-                              placeholder="admin.xdragon.tech"
+                              placeholder="admin.example.com"
                               style={inputStyle}
                             />
                           </label>
@@ -562,7 +562,7 @@ export default function BrandsPage({
                             <input
                               value={form.previewPublicHost}
                               onChange={(event) => updateField("previewPublicHost", event.target.value)}
-                              placeholder="staging.xdragon.tech"
+                              placeholder="staging.example.com"
                               style={inputStyle}
                             />
                           </label>
@@ -572,7 +572,7 @@ export default function BrandsPage({
                             <input
                               value={form.previewAdminHost}
                               onChange={(event) => updateField("previewAdminHost", event.target.value)}
-                              placeholder="stg-admin.xdragon.tech"
+                              placeholder="staging-admin.example.com"
                               style={inputStyle}
                             />
                           </label>
@@ -632,7 +632,7 @@ export default function BrandsPage({
                           <input
                             value={form.emailConfig.fromName}
                             onChange={(event) => updateEmailField("fromName", event.target.value)}
-                            placeholder="X Dragon"
+                            placeholder="Example Brand"
                             style={inputStyle}
                           />
                         </label>
@@ -644,7 +644,7 @@ export default function BrandsPage({
                           <input
                             value={form.emailConfig.fromEmail}
                             onChange={(event) => updateEmailField("fromEmail", event.target.value)}
-                            placeholder="hello@xdragon.tech"
+                            placeholder="hello@example.com"
                             style={inputStyle}
                           />
                         </label>
@@ -654,7 +654,7 @@ export default function BrandsPage({
                           <input
                             value={form.emailConfig.replyToEmail}
                             onChange={(event) => updateEmailField("replyToEmail", event.target.value)}
-                            placeholder="hello@xdragon.tech"
+                            placeholder="hello@example.com"
                             style={inputStyle}
                           />
                         </label>
@@ -665,7 +665,7 @@ export default function BrandsPage({
                         <input
                           value={form.emailConfig.supportEmail}
                           onChange={(event) => updateEmailField("supportEmail", event.target.value)}
-                          placeholder="hello@xdragon.tech, ops@xdragon.tech"
+                          placeholder="hello@example.com, ops@example.com"
                           style={inputStyle}
                         />
                         <span style={subtleTextStyle}>Separate multiple recipients with commas or semicolons.</span>
