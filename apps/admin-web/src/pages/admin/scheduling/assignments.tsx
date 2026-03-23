@@ -8,6 +8,7 @@ import type {
   ScheduleAssignmentRecord,
   ScheduleConflictRecord,
   ScheduleEventOccurrenceRecord,
+  ScheduleOccurrenceVisibilitySummaryRecord,
   ScheduleParticipantRecord,
   ScheduleResourceRecord,
 } from "@command/core-scheduling";
@@ -213,12 +214,14 @@ export default function SchedulingAssignmentsPage({
   const [occurrences, setOccurrences] = useState<ScheduleEventOccurrenceRecord[]>([]);
   const [resources, setResources] = useState<ScheduleResourceRecord[]>([]);
   const [participants, setParticipants] = useState<ScheduleParticipantRecord[]>([]);
+  const [visibilitySummaries, setVisibilitySummaries] = useState<ScheduleOccurrenceVisibilitySummaryRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<AssignmentForm | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [bulkAction, setBulkAction] = useState<{ occurrenceId: string; action: "publish" | "unpublish" } | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [conflicts, setConflicts] = useState<ScheduleConflictRecord[]>([]);
@@ -256,6 +259,12 @@ export default function SchedulingAssignmentsPage({
     return occurrences.filter((occurrence) => (currentBrandId ? occurrence.brandId === currentBrandId : true));
   }, [currentBrandId, occurrences]);
 
+  const activeOccurrenceSummary = useMemo(() => {
+    const occurrenceId = occurrenceFilter !== "ALL" ? occurrenceFilter : form?.occurrenceId || null;
+    if (!occurrenceId) return null;
+    return visibilitySummaries.find((summary) => summary.occurrenceId === occurrenceId) || null;
+  }, [form?.occurrenceId, occurrenceFilter, visibilitySummaries]);
+
   async function loadData(options?: {
     nextSelectedId?: string | null;
     nextBrandFilter?: string;
@@ -276,21 +285,27 @@ export default function SchedulingAssignmentsPage({
       if (resolvedBrandFilter !== "ALL") assignmentParams.set("brandId", resolvedBrandFilter);
       if (resolvedOccurrenceFilter !== "ALL") assignmentParams.set("occurrenceId", resolvedOccurrenceFilter);
 
-      const [brandsRes, occurrencesRes, resourcesRes, participantsRes, assignmentsRes] = await Promise.all([
+      const visibilityParams = new URLSearchParams();
+      if (resolvedBrandFilter !== "ALL") visibilityParams.set("brandId", resolvedBrandFilter);
+      if (resolvedOccurrenceFilter !== "ALL") visibilityParams.set("occurrenceId", resolvedOccurrenceFilter);
+
+      const [brandsRes, occurrencesRes, resourcesRes, participantsRes, assignmentsRes, visibilityRes] = await Promise.all([
         fetch("/api/admin/brands"),
         fetch(`/api/admin/scheduling/occurrences?${optionParams.toString()}`),
         fetch(`/api/admin/scheduling/resources?${optionParams.toString()}`),
         fetch(`/api/admin/scheduling/participants?${optionParams.toString()}`),
         fetch(`/api/admin/scheduling/assignments?${assignmentParams.toString()}`),
+        fetch(`/api/admin/scheduling/occurrence-visibility?${visibilityParams.toString()}`),
       ]);
 
-      const [brandsPayload, occurrencesPayload, resourcesPayload, participantsPayload, assignmentsPayload] =
+      const [brandsPayload, occurrencesPayload, resourcesPayload, participantsPayload, assignmentsPayload, visibilityPayload] =
         await Promise.all([
           brandsRes.json().catch(() => null),
           occurrencesRes.json().catch(() => null),
           resourcesRes.json().catch(() => null),
           participantsRes.json().catch(() => null),
           assignmentsRes.json().catch(() => null),
+          visibilityRes.json().catch(() => null),
         ]);
 
       if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
@@ -301,6 +316,9 @@ export default function SchedulingAssignmentsPage({
       }
       if (!assignmentsRes.ok || !assignmentsPayload?.ok) {
         throw new Error(assignmentsPayload?.error || "Failed to load assignments");
+      }
+      if (!visibilityRes.ok || !visibilityPayload?.ok) {
+        throw new Error(visibilityPayload?.error || "Failed to load occurrence visibility");
       }
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
@@ -316,12 +334,16 @@ export default function SchedulingAssignmentsPage({
       const nextAssignments = Array.isArray(assignmentsPayload.assignments)
         ? (assignmentsPayload.assignments as ScheduleAssignmentRecord[])
         : [];
+      const nextVisibilitySummaries = Array.isArray(visibilityPayload.summaries)
+        ? (visibilityPayload.summaries as ScheduleOccurrenceVisibilitySummaryRecord[])
+        : [];
 
       setBrands(nextBrands);
       setOccurrences(nextOccurrences);
       setResources(nextResources);
       setParticipants(nextParticipants);
       setAssignments(nextAssignments);
+      setVisibilitySummaries(nextVisibilitySummaries);
 
       const desiredId = options?.nextSelectedId ?? selectedId;
       if (desiredId === NEW_ASSIGNMENT_ID) {
@@ -622,6 +644,54 @@ export default function SchedulingAssignmentsPage({
     }
   }
 
+  async function applyBulkAction(occurrenceId: string, action: "publish" | "unpublish") {
+    const occurrence = occurrences.find((entry) => entry.id === occurrenceId) || null;
+    const ok = window.confirm(
+      action === "publish"
+        ? `Publish all draft assignments for ${occurrence?.seriesName || "this occurrence"} on ${formatDateOnly(occurrence?.occursOn || null)}?`
+        : `Return all published assignments for ${occurrence?.seriesName || "this occurrence"} on ${formatDateOnly(occurrence?.occursOn || null)} to draft?`
+    );
+    if (!ok) return;
+
+    setBulkAction({ occurrenceId, action });
+    setError("");
+    setNotice("");
+    setConflicts([]);
+
+    try {
+      const res = await fetch("/api/admin/scheduling/assignments/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ occurrenceId, action }),
+      });
+      const payload = await res.json().catch(() => null);
+      if (res.status === 409) {
+        setConflicts(Array.isArray(payload?.conflicts) ? (payload.conflicts as ScheduleConflictRecord[]) : []);
+        throw new Error(payload?.error || "Failed to update occurrence visibility");
+      }
+      if (!res.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Failed to update occurrence visibility");
+      }
+
+      const result = payload.result as { updatedCount: number };
+      await loadData({
+        nextSelectedId: selectedId,
+        nextBrandFilter: brandFilter,
+        nextOccurrenceFilter: occurrenceFilter,
+      });
+      setNotice(
+        action === "publish"
+          ? `Published ${result.updatedCount} draft assignments for the selected occurrence.`
+          : `Returned ${result.updatedCount} published assignments to draft for the selected occurrence.`
+      );
+    } catch (nextError: any) {
+      setError(nextError?.message || "Failed to update occurrence visibility");
+      setNotice("");
+    } finally {
+      setBulkAction(null);
+    }
+  }
+
   return (
     <AdminLayout
       title="Command Admin — Scheduling / Assignments"
@@ -646,7 +716,7 @@ export default function SchedulingAssignmentsPage({
         }
       >
         <div style={infoPanelStyle}>
-          The schedule domain owns overlap detection. Conflicts are blocked by default and can only be forced deliberately from here after the conflict report is shown.
+          The schedule domain owns overlap detection. Conflicts are blocked by default and can only be forced deliberately from here after the conflict report is shown. Published schedule data only reaches the public site after occurrence-level publish actions or explicit per-assignment publish changes.
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
@@ -717,6 +787,102 @@ export default function SchedulingAssignmentsPage({
           </label>
         </div>
 
+        <div style={{ marginTop: "18px" }}>
+          <div style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence Visibility</div>
+          <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", marginTop: "12px" }}>
+            {visibilitySummaries.length === 0 ? (
+              <div style={mutedPanelStyle}>No occurrence visibility summaries matched the current filter.</div>
+            ) : (
+              visibilitySummaries.map((summary) => {
+                const isPublishing = bulkAction?.occurrenceId === summary.occurrenceId && bulkAction.action === "publish";
+                const isUnpublishing = bulkAction?.occurrenceId === summary.occurrenceId && bulkAction.action === "unpublish";
+                const isActiveOccurrence = activeOccurrenceSummary?.occurrenceId === summary.occurrenceId;
+
+                return (
+                  <div
+                    key={summary.occurrenceId}
+                    style={{
+                      ...panelStyle,
+                      ...(isActiveOccurrence ? { borderColor: "rgba(239,68,68,0.3)", boxShadow: "0 0 0 1px rgba(239,68,68,0.08)" } : {}),
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{summary.seriesName}</div>
+                        <div style={{ ...subtleTextStyle, marginTop: "6px" }}>{`${formatDateOnly(summary.occursOn)}${summary.occurrenceName ? ` · ${summary.occurrenceName}` : ""}`}</div>
+                      </div>
+                      <TonePill
+                        label={summary.visibilityState}
+                        tone={
+                          summary.visibilityState === "FULLY_PUBLIC"
+                            ? "success"
+                            : summary.visibilityState === "PARTIALLY_PUBLIC"
+                              ? "warning"
+                              : "slate"
+                        }
+                      />
+                    </div>
+
+                    <div style={{ ...subtleTextStyle, marginTop: "14px", lineHeight: 1.7 }}>
+                      <strong style={{ color: "#0f172a" }}>{summary.publishedCount}</strong> published ·{" "}
+                      <strong style={{ color: "#0f172a" }}>{summary.draftCount}</strong> draft ·{" "}
+                      <strong style={{ color: "#0f172a" }}>{summary.cancelledCount}</strong> cancelled ·{" "}
+                      <strong style={{ color: "#0f172a" }}>{summary.totalAssignments}</strong> total
+                    </div>
+
+                    <div
+                      style={{
+                        ...(summary.conflictCount > 0 ? warningStyle : mutedPanelStyle),
+                        marginTop: "14px",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      {summary.conflictCount > 0
+                        ? `${summary.conflictCount} active conflicts must be resolved before occurrence-level publish is allowed.`
+                        : "No active occurrence conflicts. Bulk publish is available."}
+                    </div>
+
+                    <div style={{ ...actionRowStyle, marginTop: "14px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOccurrenceFilter(summary.occurrenceId);
+                          void loadData({ nextOccurrenceFilter: summary.occurrenceId, nextSelectedId: NEW_ASSIGNMENT_ID });
+                        }}
+                        style={secondaryButtonStyle}
+                      >
+                        Inspect
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void applyBulkAction(summary.occurrenceId, "publish")}
+                        disabled={summary.draftCount === 0 || summary.conflictCount > 0 || !!bulkAction}
+                        style={{
+                          ...primaryButtonStyle,
+                          ...(summary.draftCount === 0 || summary.conflictCount > 0 || bulkAction ? { opacity: 0.55, cursor: "not-allowed" } : {}),
+                        }}
+                      >
+                        {isPublishing ? "Publishing..." : "Publish Drafts"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void applyBulkAction(summary.occurrenceId, "unpublish")}
+                        disabled={summary.publishedCount === 0 || !!bulkAction}
+                        style={{
+                          ...secondaryButtonStyle,
+                          ...(summary.publishedCount === 0 || bulkAction ? { opacity: 0.55, cursor: "not-allowed" } : {}),
+                        }}
+                      >
+                        {isUnpublishing ? "Returning..." : "Return To Draft"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
         <div style={{ ...splitLayoutStyle, marginTop: "18px" }}>
           <section style={panelStyle}>
             <div style={subtleTextStyle}>{loading ? "Loading..." : `${filteredAssignments.length} assignments shown`}</div>
@@ -754,6 +920,16 @@ export default function SchedulingAssignmentsPage({
               </div>
               {form ? <TonePill label={derivedKind} tone="subtle" /> : null}
             </div>
+
+            {activeOccurrenceSummary ? (
+              <div style={{ ...(activeOccurrenceSummary.conflictCount > 0 ? warningStyle : infoPanelStyle), marginBottom: "16px" }}>
+                <strong style={{ color: "#0f172a" }}>{activeOccurrenceSummary.visibilityState}</strong>
+                {` · ${activeOccurrenceSummary.publishedCount} published / ${activeOccurrenceSummary.draftCount} draft / ${activeOccurrenceSummary.cancelledCount} cancelled`}
+                {activeOccurrenceSummary.conflictCount > 0
+                  ? ` · ${activeOccurrenceSummary.conflictCount} active conflicts still block safe publish.`
+                  : " · Occurrence-level publish can proceed safely from the visibility controls above."}
+              </div>
+            ) : null}
 
             {!form ? (
               <div style={mutedPanelStyle}>Select an assignment to edit it.</div>

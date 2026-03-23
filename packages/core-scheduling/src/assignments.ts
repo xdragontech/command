@@ -16,9 +16,12 @@ import {
   toIsoDateOnly,
 } from "./common";
 import { detectScheduleConflicts } from "./conflicts";
+import { listScheduleOccurrenceVisibilitySummaries } from "./occurrences";
 import type {
   CreateScheduleAssignmentInput,
   ScheduleAssignmentRecord,
+  ScheduleAssignmentBulkStatusAction,
+  ScheduleAssignmentBulkStatusResult,
   SchedulingScope,
   UpdateScheduleAssignmentInput,
 } from "./types";
@@ -89,6 +92,70 @@ function toAssignmentRecord(assignment: AssignmentWithRelations): ScheduleAssign
     createdAt: assignment.createdAt.toISOString(),
     updatedAt: assignment.updatedAt.toISOString(),
   };
+}
+
+async function listOccurrenceAssignmentsForConflictCheck(params: {
+  brandId: string;
+  occurrenceId: string;
+  excludeAssignmentId?: string;
+}) {
+  return prisma.scheduleAssignment.findMany({
+    where: {
+      brandId: params.brandId,
+      scheduleEventOccurrenceId: params.occurrenceId,
+      status: { not: "CANCELLED" },
+      ...(params.excludeAssignmentId ? { NOT: { id: params.excludeAssignmentId } } : {}),
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+      occurrence: {
+        include: {
+          series: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      resource: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      },
+      participant: {
+        select: {
+          id: true,
+          displayName: true,
+          type: true,
+        },
+      },
+    },
+    orderBy: [{ startsAtMinutes: "asc" }, { createdAt: "asc" }],
+  });
+}
+
+async function listOccurrencePublishConflicts(params: {
+  brandId: string;
+  occurrenceId: string;
+  excludeAssignmentId?: string;
+  pendingAssignment?: AssignmentWithRelations;
+}) {
+  const existingAssignments = await listOccurrenceAssignmentsForConflictCheck({
+    brandId: params.brandId,
+    occurrenceId: params.occurrenceId,
+    excludeAssignmentId: params.excludeAssignmentId,
+  });
+
+  return detectScheduleConflicts(params.pendingAssignment ? [...existingAssignments, params.pendingAssignment] : existingAssignments);
 }
 
 function assertKindMatchesParticipantType(kind: ScheduleAssignmentKind, participantType: ScheduleParticipantType) {
@@ -209,6 +276,7 @@ export async function createScheduleAssignment(params: {
     startsAtMinutes,
     endsAtMinutes,
     conflicts,
+    publishConflicts,
   } = await resolveAssignmentMutation({
     scope: params.scope,
     input: {
@@ -225,6 +293,10 @@ export async function createScheduleAssignment(params: {
 
   if (conflicts.length > 0 && !params.input.allowConflicts) {
     throw new SchedulingConflictError("Assignment conflicts with the current schedule", conflicts);
+  }
+
+  if (status === "PUBLISHED" && publishConflicts.length > 0 && !params.input.allowConflicts) {
+    throw new SchedulingConflictError("Occurrence still has schedule conflicts and cannot be published safely", publishConflicts);
   }
 
   const created = await prisma.scheduleAssignment.create({
@@ -338,6 +410,7 @@ export async function updateScheduleAssignment(params: {
     startsAtMinutes,
     endsAtMinutes,
     conflicts,
+    publishConflicts,
   } = await resolveAssignmentMutation({
     scope: params.scope,
     existingAssignmentId: existing.id,
@@ -355,6 +428,10 @@ export async function updateScheduleAssignment(params: {
 
   if (conflicts.length > 0 && !params.input.allowConflicts) {
     throw new SchedulingConflictError("Assignment conflicts with the current schedule", conflicts);
+  }
+
+  if (status === "PUBLISHED" && publishConflicts.length > 0 && !params.input.allowConflicts) {
+    throw new SchedulingConflictError("Occurrence still has schedule conflicts and cannot be published safely", publishConflicts);
   }
 
   const updated = await prisma.scheduleAssignment.update({
@@ -434,6 +511,52 @@ export async function deleteScheduleAssignment(params: {
   await prisma.scheduleAssignment.delete({
     where: { id: existing.id },
   });
+}
+
+export async function bulkUpdateScheduleAssignmentStatus(params: {
+  scope: SchedulingScope;
+  occurrenceId: string;
+  action: ScheduleAssignmentBulkStatusAction;
+}): Promise<ScheduleAssignmentBulkStatusResult> {
+  const occurrence = await prisma.scheduleEventOccurrence.findUnique({
+    where: { id: params.occurrenceId },
+    select: { id: true, brandId: true },
+  });
+  if (!occurrence) throw new Error("Occurrence not found");
+
+  const brandId = resolveWriteBrandId(params.scope, occurrence.brandId, { allowSingleBrandFallback: false });
+  if (brandId !== occurrence.brandId) throw new Error("Occurrence brand cannot be reassigned");
+
+  if (params.action === "publish") {
+    const conflicts = await listOccurrencePublishConflicts({ brandId, occurrenceId: occurrence.id });
+    if (conflicts.length > 0) {
+      throw new SchedulingConflictError("Occurrence still has schedule conflicts and cannot be published safely", conflicts);
+    }
+  }
+
+  const updated = await prisma.scheduleAssignment.updateMany({
+    where: {
+      brandId,
+      scheduleEventOccurrenceId: occurrence.id,
+      status: params.action === "publish" ? "DRAFT" : "PUBLISHED",
+    },
+    data: {
+      status: params.action === "publish" ? "PUBLISHED" : "DRAFT",
+    },
+  });
+
+  const [summary] = await listScheduleOccurrenceVisibilitySummaries({
+    scope: params.scope,
+    occurrenceId: occurrence.id,
+  });
+  if (!summary) throw new Error("Failed to reload occurrence visibility");
+
+  return {
+    action: params.action,
+    occurrenceId: occurrence.id,
+    updatedCount: updated.count,
+    summary,
+  };
 }
 
 async function resolveAssignmentMutation(params: {
@@ -579,6 +702,15 @@ async function resolveAssignmentMutation(params: {
   const conflicts = detectScheduleConflicts([...existingAssignments, pendingAssignment]).filter((conflict) =>
     conflict.assignmentIds.includes("pending")
   );
+  const publishConflicts =
+    status === "PUBLISHED"
+      ? await listOccurrencePublishConflicts({
+          brandId,
+          occurrenceId: occurrence.id,
+          excludeAssignmentId: params.existingAssignmentId,
+          pendingAssignment,
+        })
+      : conflicts;
 
   return {
     brandId,
@@ -590,5 +722,6 @@ async function resolveAssignmentMutation(params: {
     startsAtMinutes,
     endsAtMinutes,
     conflicts,
+    publishConflicts,
   };
 }

@@ -84,6 +84,35 @@ export type ScheduleEventOccurrenceRecord = {
   updatedAt: string;
 };
 
+export type ScheduleOccurrenceVisibilityState = "NOT_PUBLIC" | "PARTIALLY_PUBLIC" | "FULLY_PUBLIC";
+
+export type ScheduleOccurrenceVisibilitySummaryRecord = {
+  occurrenceId: string;
+  brandId: string;
+  brandKey: string;
+  brandName: string;
+  seriesId: string;
+  seriesName: string;
+  occurrenceName: string | null;
+  occursOn: string;
+  occurrenceStatus: ScheduleEventOccurrenceStatus;
+  totalAssignments: number;
+  draftCount: number;
+  publishedCount: number;
+  cancelledCount: number;
+  conflictCount: number;
+  visibilityState: ScheduleOccurrenceVisibilityState;
+};
+
+export type ScheduleAssignmentBulkStatusAction = "publish" | "unpublish";
+
+export type ScheduleAssignmentBulkStatusResult = {
+  action: ScheduleAssignmentBulkStatusAction;
+  occurrenceId: string;
+  updatedCount: number;
+  summary: ScheduleOccurrenceVisibilitySummaryRecord;
+};
+
 export type ScheduleAssignmentRecord = {
   id: string;
   brandId: string;
