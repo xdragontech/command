@@ -56,13 +56,13 @@ function buildLinePath(points: MetricPoint[], key: "signups" | "logins", width: 
 }
 
 function formatDateRange(metrics: DashboardMetrics) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
   });
 
-  return `${formatter.format(new Date(metrics.from))} - ${formatter.format(new Date(metrics.to))}`;
+  return `${formatter.format(new Date(metrics.from))} — ${formatter.format(new Date(metrics.to))}`;
 }
 
 function formatCount(value: number) {
@@ -90,9 +90,8 @@ function PeriodButton({
         border: active ? "1px solid rgba(239,68,68,0.32)" : "1px solid rgba(148,163,184,0.34)",
         background: active ? "#fee2e2" : "rgba(255,255,255,0.92)",
         color: active ? "#991b1b" : "#334155",
-        padding: "7px 12px",
-        fontSize: "0.82rem",
-        lineHeight: 1.1,
+        padding: "10px 14px",
+        fontSize: "0.92rem",
         fontWeight: 700,
         cursor: disabled ? "wait" : "pointer",
         opacity: disabled && !active ? 0.72 : 1,
@@ -304,53 +303,42 @@ export default function DashboardPage({
       active="dashboard"
     >
       <AdminCard
-        title={
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "baseline",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <span>Dashboard</span>
-            <span
-              style={{
-                fontSize: "0.92rem",
-                fontWeight: 600,
-                color: "#64748b",
-                letterSpacing: "0.01em",
-              }}
-            >
-              Global Operations
-            </span>
-          </span>
+        title="Dashboard"
+        description={
+          role === "SUPERADMIN"
+            ? "Global operational view across the current command install."
+            : "Brand-scoped operational view limited to the brands assigned to this staff account."
         }
         actions={
-          <div style={{ display: "grid", justifyItems: "end", gap: "8px" }}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", justifyContent: "flex-end" }}>
-              {PERIOD_OPTIONS.map((option) => (
-                <PeriodButton
-                  key={option.value}
-                  label={option.label}
-                  active={selectedPeriod === option.value}
-                  disabled={loading}
-                  onClick={() => loadPeriod(option.value)}
-                />
-              ))}
-            </div>
-            <div style={{ display: "grid", justifyItems: "end", gap: "4px" }}>
-              <div style={{ color: "#475569", fontSize: "0.88rem", textAlign: "right" }}>
-                Viewing: <strong style={{ color: "#0f172a" }}>{formatDateRange(metrics)}</strong>
-              </div>
-              {loading ? (
-                <div style={{ color: "#475569", fontSize: "0.82rem", textAlign: "right" }}>Refreshing metrics…</div>
-              ) : null}
-            </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", justifyContent: "flex-end" }}>
+            {PERIOD_OPTIONS.map((option) => (
+              <PeriodButton
+                key={option.value}
+                label={option.label}
+                active={selectedPeriod === option.value}
+                disabled={loading}
+                onClick={() => loadPeriod(option.value)}
+              />
+            ))}
           </div>
         }
       >
-        <div style={{ display: "grid", gap: "18px" }}>
+        <div style={{ display: "grid", gap: "20px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+            }}
+          >
+            <div style={{ color: "#475569", fontSize: "0.95rem" }}>
+              Viewing <strong style={{ color: "#0f172a" }}>{formatDateRange(metrics)}</strong>
+            </div>
+            {loading ? <div style={{ color: "#475569", fontSize: "0.92rem" }}>Refreshing metrics…</div> : null}
+          </div>
+
           {error ? (
             <div
               style={{
