@@ -39,6 +39,7 @@ scripts/
 - [`docs/command-public-api-contract.md`](./docs/command-public-api-contract.md)
 - [`docs/command-bff-session-forwarding-contract.md`](./docs/command-bff-session-forwarding-contract.md)
 - [`docs/install-bootstrap-config.md`](./docs/install-bootstrap-config.md)
+- [`docs/scheduling-calendar-contract.md`](./docs/scheduling-calendar-contract.md)
 - [`docs/xdragon-specific-assumption-audit.md`](./docs/xdragon-specific-assumption-audit.md)
 
 ## Migration History Docs
