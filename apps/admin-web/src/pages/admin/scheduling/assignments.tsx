@@ -69,6 +69,12 @@ type PageProps = {
   loggedInAs: string | null;
   principalRole: string;
   principalBrands: string[];
+  initialPrefill: {
+    brandId: string | null;
+    occurrenceId: string | null;
+    resourceId: string | null;
+    newAssignment: boolean;
+  };
 };
 
 const NEW_ASSIGNMENT_ID = "__new_assignment__";
@@ -88,23 +94,55 @@ function resourceSupportsParticipantType(resourceType: ScheduleResourceType, par
   return false;
 }
 
+function participantTypeForResourceType(resourceType: ScheduleResourceType | null) {
+  if (resourceType === ScheduleResourceType.STAGE) return ScheduleParticipantType.ENTERTAINMENT;
+  if (resourceType === ScheduleResourceType.FOOD_SPOT) return ScheduleParticipantType.FOOD_VENDOR;
+  if (resourceType === ScheduleResourceType.MARKET_SPOT) return ScheduleParticipantType.MARKET_VENDOR;
+  return null;
+}
+
 function blankAssignmentForm(params: {
   brands: BrandOption[];
   brandFilter: string;
   occurrences: ScheduleEventOccurrenceRecord[];
   resources: ScheduleResourceRecord[];
   participants: ScheduleParticipantRecord[];
+  preferredOccurrenceId?: string | null;
+  preferredResourceId?: string | null;
 }): AssignmentForm {
-  const brandId = params.brandFilter !== "ALL" ? params.brandFilter : params.brands[0]?.id || "";
+  const preferredOccurrence = params.preferredOccurrenceId
+    ? params.occurrences.find((entry) => entry.id === params.preferredOccurrenceId) || null
+    : null;
+  const brandId =
+    preferredOccurrence?.brandId ||
+    (params.brandFilter !== "ALL" ? params.brandFilter : params.brands[0]?.id || "");
+  const preferredResource = params.preferredResourceId
+    ? params.resources.find((entry) => entry.id === params.preferredResourceId) || null
+    : null;
+  const preferredParticipantType = participantTypeForResourceType(preferredResource?.type || null);
   const matchingParticipants = params.participants.filter(
     (participant) => participant.brandId === brandId && participant.status === "ACTIVE"
   );
-  const participant = matchingParticipants[0] || params.participants.find((entry) => entry.brandId === brandId) || null;
+  const participant =
+    (preferredParticipantType
+      ? matchingParticipants.find((entry) => entry.type === preferredParticipantType) || null
+      : null) ||
+    matchingParticipants[0] ||
+    params.participants.find((entry) => entry.brandId === brandId) ||
+    null;
   const participantType = participant?.type || null;
 
   const occurrence =
-    params.occurrences.find((entry) => entry.brandId === brandId) || params.occurrences[0] || null;
+    preferredOccurrence ||
+    params.occurrences.find((entry) => entry.brandId === brandId) ||
+    params.occurrences[0] ||
+    null;
   const resource =
+    (preferredResource &&
+    preferredResource.brandId === brandId &&
+    resourceSupportsParticipantType(preferredResource.type, participantType)
+      ? preferredResource
+      : null) ||
     params.resources.find(
       (entry) => entry.brandId === brandId && resourceSupportsParticipantType(entry.type, participantType)
     ) ||
@@ -166,6 +204,7 @@ export default function SchedulingAssignmentsPage({
   loggedInAs,
   principalRole,
   principalBrands,
+  initialPrefill,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const [brandFilter, setBrandFilter] = useState("ALL");
@@ -221,6 +260,8 @@ export default function SchedulingAssignmentsPage({
     nextSelectedId?: string | null;
     nextBrandFilter?: string;
     nextOccurrenceFilter?: string;
+    preferredOccurrenceId?: string | null;
+    preferredResourceId?: string | null;
   }) {
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
     const resolvedOccurrenceFilter = options?.nextOccurrenceFilter ?? occurrenceFilter;
@@ -292,6 +333,8 @@ export default function SchedulingAssignmentsPage({
             occurrences: nextOccurrences,
             resources: nextResources,
             participants: nextParticipants,
+            preferredOccurrenceId: options?.preferredOccurrenceId,
+            preferredResourceId: options?.preferredResourceId,
           })
         );
         return;
@@ -312,6 +355,8 @@ export default function SchedulingAssignmentsPage({
             occurrences: nextOccurrences,
             resources: nextResources,
             participants: nextParticipants,
+            preferredOccurrenceId: options?.preferredOccurrenceId,
+            preferredResourceId: options?.preferredResourceId,
           })
         );
       }
@@ -324,7 +369,17 @@ export default function SchedulingAssignmentsPage({
   }
 
   useEffect(() => {
-    void loadData();
+    const nextBrandFilter = initialPrefill.brandId || "ALL";
+    const nextOccurrenceFilter = initialPrefill.occurrenceId || "ALL";
+    setBrandFilter(nextBrandFilter);
+    setOccurrenceFilter(nextOccurrenceFilter);
+    void loadData({
+      nextBrandFilter,
+      nextOccurrenceFilter,
+      nextSelectedId: initialPrefill.newAssignment ? NEW_ASSIGNMENT_ID : null,
+      preferredOccurrenceId: initialPrefill.occurrenceId,
+      preferredResourceId: initialPrefill.resourceId,
+    });
   }, []);
 
   const filteredAssignments = useMemo(() => {
@@ -858,11 +913,22 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const auth = await requireBackofficePage(ctx, { callbackUrl: "/admin/scheduling/assignments" });
   if (!auth.ok) return auth.response;
 
+  const brandId = typeof ctx.query.brandId === "string" && ctx.query.brandId ? ctx.query.brandId : null;
+  const occurrenceId = typeof ctx.query.occurrenceId === "string" && ctx.query.occurrenceId ? ctx.query.occurrenceId : null;
+  const resourceId = typeof ctx.query.resourceId === "string" && ctx.query.resourceId ? ctx.query.resourceId : null;
+  const newAssignment = ctx.query.new === "1";
+
   return {
     props: {
       loggedInAs: auth.loggedInAs || null,
       principalRole: auth.principal.role,
       principalBrands: auth.principal.allowedBrandIds,
+      initialPrefill: {
+        brandId,
+        occurrenceId,
+        resourceId,
+        newAssignment,
+      },
     },
   };
 };

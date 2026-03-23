@@ -360,6 +360,7 @@ Recommendation:
 - embed FullCalendar OSS inside the current admin shell
 - use existing card/layout patterns
 - keep detail editing in normal forms outside the calendar widget
+- add a parallel resource/day planner for stage and booth operations, since OSS calendar views alone are not a strong replacement for a native resource timeline
 
 ### Wave 5. Public-API Read Surface
 - published schedule endpoints
