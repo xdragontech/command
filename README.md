@@ -35,6 +35,7 @@ scripts/
 ## Product & Operator Docs
 
 - [`docs/operator-installation-guide.md`](./docs/operator-installation-guide.md)
+- [`docs/setup-onboarding-contract.md`](./docs/setup-onboarding-contract.md)
 - [`docs/command-public-api-contract.md`](./docs/command-public-api-contract.md)
 - [`docs/command-bff-session-forwarding-contract.md`](./docs/command-bff-session-forwarding-contract.md)
 - [`docs/install-bootstrap-config.md`](./docs/install-bootstrap-config.md)

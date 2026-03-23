@@ -11,6 +11,13 @@ This is the primary operator doc for:
 
 Historical X Dragon extraction notes live separately in the migration-history docs.
 
+Future first-run app onboarding is defined in:
+- [`setup-onboarding-contract.md`](./setup-onboarding-contract.md)
+
+Current state:
+- the setup page is not implemented yet
+- use this guide plus the current bootstrap/install scripts until that lands
+
 ## Install Shape
 
 One `command` install consists of:

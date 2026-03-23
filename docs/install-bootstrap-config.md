@@ -5,6 +5,9 @@ Define the preferred install-time configuration surface for bootstrap identity a
 
 This is the transitional configuration layer before the future setup page owns first-run onboarding.
 
+The future app-owned onboarding behavior is defined in:
+- [`setup-onboarding-contract.md`](./setup-onboarding-contract.md)
+
 **Preferred Install-Time Env Vars**
 - `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL`
 - `BACKOFFICE_BOOTSTRAP_PASSWORD`
