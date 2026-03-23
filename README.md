@@ -16,6 +16,7 @@ What is still not finished:
 - full deployment packaging for non-X Dragon installs
 - final split cleanup across the public-site BFF boundary
 - broader polish and hardening
+- removal of remaining X Dragon-specific assumptions from runtime/bootstrap/docs
 
 ## Intended structure
 
@@ -38,6 +39,7 @@ scripts/
 - [`docs/command-bff-session-forwarding-contract.md`](./docs/command-bff-session-forwarding-contract.md)
 - [`docs/command-repo-skeleton-and-bff-extraction-plan.md`](./docs/command-repo-skeleton-and-bff-extraction-plan.md)
 - [`docs/public-api-preview-deployment-and-cutover.md`](./docs/public-api-preview-deployment-and-cutover.md)
+- [`docs/xdragon-specific-assumption-audit.md`](./docs/xdragon-specific-assumption-audit.md)
 
 ## Public API Preview Deployment
 
