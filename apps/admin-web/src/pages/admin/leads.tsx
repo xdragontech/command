@@ -331,8 +331,8 @@ const countStyle: CSSProperties = {
 
 const primaryButtonStyle: CSSProperties = {
   borderRadius: "999px",
-  border: "1px solid #1d4ed8",
-  background: "#1d4ed8",
+  border: "1px solid #b91c1c",
+  background: "#b91c1c",
   color: "#ffffff",
   padding: "10px 14px",
   fontSize: "0.92rem",

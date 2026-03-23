@@ -916,8 +916,8 @@ const textareaStyle: CSSProperties = {
 
 const primaryButtonStyle: CSSProperties = {
   borderRadius: "999px",
-  border: "1px solid #1d4ed8",
-  background: "#1d4ed8",
+  border: "1px solid #b91c1c",
+  background: "#b91c1c",
   color: "#ffffff",
   padding: "10px 14px",
   fontSize: "0.92rem",
@@ -982,8 +982,8 @@ const listItemStyle: CSSProperties = {
 };
 
 const listItemActiveStyle: CSSProperties = {
-  border: "1px solid rgba(37,99,235,0.32)",
-  background: "rgba(219,234,254,0.65)",
+  border: "1px solid rgba(239,68,68,0.28)",
+  background: "rgba(254,226,226,0.78)",
 };
 
 const editorPanelStyle: CSSProperties = {
