@@ -36,6 +36,15 @@ export type SetupInitializationResult = {
   brandKey: string;
   brandName: string;
   bootstrapEmail: string;
+  apexHost: string;
+  productionPublicHost: string;
+  productionAdminHost: string;
+  previewPublicHost: string;
+  previewAdminHost: string;
+  emailStatus: BrandEmailConfigStatus;
+  providerSecretRef: string;
+  fromEmail: string;
+  supportEmail: string;
   redirectTo: string;
 };
 
@@ -302,6 +311,15 @@ export async function initializeInstall(raw: any): Promise<SetupInitializationRe
       brandKey: brand.brandKey,
       brandName: brand.name,
       bootstrapEmail: protectedEmail,
+      apexHost: input.apexHost,
+      productionPublicHost: input.productionPublicHost,
+      productionAdminHost: input.productionAdminHost,
+      previewPublicHost: input.previewPublicHost,
+      previewAdminHost: input.previewAdminHost,
+      emailStatus: input.emailStatus,
+      providerSecretRef: input.providerSecretRef,
+      fromEmail: input.fromEmail,
+      supportEmail: input.supportEmail,
       redirectTo: "/admin/signin",
     };
   });

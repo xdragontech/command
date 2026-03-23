@@ -106,9 +106,12 @@ Recommendation:
    - host mapping
    - brand email metadata
    - protected bootstrap superadmin record
-7. Run explicit bootstrap ensure/recovery tooling only if needed.
-8. Configure brand email settings in admin-web if the brand is not already ready.
-9. Point the public site BFF at the deployed `public-api`.
+7. Use the post-setup completion screen to copy:
+   - the exact `COMMAND_PUBLIC_INTEGRATIONS_JSON` entry shape
+   - the public-site BFF env handoff values
+8. Run explicit bootstrap ensure/recovery tooling only if needed.
+9. Configure brand email settings in admin-web if the brand is not already ready.
+10. Point the public site BFF at the deployed `public-api`.
 
 ## Bootstrap Superadmin Rule
 
