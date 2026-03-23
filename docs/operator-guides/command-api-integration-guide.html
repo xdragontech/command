@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Command API Integration Guide</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #111827; margin: 42px; line-height: 1.55; font-size: 12pt; }
+    h1 { font-size: 26pt; margin: 0 0 8px 0; color: #7f1d1d; }
+    h2 { font-size: 17pt; margin: 26px 0 8px 0; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    h3 { font-size: 13pt; margin: 18px 0 6px 0; color: #111827; }
+    p, li { margin: 0 0 8px 0; }
+    ul, ol { margin: 8px 0 12px 22px; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; text-align: left; }
+    th { background: #f3f4f6; font-weight: 700; }
+    code { font-family: "SFMono-Regular", Menlo, monospace; background: #f3f4f6; padding: 1px 4px; }
+    pre { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; overflow: auto; white-space: pre-wrap; }
+    .meta td:first-child { width: 180px; font-weight: 700; background: #f9fafb; }
+    .note { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 14px 0; }
+    .small { color: #4b5563; font-size: 10.5pt; }
+  </style>
+</head>
+<body>
+  <h1>X Dragon Command Back Office</h1>
+  <div class="small">API Integration Guide</div>
+
+  <table class="meta">
+    <tr><td>Audience</td><td>Product managers, developers, and technical leads integrating websites with Command</td></tr>
+    <tr><td>Purpose</td><td>Explain the public integration contract by feature, including authentication model, sample usage, sample outputs, and recommended integration patterns.</td></tr>
+    <tr><td>Repository Scope</td><td>Reflects the implemented public-api app and OpenAPI contract in the current checked-out source as of 2026-03-23.</td></tr>
+  </table>
+
+  <div class="note">
+    Source of truth for the wire contract is <code>packages/contracts-openapi/command-public-api.v1.yaml</code>. This guide explains the contract in operator/developer terms and uses the actual deployed Next.js path shape: <code>/api/*</code>.
+  </div>
+
+  <h2>1. Integration Model</h2>
+  <p>Websites should integrate with Command through a server-side BFF or proxy. The browser should not call Command directly.</p>
+  <ol>
+    <li>The website server stores the Command session token.</li>
+    <li>The website server forwards requests to Command with the integration key and, when needed, the Command session token.</li>
+    <li>The browser only talks to the website’s own BFF routes.</li>
+  </ol>
+
+  <div class="note">
+    <strong>Required headers</strong><br>
+    <code>X-Command-Integration-Key</code>: server-to-server credential proving the website is allowed to call this install.<br>
+    <code>X-Command-Session</code>: opaque end-user session token issued by Command and forwarded by the BFF for authenticated flows.
+  </div>
+
+  <h2>2. Endpoint Inventory By Feature</h2>
+  <table>
+    <tr><th>Feature</th><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr>
+    <tr><td>Health</td><td>GET</td><td><code>/api/healthz</code></td><td>None</td><td>Basic liveness check.</td></tr>
+    <tr><td>Readiness</td><td>GET</td><td><code>/api/readyz</code></td><td>None</td><td>Runtime/config/readiness validation.</td></tr>
+    <tr><td>Register</td><td>POST</td><td><code>/api/v1/auth/register</code></td><td>Integration key</td><td>Create a new external account and begin verification.</td></tr>
+    <tr><td>Login</td><td>POST</td><td><code>/api/v1/auth/login</code></td><td>Integration key</td><td>Authenticate a user and receive an opaque session token.</td></tr>
+    <tr><td>Logout</td><td>POST</td><td><code>/api/v1/auth/logout</code></td><td>Integration key + session</td><td>Invalidate the current session token.</td></tr>
+    <tr><td>Session</td><td>GET</td><td><code>/api/v1/auth/session</code></td><td>Integration key + session</td><td>Inspect the current authenticated session.</td></tr>
+    <tr><td>Verify Email</td><td>POST</td><td><code>/api/v1/auth/verify-email</code></td><td>Integration key</td><td>Complete email verification using a token.</td></tr>
+    <tr><td>Forgot Password</td><td>POST</td><td><code>/api/v1/auth/password/forgot</code></td><td>Integration key</td><td>Start password reset without revealing whether the account exists.</td></tr>
+    <tr><td>Reset Password</td><td>POST</td><td><code>/api/v1/auth/password/reset</code></td><td>Integration key</td><td>Complete password reset.</td></tr>
+    <tr><td>Account Read</td><td>GET</td><td><code>/api/v1/account/me</code></td><td>Integration key + session</td><td>Fetch the current external account profile.</td></tr>
+    <tr><td>Account Update</td><td>PATCH</td><td><code>/api/v1/account/me</code></td><td>Integration key + session</td><td>Update the current account. Current scope is display name only.</td></tr>
+    <tr><td>Prompt Feed</td><td>GET</td><td><code>/api/v1/resources/prompts</code></td><td>Integration key + session</td><td>List brand-scoped prompts with search and category filtering.</td></tr>
+    <tr><td>Guide Feed</td><td>GET</td><td><code>/api/v1/resources/guides</code></td><td>Integration key + session</td><td>List brand-scoped guides with search and category filtering.</td></tr>
+    <tr><td>Guide Detail</td><td>GET</td><td><code>/api/v1/resources/guides/{slug}</code></td><td>Integration key + session</td><td>Fetch a single guide by slug.</td></tr>
+    <tr><td>Schedule Calendar Feed</td><td>GET</td><td><code>/api/v1/schedule/calendar</code></td><td>Integration key</td><td>Return published schedule entries for calendar UIs.</td></tr>
+    <tr><td>Schedule Listing Feed</td><td>GET</td><td><code>/api/v1/schedule/list</code></td><td>Integration key</td><td>Return published schedule entries for list and card UIs.</td></tr>
+    <tr><td>Contact</td><td>POST</td><td><code>/api/v1/contact</code></td><td>Integration key</td><td>Accept contact form submissions and write lead records.</td></tr>
+    <tr><td>Chat</td><td>POST</td><td><code>/api/v1/chat</code></td><td>Integration key</td><td>Execute the public chat flow and optionally capture a lead.</td></tr>
+  </table>
+
+  <h2>3. Operational Endpoints</h2>
+
+  <h3>3.1 Health</h3>
+  <p><strong>What it does:</strong> confirms the service is reachable.</p>
+  <pre>GET /api/healthz</pre>
+  <pre>{
+  "ok": true,
+  "service": "command-public-api"
+}</pre>
+
+  <h3>3.2 Readiness</h3>
+  <p><strong>What it does:</strong> confirms required envs, database connectivity, brand resolution, and brand email readiness.</p>
+  <pre>GET /api/readyz</pre>
+  <pre>{
+  "ok": true,
+  "checks": {
+    "database": "ok",
+    "integrations": "ok",
+    "brands": "ok"
+  }
+}</pre>
+
+  <h2>4. Authentication Feature Details</h2>
+
+  <h3>4.1 Register</h3>
+  <p><strong>What it does:</strong> Creates a brand-scoped external account and starts the verification flow.</p>
+  <pre>POST /api/v1/auth/register
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{
+  "email": "user@example.com",
+  "password": "StrongPassword123",
+  "name": "Grant Rogers"
+}</pre>
+  <pre>{
+  "ok": true,
+  "verificationRequired": true
+}</pre>
+
+  <h3>4.2 Login</h3>
+  <p><strong>What it does:</strong> Authenticates a user and returns both account data and an opaque session token for BFF storage.</p>
+  <pre>POST /api/v1/auth/login
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{
+  "email": "user@example.com",
+  "password": "StrongPassword123"
+}</pre>
+  <pre>{
+  "ok": true,
+  "session": {
+    "token": "cmd_sess_opaque_token",
+    "expiresAt": "2026-03-30T21:15:00.000Z"
+  },
+  "account": {
+    "id": "extusr_123",
+    "brandKey": "xdragon",
+    "email": "user@example.com",
+    "name": "Grant Rogers",
+    "status": "ACTIVE",
+    "emailVerified": true,
+    "createdAt": "2026-03-20T19:10:00.000Z",
+    "updatedAt": "2026-03-23T17:40:00.000Z",
+    "lastLoginAt": "2026-03-23T21:15:00.000Z"
+  }
+}</pre>
+
+  <h3>4.3 Session Inspection</h3>
+  <p><strong>What it does:</strong> Lets the BFF ask Command whether the current stored session is still valid.</p>
+  <pre>GET /api/v1/auth/session
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+  X-Command-Session: &lt;opaque-session-token&gt;</pre>
+  <pre>{
+  "ok": true,
+  "account": {
+    "id": "extusr_123",
+    "brandKey": "xdragon",
+    "email": "user@example.com",
+    "name": "Grant Rogers",
+    "status": "ACTIVE",
+    "emailVerified": true,
+    "createdAt": "2026-03-20T19:10:00.000Z",
+    "updatedAt": "2026-03-23T17:40:00.000Z",
+    "lastLoginAt": "2026-03-23T21:15:00.000Z"
+  }
+}</pre>
+
+  <h3>4.4 Logout</h3>
+  <p><strong>What it does:</strong> Invalidates the current session so the BFF can clear its own local session envelope.</p>
+  <pre>POST /api/v1/auth/logout
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+  X-Command-Session: &lt;opaque-session-token&gt;</pre>
+
+  <h3>4.5 Verify Email</h3>
+  <p><strong>What it does:</strong> Completes email verification using the token sent by the brand email flow.</p>
+  <pre>POST /api/v1/auth/verify-email
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{ "token": "raw-email-verification-token" }</pre>
+  <pre>{ "ok": true, "verified": true }</pre>
+
+  <h3>4.6 Forgot Password And Reset Password</h3>
+  <p><strong>What they do:</strong> Start and finish the password reset flow.</p>
+  <pre>POST /api/v1/auth/password/forgot
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{ "email": "user@example.com" }</pre>
+  <pre>{ "ok": true }</pre>
+  <pre>POST /api/v1/auth/password/reset
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{
+  "token": "raw-reset-token",
+  "password": "NewStrongPassword123"
+}</pre>
+  <pre>{ "ok": true }</pre>
+
+  <h2>5. Account Feature Details</h2>
+
+  <h3>5.1 Fetch Current Account</h3>
+  <p>Use <code>GET /api/v1/account/me</code> with both required headers to retrieve the current external user profile.</p>
+
+  <h3>5.2 Update Current Account</h3>
+  <p>Current v1 scope is intentionally narrow: only display-name updates are in contract.</p>
+  <pre>PATCH /api/v1/account/me
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+  X-Command-Session: &lt;opaque-session-token&gt;
+Body:
+{
+  "name": "Updated Display Name"
+}</pre>
+  <pre>{
+  "ok": true,
+  "account": {
+    "id": "extusr_123",
+    "brandKey": "xdragon",
+    "email": "user@example.com",
+    "name": "Updated Display Name",
+    "status": "ACTIVE",
+    "emailVerified": true
+  }
+}</pre>
+
+  <h2>6. Resource Feed Details</h2>
+
+  <h3>6.1 Prompt Feed</h3>
+  <p><strong>Purpose:</strong> Return brand-scoped prompts for authenticated external users.</p>
+  <p><strong>Query parameters:</strong> <code>q</code>, <code>category</code>, <code>limit</code></p>
+  <pre>GET /api/v1/resources/prompts?q=onboarding&amp;category=welcome&amp;limit=10</pre>
+  <pre>{
+  "ok": true,
+  "items": [
+    {
+      "id": "prompt_123",
+      "title": "Welcome Prompt",
+      "description": "Introductory onboarding prompt",
+      "category": "welcome",
+      "content": "Prompt body text..."
+    }
+  ]
+}</pre>
+
+  <h3>6.2 Guide Feed</h3>
+  <p><strong>Purpose:</strong> Return brand-scoped guide summaries.</p>
+  <p><strong>Query parameters:</strong> <code>q</code>, <code>category</code>, <code>limit</code></p>
+  <pre>GET /api/v1/resources/guides?q=pricing&amp;limit=10</pre>
+  <pre>{
+  "ok": true,
+  "items": [
+    {
+      "id": "guide_123",
+      "title": "How Pricing Works",
+      "slug": "how-pricing-works",
+      "summary": "A short summary of the guide",
+      "updatedAt": "2026-03-23T18:10:00.000Z",
+      "category": {
+        "id": "cat_123",
+        "name": "Billing",
+        "slug": "billing"
+      },
+      "tags": ["pricing", "billing"]
+    }
+  ]
+}</pre>
+
+  <h3>6.3 Guide Detail</h3>
+  <pre>GET /api/v1/resources/guides/how-pricing-works</pre>
+  <pre>{
+  "ok": true,
+  "item": {
+    "id": "guide_123",
+    "title": "How Pricing Works",
+    "slug": "how-pricing-works",
+    "summary": "A short summary of the guide",
+    "category": {
+      "id": "cat_123",
+      "name": "Billing",
+      "slug": "billing"
+    },
+    "tags": ["pricing", "billing"],
+    "body": "Full guide body..."
+  }
+}</pre>
+
+  <h2>7. Scheduling Feed Details</h2>
+
+  <h3>7.1 Calendar Feed</h3>
+  <p><strong>Purpose:</strong> Return published schedule entries for public calendar rendering. This endpoint is integration-authenticated but does not require a user session.</p>
+  <p><strong>Query parameters:</strong> <code>from</code>, <code>to</code>, <code>occurrenceDate</code>, <code>eventSeries</code>, <code>participantType</code>, <code>resource</code>, <code>location</code>, <code>resourceType</code>, <code>sequence</code>, <code>q</code>, <code>limit</code></p>
+  <pre>GET /api/v1/schedule/calendar?from=2026-05-01&amp;to=2026-05-31&amp;eventSeries=friday-market-2026&amp;resourceType=STAGE</pre>
+  <pre>{
+  "ok": true,
+  "range": {
+    "from": "2026-05-01",
+    "to": "2026-05-31"
+  },
+  "items": [
+    {
+      "id": "sched_123",
+      "kind": "TIMED_SLOT",
+      "status": "PUBLISHED",
+      "allDay": false,
+      "occursOn": "2026-05-01",
+      "timezone": "America/Vancouver",
+      "start": "2026-05-01T18:00:00",
+      "end": "2026-05-01T18:45:00",
+      "startsAtMinutes": 1080,
+      "endsAtMinutes": 1125,
+      "timeLabel": "6:00 PM - 6:45 PM",
+      "occurrenceWindowLabel": "4:00 PM - 10:00 PM",
+      "sequence": 1,
+      "title": "Opening Set",
+      "subtitle": "Main Stage",
+      "description": "Public schedule copy",
+      "locationLabel": "Main Stage",
+      "url": "https://www.example.com/schedule/opening-set",
+      "eventSeries": {
+        "id": "series_123",
+        "slug": "friday-market-2026",
+        "name": "Friday Market 2026"
+      },
+      "occurrence": {
+        "id": "occ_123",
+        "name": "Opening Night",
+        "status": "SCHEDULED"
+      },
+      "resource": {
+        "id": "res_123",
+        "slug": "main-stage",
+        "name": "Main Stage",
+        "type": "STAGE"
+      },
+      "participant": {
+        "id": "part_123",
+        "slug": "opening-band",
+        "displayName": "Opening Band",
+        "type": "ENTERTAINMENT"
+      }
+    }
+  ]
+}</pre>
+
+  <h3>7.2 Listing Feed</h3>
+  <p><strong>Purpose:</strong> Return published schedule entries for list, cards, and grouped public views.</p>
+  <pre>GET /api/v1/schedule/list?date=2026-05-01&amp;participantType=FOOD_VENDOR</pre>
+  <pre>{
+  "ok": true,
+  "range": {
+    "from": "2026-05-01",
+    "to": "2026-05-01"
+  },
+  "items": [
+    {
+      "id": "sched_456",
+      "kind": "FULL_DAY",
+      "status": "PUBLISHED",
+      "allDay": true,
+      "occursOn": "2026-05-01",
+      "timezone": "America/Vancouver",
+      "start": "2026-05-01",
+      "end": "2026-05-02",
+      "startsAtMinutes": 0,
+      "endsAtMinutes": 1440,
+      "timeLabel": "All Day",
+      "occurrenceWindowLabel": "10:00 AM - 8:00 PM",
+      "sequence": null,
+      "title": "Taco Wagon",
+      "subtitle": null,
+      "description": "Street food vendor",
+      "locationLabel": "Food Row A / Spot 03",
+      "url": null,
+      "eventSeries": {
+        "id": "series_123",
+        "slug": "friday-market-2026",
+        "name": "Friday Market 2026"
+      },
+      "occurrence": {
+        "id": "occ_123",
+        "name": "Opening Night",
+        "status": "SCHEDULED"
+      },
+      "resource": {
+        "id": "res_456",
+        "slug": "food-row-a-spot-03",
+        "name": "Food Row A / Spot 03",
+        "type": "FOOD_SPOT"
+      },
+      "participant": {
+        "id": "part_456",
+        "slug": "taco-wagon",
+        "displayName": "Taco Wagon",
+        "type": "FOOD_VENDOR"
+      }
+    }
+  ]
+}</pre>
+
+  <h2>8. Service Flow Details</h2>
+
+  <h3>8.1 Contact</h3>
+  <p><strong>Purpose:</strong> Accept a public contact request, write lead records, and attempt notification delivery.</p>
+  <pre>POST /api/v1/contact
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{
+  "name": "Casey Smith",
+  "email": "casey@example.com",
+  "phone": "555-000-1111",
+  "message": "I want more information about vendor opportunities."
+}</pre>
+  <pre>{
+  "ok": true,
+  "id": "lead_evt_123",
+  "notification": "sent"
+}</pre>
+
+  <h3>8.2 Chat</h3>
+  <p><strong>Purpose:</strong> Process a public website chat turn and optionally capture follow-up lead information.</p>
+  <pre>POST /api/v1/chat
+Headers:
+  X-Command-Integration-Key: &lt;integration-key&gt;
+Body:
+{
+  "messages": [
+    { "role": "user", "content": "I want to book a booth for opening weekend." }
+  ],
+  "lead": {
+    "name": "Casey Smith",
+    "email": "casey@example.com"
+  }
+}</pre>
+  <pre>{
+  "ok": true,
+  "reply": "We can help with that. Which date and booth type are you interested in?",
+  "lead": {
+    "captured": true
+  }
+}</pre>
+
+  <h2>9. Multi-Step Integration Examples</h2>
+
+  <h3>9.1 Registration To First Authenticated Resource Read</h3>
+  <ol>
+    <li>Call <code>POST /api/v1/auth/register</code>.</li>
+    <li>Wait for the user to verify email through the tokenized email flow.</li>
+    <li>Call <code>POST /api/v1/auth/login</code> and store <code>session.token</code> in the BFF session layer.</li>
+    <li>Call <code>GET /api/v1/auth/session</code> to confirm the session.</li>
+    <li>Call <code>GET /api/v1/resources/guides</code> or <code>/api/v1/resources/prompts</code> using the same session token.</li>
+  </ol>
+
+  <h3>9.2 Public Schedule Rendering</h3>
+  <ol>
+    <li>Call <code>GET /api/v1/schedule/calendar</code> with a bounded date range and the integration key.</li>
+    <li>Render the returned entries in the website calendar UI.</li>
+    <li>Use <code>GET /api/v1/schedule/list</code> for the companion list/cards/filters view.</li>
+    <li>Only published assignments are returned, so draft changes remain private until operators publish them.</li>
+  </ol>
+
+  <h3>9.3 Forgot Password Recovery</h3>
+  <ol>
+    <li>Call <code>POST /api/v1/auth/password/forgot</code> with the user email.</li>
+    <li>Deliver the reset link/token through the brand email flow.</li>
+    <li>Call <code>POST /api/v1/auth/password/reset</code> with the raw reset token and new password.</li>
+    <li>Call <code>POST /api/v1/auth/login</code> with the new password to start a fresh session.</li>
+  </ol>
+
+  <h2>10. Implementation Rules</h2>
+  <ul>
+    <li>Do not call Command directly from the browser.</li>
+    <li>Store the raw Command session token only in the BFF/server layer.</li>
+    <li>Use one integration key per public site and keep it brand-scoped in v1.</li>
+    <li>Treat <code>/api/readyz</code> as an operator/runtime check, not a public user feature.</li>
+    <li>Use published schedule feeds for public calendars. Draft schedule data is intentionally not exposed.</li>
+  </ul>
+</body>
+</html>

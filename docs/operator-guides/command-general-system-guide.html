@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Command General System Guide</title>
+  <style>
+    body { font-family: "Helvetica Neue", Arial, sans-serif; color: #111827; margin: 42px; line-height: 1.55; font-size: 12pt; }
+    h1 { font-size: 26pt; margin: 0 0 8px 0; color: #7f1d1d; }
+    h2 { font-size: 17pt; margin: 26px 0 8px 0; color: #111827; border-bottom: 1px solid #d1d5db; padding-bottom: 4px; }
+    h3 { font-size: 13pt; margin: 18px 0 6px 0; color: #111827; }
+    p, li { margin: 0 0 8px 0; }
+    ul, ol { margin: 8px 0 12px 22px; padding: 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 18px 0; }
+    th, td { border: 1px solid #d1d5db; padding: 8px 10px; vertical-align: top; text-align: left; }
+    th { background: #f3f4f6; font-weight: 700; }
+    code { font-family: "SFMono-Regular", Menlo, monospace; background: #f3f4f6; padding: 1px 4px; }
+    .meta td:first-child { width: 180px; font-weight: 700; background: #f9fafb; }
+    .note { background: #f8fafc; border: 1px solid #cbd5e1; padding: 12px 14px; margin: 14px 0; }
+    .warning { background: #fff7ed; border: 1px solid #fdba74; padding: 12px 14px; margin: 14px 0; }
+    .small { color: #4b5563; font-size: 10.5pt; }
+  </style>
+</head>
+<body>
+  <h1>X Dragon Command Back Office</h1>
+  <div class="small">General System Guide</div>
+
+  <table class="meta">
+    <tr><td>Audience</td><td>System operators, administrators, and technical reviewers</td></tr>
+    <tr><td>Purpose</td><td>Provide a high-level understanding of the current Command system, its major components, their responsibilities, and how they interact.</td></tr>
+    <tr><td>Repository Scope</td><td>Reflects the current checked-out source rebased on <code>origin/main</code> as of 2026-03-23.</td></tr>
+    <tr><td>Primary Sources</td><td><code>apps/admin-web</code>, <code>apps/public-api</code>, <code>packages/core-*</code>, <code>packages/contracts-openapi/command-public-api.v1.yaml</code>, and <code>prisma/schema.prisma</code>.</td></tr>
+  </table>
+
+  <div class="note">
+    This guide documents implemented functionality currently present in the repo. It includes the first-run setup flow, the public-api service boundary, and the phase-1 scheduling/calendar system.
+  </div>
+
+  <h2>1. System Summary</h2>
+  <p>Command is the reusable backoffice and public-service product boundary for a brand-operated installation. It now owns three major runtime layers: the administrator-facing backoffice, the public-api service consumed by brand websites through a server-side BFF, and a shared domain/data model for identity, brands, content, leads, setup, and scheduling.</p>
+  <p>Command is intentionally split around clear ownership boundaries:</p>
+  <ul>
+    <li><strong>Admin Web</strong> owns operator workflows, review surfaces, diagnostics, and configuration.</li>
+    <li><strong>Public API</strong> owns external/public-site contract behavior.</li>
+    <li><strong>Core packages</strong> own shared domain rules that both apps depend on.</li>
+    <li><strong>The Prisma schema</strong> is the install-wide source of truth for brand, identity, content, lead, setup, and schedule data.</li>
+  </ul>
+
+  <h2>2. Major Components</h2>
+  <table>
+    <tr>
+      <th>Component</th>
+      <th>What It Is</th>
+      <th>Primary Responsibilities</th>
+    </tr>
+    <tr>
+      <td><strong>Admin Web</strong></td>
+      <td>Next.js backoffice application in <code>apps/admin-web</code></td>
+      <td>First-run setup, admin sign-in, MFA, staff/client management, brand configuration, runtime diagnostics, content management, lead/analytics reporting, and scheduling operations.</td>
+    </tr>
+    <tr>
+      <td><strong>Public API</strong></td>
+      <td>Next.js public service application in <code>apps/public-api</code></td>
+      <td>Integration-authenticated external auth, account profile, resources, schedule feeds, contact, chat, and readiness endpoints.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Auth Packages</strong></td>
+      <td><code>core-auth-backoffice</code> and <code>core-auth-external</code></td>
+      <td>Encapsulate identity rules, password handling, MFA support, protected bootstrap semantics, and external-user auth primitives.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Brand Runtime</strong></td>
+      <td><code>packages/core-brand-runtime</code></td>
+      <td>Resolves valid hosts, brand runtime context, and brand-scoped runtime constraints.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Content</strong></td>
+      <td><code>packages/core-content</code></td>
+      <td>Owns prompts, articles/guides, categories, publish states, and brand-scoped uniqueness rules.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Leads</strong></td>
+      <td><code>packages/core-leads</code></td>
+      <td>Builds lead lists, analytics, dashboard metrics, and lead/event aggregation.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Scheduling</strong></td>
+      <td><code>packages/core-scheduling</code></td>
+      <td>Owns recurring event series, occurrences, resources, participants, assignments, conflicts, publish rules, planner views, and published schedule feeds.</td>
+    </tr>
+    <tr>
+      <td><strong>Core DB</strong></td>
+      <td><code>packages/core-db</code> plus Prisma</td>
+      <td>Provides the Prisma client and shared database access across apps and packages.</td>
+    </tr>
+    <tr>
+      <td><strong>Email Runtime</strong></td>
+      <td><code>packages/core-email</code> plus brand email config</td>
+      <td>Supports brand-aware email sending for verification, password reset, contact notifications, and lead follow-up.</td>
+    </tr>
+  </table>
+
+  <h2>3. Implemented Feature Areas</h2>
+  <table>
+    <tr>
+      <th>Feature Area</th>
+      <th>Status</th>
+      <th>Notes</th>
+    </tr>
+    <tr>
+      <td>First-run install setup</td>
+      <td>Implemented</td>
+      <td>Uninitialized installs are gated into <code>/setup</code>, which creates the install profile, first brand, hosts, brand email metadata, and bootstrap superadmin.</td>
+    </tr>
+    <tr>
+      <td>Backoffice sign-in and MFA</td>
+      <td>Implemented</td>
+      <td>Credential sign-in uses NextAuth, protected backoffice identity logic, and authenticator-app MFA.</td>
+    </tr>
+    <tr>
+      <td>Staff account management</td>
+      <td>Implemented</td>
+      <td>Superadmins can create, invite, reset passwords, block/unblock, delete, and reset MFA for staff accounts.</td>
+    </tr>
+    <tr>
+      <td>Client account management</td>
+      <td>Implemented</td>
+      <td>Brand-scoped external accounts can be created, verified, blocked, unblocked, updated, and deleted.</td>
+    </tr>
+    <tr>
+      <td>Brand setup and runtime host mapping</td>
+      <td>Implemented</td>
+      <td>Brand key/name, public/admin hosts by environment, and brand email config are database-backed.</td>
+    </tr>
+    <tr>
+      <td>Operational diagnostics</td>
+      <td>Implemented</td>
+      <td>Configs reports runtime env state, database connectivity, auth readiness, and bootstrap readiness.</td>
+    </tr>
+    <tr>
+      <td>Dashboard, analytics, and leads</td>
+      <td>Implemented</td>
+      <td>Operational metrics and lead reporting are built from stored lead and login event data.</td>
+    </tr>
+    <tr>
+      <td>Prompt, guide, and article libraries</td>
+      <td>Implemented</td>
+      <td>Brand-scoped categories and publishable content are managed directly in admin-web and exposed through public-api.</td>
+    </tr>
+    <tr>
+      <td>Scheduling and calendar</td>
+      <td>Implemented (phase 1)</td>
+      <td>Includes event series, occurrences, resources, participants, assignments, conflicts, calendar view, planner view, and publish-state controls.</td>
+    </tr>
+    <tr>
+      <td>Public API website integration</td>
+      <td>Implemented</td>
+      <td>Public-api app provides auth, account, resources, contact, chat, health/readiness, and published schedule feeds.</td>
+    </tr>
+  </table>
+
+  <h2>4. Roles And Access Boundaries</h2>
+  <table>
+    <tr><th>Role</th><th>Purpose</th><th>Typical Access</th></tr>
+    <tr><td><strong>SUPERADMIN</strong></td><td>Installation-level administrator</td><td>All brands, global settings, staff management, client management, brand creation and deletion, scheduling, and full diagnostics.</td></tr>
+    <tr><td><strong>STAFF</strong></td><td>Brand-scoped operator</td><td>Read/write access only within assigned brands. Some settings remain restricted or read-only.</td></tr>
+    <tr><td><strong>External Client Account</strong></td><td>Public website end-user identity</td><td>Authenticates through the public-api boundary, not through backoffice screens.</td></tr>
+    <tr><td><strong>Public Site Integration</strong></td><td>Server-to-server website caller</td><td>Uses a brand-scoped integration key and optional forwarded Command session token through a BFF/proxy layer.</td></tr>
+  </table>
+
+  <h2>5. How The Components Interact</h2>
+
+  <h3>5.1 First-Run Setup Flow</h3>
+  <ol>
+    <li>A new install without a completed <code>InstallProfile</code> redirects operators to <code>/setup</code>.</li>
+    <li>The operator unlocks setup using <code>BACKOFFICE_BOOTSTRAP_PASSWORD</code>.</li>
+    <li>Setup writes the install profile, initial brand, host mapping, brand email metadata, and bootstrap superadmin in one transaction.</li>
+    <li>The completion screen gives the operator the public integration handoff details needed for website/BFF setup.</li>
+  </ol>
+
+  <h3>5.2 Backoffice Authentication Flow</h3>
+  <ol>
+    <li>An operator signs in through <code>/admin/signin</code>.</li>
+    <li>NextAuth credentials auth delegates to <code>core-auth-backoffice</code>.</li>
+    <li>If MFA is enabled, the operator must complete the MFA challenge step.</li>
+    <li>Session state stores role, allowed brand IDs, MFA state, and identity metadata.</li>
+    <li>Admin pages and admin APIs enforce authorization from that backoffice session context.</li>
+  </ol>
+
+  <h3>5.3 Brand Runtime And Website Integration</h3>
+  <ol>
+    <li>Brands are stored in the <code>Brand</code> table.</li>
+    <li><code>BrandHost</code> stores allowed public and admin hosts by environment.</li>
+    <li>Public websites integrate through <code>apps/public-api</code>, not through admin APIs.</li>
+    <li>The public site BFF sends <code>X-Command-Integration-Key</code> and, when needed, <code>X-Command-Session</code>.</li>
+    <li>Command resolves brand scope from the integration key rather than trusting raw browser-supplied brand identifiers.</li>
+  </ol>
+
+  <h3>5.4 Content Operations</h3>
+  <ol>
+    <li>Prompts, guides, and articles are stored per brand.</li>
+    <li>Categories are brand-scoped, so the same category names or slugs can exist in different brands.</li>
+    <li>Admin-web edits this content through internal admin APIs.</li>
+    <li>Public websites consume published content through the public-api resource endpoints.</li>
+  </ol>
+
+  <h3>5.5 Lead And Service Flow</h3>
+  <ol>
+    <li>Contact and chat traffic enter through public-api service endpoints.</li>
+    <li>Lead and chat activity is captured into the append-only <code>LeadEvent</code> stream.</li>
+    <li>Optional durable <code>Lead</code> rows provide a summary record when needed.</li>
+    <li>Dashboard, Leads, and Analytics screens read through <code>core-leads</code>.</li>
+  </ol>
+
+  <h3>5.6 Scheduling Flow</h3>
+  <ol>
+    <li>Operators define recurring event series and materialized occurrences.</li>
+    <li>Named resources represent stages, food spots, market booths, or other schedulable locations.</li>
+    <li>Schedule participants represent approved/schedulable entities such as entertainers and vendors.</li>
+    <li>Assignments attach a participant to a resource within an occurrence using either timed-slot or full-day rules.</li>
+    <li>Conflicts are detected in the backend, reviewed in admin-web, and publish state controls what the public site can see.</li>
+  </ol>
+
+  <h2>6. Operational Dependencies</h2>
+  <table>
+    <tr><th>Dependency</th><th>Purpose</th><th>Observed In Code</th></tr>
+    <tr><td><code>XD_POSTGRES</code></td><td>Primary Postgres/Prisma connection string</td><td>Prisma datasource and runtime database diagnostics</td></tr>
+    <tr><td><code>NEXTAUTH_URL</code></td><td>Backoffice auth base URL</td><td>Admin sign-in, callback handling, session cookies</td></tr>
+    <tr><td><code>NEXTAUTH_SECRET</code></td><td>Session/JWT signing secret</td><td>Required by NextAuth in production</td></tr>
+    <tr><td><code>BACKOFFICE_MFA_ENCRYPTION_KEY</code></td><td>Encrypt MFA secrets and recovery codes</td><td>Required before MFA can be enrolled</td></tr>
+    <tr><td><code>BACKOFFICE_BOOTSTRAP_PASSWORD</code></td><td>Setup unlock and bootstrap recovery input</td><td>Used by <code>/setup</code> and bootstrap tooling</td></tr>
+    <tr><td><code>COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL</code></td><td>Protected bootstrap identity</td><td>Required for bootstrap-account semantics and setup</td></tr>
+    <tr><td><code>COMMAND_PUBLIC_INTEGRATIONS_JSON</code></td><td>Public site integration registry</td><td>Brand-scoped integration-key registry for public-api</td></tr>
+    <tr><td><code>RESEND_API_KEY</code></td><td>Email provider secret</td><td>Used by brand email configuration and public notification flows</td></tr>
+    <tr><td><code>OPENAI_API_KEY</code></td><td>Public chat runtime</td><td>Required for chat service execution</td></tr>
+  </table>
+
+  <h2>7. Directory View</h2>
+  <table>
+    <tr><th>Path</th><th>Meaning</th></tr>
+    <tr><td><code>apps/admin-web</code></td><td>Backoffice web application and its internal admin APIs</td></tr>
+    <tr><td><code>apps/public-api</code></td><td>External/public service boundary used by websites through BFF integrations</td></tr>
+    <tr><td><code>packages/contracts-openapi</code></td><td>OpenAPI source of truth for the public integration contract</td></tr>
+    <tr><td><code>packages/core-*</code></td><td>Shared business logic and reusable runtime packages</td></tr>
+    <tr><td><code>prisma/schema.prisma</code></td><td>Source of truth for the install data model</td></tr>
+    <tr><td><code>docs/</code></td><td>Architecture, setup, contract, and operator documentation</td></tr>
+  </table>
+
+  <h2>8. Current Boundaries And Limitations</h2>
+  <ul>
+    <li>The public website integration model is explicitly BFF-first. Browser-direct integration is outside the supported pattern.</li>
+    <li>Scheduling phase 1 supports already-approved/schedulable participants only. The future application review/approval module is not implemented yet.</li>
+    <li>The admin calendar uses FullCalendar OSS. Resource-first operations are handled through planner and CRUD workflows rather than premium resource-timeline features.</li>
+    <li>Install env secrets remain operator-owned even though install setup and brand metadata are app-owned.</li>
+    <li>Publish-state and conflict rules are backend-owned. UI surfaces reflect those rules but do not replace them.</li>
+  </ul>
+</body>
+</html>
