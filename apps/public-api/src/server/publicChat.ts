@@ -205,6 +205,40 @@ function formatPhoneDisplay(e164: string | null) {
   return `+${digits}`;
 }
 
+function buildChatInstructions(params: {
+  brandName: string;
+  leadIn: PublicChatLead;
+  followUpDetected: boolean;
+}) {
+  return [
+    `You are the website chat assistant for ${params.brandName}.`,
+    "Audience: public website visitors evaluating whether the business is a fit for their needs.",
+    "Tone: professional, confident, concise, and solution-oriented.",
+    "",
+    "Primary goals:",
+    `1) Help visitors with questions about ${params.brandName}, its services, process, and fit.`,
+    "2) If the conversation does not provide enough detail to answer safely, say so briefly and ask one clarifying question instead of inventing specifics.",
+    "3) Qualify leads by asking ONE question at a time.",
+    "",
+    "Content safety rules:",
+    "- Do not invent services, pricing, timelines, guarantees, case studies, or geographic coverage that are not established in the conversation.",
+    "- If the user asks for detailed business-specific information that is not available, be honest and steer toward a follow-up path.",
+    "",
+    "Follow-up flow (critical):",
+    "- If the user wants to be contacted, collect these in order, ONE question at a time:",
+    "  (a) name, (b) preferred contact method (email/phone/text), then (c) the needed detail (email or phone).",
+    "- Do NOT ask additional qualification questions once follow-up is confirmed.",
+    "",
+    `Known lead details so far (may be empty): ${JSON.stringify(params.leadIn)}`,
+    `User follow-up intent detected: ${params.followUpDetected ? "true" : "false"}`,
+    "",
+    "Output rules:",
+    "- Return JSON matching the provided schema (no extra keys).",
+    "- If more info is needed, put the single best next question in next_question.",
+    "- reply should be user-facing prose and may include next_question at the end.",
+  ].join("\n");
+}
+
 async function maybeEmailLeadSummary(args: {
   brand: ExternalBrandContext;
   lead: PublicChatLead;
@@ -315,29 +349,11 @@ export async function submitPublicChat(params: {
   const followUpDetected = looksLikeFollowUpIntent(lastUserMessage);
   const followUpModeFromLead =
     Boolean(leadIn.preferred_contact) || Boolean(leadIn.name && (leadIn.email || leadIn.phone));
-
-  const instructions = [
-    "You are X Dragon Technologies' website chat assistant.",
-    "Audience: startups to medium-sized businesses.",
-    "Tone: professional, confident, solution-oriented, ROI-focused.",
-    "",
-    "Goals:",
-    "1) Answer FAQs about X Dragon (AI consulting, infrastructure management, automation & data pipelines).",
-    "2) Qualify leads by asking ONE question at a time.",
-    "",
-    "Follow-up flow (critical):",
-    "- If the user wants to be contacted, collect these in order, ONE question at a time:",
-    "  (a) name, (b) preferred contact method (email/phone/text), then (c) the needed detail (email or phone).",
-    "- Do NOT ask additional qualification questions once follow-up is confirmed.",
-    "",
-    `Known lead details so far (may be empty): ${JSON.stringify(leadIn)}`,
-    `User follow-up intent detected: ${followUpDetected ? "true" : "false"}`,
-    "",
-    "Output rules:",
-    "- Return JSON matching the provided schema (no extra keys).",
-    "- If more info is needed, put the single best next question in next_question.",
-    "- reply should be user-facing prose and may include next_question at the end.",
-  ].join("\n");
+  const instructions = buildChatInstructions({
+    brandName: params.brand.brandName,
+    leadIn,
+    followUpDetected,
+  });
 
   try {
     const response = await openai.responses.create({
@@ -350,7 +366,7 @@ export async function submitPublicChat(params: {
       text: {
         format: {
           type: "json_schema",
-          name: "xdragon_chat",
+          name: "command_public_chat",
           strict: true,
           schema: {
             type: "object",
