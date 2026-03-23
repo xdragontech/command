@@ -18,15 +18,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     if (req.method === "GET") {
       const brandId = Array.isArray(req.query.brandId) ? req.query.brandId[0] : req.query.brandId;
+      const seriesId = Array.isArray(req.query.seriesId) ? req.query.seriesId[0] : req.query.seriesId;
       const occurrenceId = Array.isArray(req.query.occurrenceId) ? req.query.occurrenceId[0] : req.query.occurrenceId;
       const participantId = Array.isArray(req.query.participantId) ? req.query.participantId[0] : req.query.participantId;
       const resourceId = Array.isArray(req.query.resourceId) ? req.query.resourceId[0] : req.query.resourceId;
+      const from = Array.isArray(req.query.from) ? req.query.from[0] : req.query.from;
+      const to = Array.isArray(req.query.to) ? req.query.to[0] : req.query.to;
       const assignments = await listScheduleAssignments({
         scope: toSchedulingScope(auth.principal),
         brandId: brandId || null,
+        seriesId: seriesId || null,
         occurrenceId: occurrenceId || null,
         participantId: participantId || null,
         resourceId: resourceId || null,
+        from: from || null,
+        to: to || null,
       });
       return json(res, 200, { ok: true, assignments });
     }

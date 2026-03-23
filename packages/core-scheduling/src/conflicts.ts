@@ -119,6 +119,7 @@ export function detectScheduleConflicts(assignments: AssignmentForConflict[]) {
 export async function listScheduleConflicts(params: {
   scope: SchedulingScope;
   brandId?: string | null;
+  seriesId?: string | null;
   occurrenceId?: string | null;
   from?: string | null;
   to?: string | null;
@@ -126,6 +127,7 @@ export async function listScheduleConflicts(params: {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeNullableId(params.brandId));
   if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ScheduleConflictRecord[];
 
+  const seriesId = normalizeNullableId(params.seriesId);
   const occurrenceId = normalizeNullableId(params.occurrenceId);
   const from = params.from ? parseIsoDateOnly(params.from, "From date") : null;
   const to = params.to ? parseIsoDateOnly(params.to, "To date") : null;
@@ -135,13 +137,18 @@ export async function listScheduleConflicts(params: {
       status: { not: "CANCELLED" },
       ...(brandIds === null ? {} : { brandId: { in: brandIds } }),
       ...(occurrenceId ? { scheduleEventOccurrenceId: occurrenceId } : {}),
-      ...(from || to
+      ...(seriesId || from || to
         ? {
             occurrence: {
-              occursOn: {
-                ...(from ? { gte: from } : {}),
-                ...(to ? { lte: to } : {}),
-              },
+              ...(seriesId ? { scheduleEventSeriesId: seriesId } : {}),
+              ...(from || to
+                ? {
+                    occursOn: {
+                      ...(from ? { gte: from } : {}),
+                      ...(to ? { lte: to } : {}),
+                    },
+                  }
+                : {}),
             },
           }
         : {}),

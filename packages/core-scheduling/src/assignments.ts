@@ -4,6 +4,7 @@ import {
   SchedulingConflictError,
   ensureBrand,
   parseAssignmentKind,
+  parseIsoDateOnly,
   normalizeNullableId,
   normalizeNullableText,
   normalizeText,
@@ -119,16 +120,38 @@ function assertResourceSupportsParticipantType(resourceType: ScheduleResourceTyp
 export async function listScheduleAssignments(params: {
   scope: SchedulingScope;
   brandId?: string | null;
+  seriesId?: string | null;
   occurrenceId?: string | null;
   participantId?: string | null;
   resourceId?: string | null;
+  from?: string | null;
+  to?: string | null;
 }) {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeNullableId(params.brandId));
   if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ScheduleAssignmentRecord[];
 
+  const seriesId = normalizeNullableId(params.seriesId);
+  const from = params.from ? parseIsoDateOnly(params.from, "From date") : null;
+  const to = params.to ? parseIsoDateOnly(params.to, "To date") : null;
+
   const rows = await prisma.scheduleAssignment.findMany({
     where: {
       ...(brandIds === null ? {} : { brandId: { in: brandIds } }),
+      ...(seriesId || from || to
+        ? {
+            occurrence: {
+              ...(seriesId ? { scheduleEventSeriesId: seriesId } : {}),
+              ...(from || to
+                ? {
+                    occursOn: {
+                      ...(from ? { gte: from } : {}),
+                      ...(to ? { lte: to } : {}),
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
       ...(normalizeNullableId(params.occurrenceId) ? { scheduleEventOccurrenceId: normalizeNullableId(params.occurrenceId)! } : {}),
       ...(normalizeNullableId(params.participantId) ? { scheduleParticipantId: normalizeNullableId(params.participantId)! } : {}),
       ...(normalizeNullableId(params.resourceId) ? { scheduleResourceId: normalizeNullableId(params.resourceId)! } : {}),
