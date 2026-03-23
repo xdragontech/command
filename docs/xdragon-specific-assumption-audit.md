@@ -30,7 +30,7 @@ These are in reasonable shape already and are not the current blockers:
 That matters because it means the remaining X Dragon assumptions are concentrated, not everywhere.
 
 **P1 Reuse Blockers**
-1. Protected bootstrap superadmin identity is hardcoded to `grant@xdragon.tech`
+1. Protected bootstrap superadmin identity was hardcoded to `grant@xdragon.tech`
 - files:
   - [`packages/core-config/src/bootstrapConfig.json`](/Users/grantr/Projects/command/packages/core-config/src/bootstrapConfig.json)
   - [`packages/core-config/src/backofficeBootstrap.ts`](/Users/grantr/Projects/command/packages/core-config/src/backofficeBootstrap.ts)
@@ -42,6 +42,9 @@ That matters because it means the remaining X Dragon assumptions are concentrate
   - replace the hardcoded protected email with install-time configuration
   - the future setup flow should write this once for a new install
   - the runtime should fail clearly if bootstrap identity config is missing, not default to X Dragon
+
+Status:
+- resolved on 2026-03-22 by making `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL` the required bootstrap identity source
 
 2. Brand/bootstrap sync scripts silently default to X Dragon values
 - files:

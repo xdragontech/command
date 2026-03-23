@@ -25,18 +25,13 @@ export function getProtectedBackofficeEmailEnvKey() {
 }
 
 export function getConfiguredProtectedBackofficeEmail() {
-  return normalizeEmail(
-    process.env[PROTECTED_BACKOFFICE_EMAIL_ENV_KEY] ||
-      (bootstrapConfig as { protectedEmail?: string }).protectedEmail
-  );
+  return normalizeEmail(process.env[PROTECTED_BACKOFFICE_EMAIL_ENV_KEY]);
 }
 
 export function getProtectedBackofficeEmail() {
   const email = getConfiguredProtectedBackofficeEmail();
   if (!email) {
-    throw new Error(
-      `${PROTECTED_BACKOFFICE_EMAIL_ENV_KEY} is required or packages/core-config/src/bootstrapConfig.json must define protectedEmail`
-    );
+    throw new Error(`${PROTECTED_BACKOFFICE_EMAIL_ENV_KEY} is required.`);
   }
 
   return email;
