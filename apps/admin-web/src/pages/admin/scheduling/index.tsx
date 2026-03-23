@@ -6,12 +6,12 @@ export default function SchedulingIndexPage() {
 }
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const auth = await requireBackofficePage(ctx, { callbackUrl: "/admin/scheduling/assignments" });
+  const auth = await requireBackofficePage(ctx, { callbackUrl: "/admin/scheduling/calendar" });
   if (!auth.ok) return auth.response;
 
   return {
     redirect: {
-      destination: "/admin/scheduling/assignments",
+      destination: "/admin/scheduling/calendar",
       permanent: false,
     },
   };

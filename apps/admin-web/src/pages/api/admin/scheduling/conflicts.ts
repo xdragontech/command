@@ -18,12 +18,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const brandId = Array.isArray(req.query.brandId) ? req.query.brandId[0] : req.query.brandId;
+    const seriesId = Array.isArray(req.query.seriesId) ? req.query.seriesId[0] : req.query.seriesId;
     const occurrenceId = Array.isArray(req.query.occurrenceId) ? req.query.occurrenceId[0] : req.query.occurrenceId;
     const from = Array.isArray(req.query.from) ? req.query.from[0] : req.query.from;
     const to = Array.isArray(req.query.to) ? req.query.to[0] : req.query.to;
     const conflicts = await listScheduleConflicts({
       scope: toSchedulingScope(auth.principal),
       brandId: brandId || null,
+      seriesId: seriesId || null,
       occurrenceId: occurrenceId || null,
       from: from || null,
       to: to || null,
