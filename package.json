@@ -39,7 +39,11 @@
     "bootstrap-superadmin:ensure:preview": "./scripts/with-db-target.sh preview node ./scripts/bootstrap-superadmin.js --apply",
     "bootstrap-superadmin:ensure:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js --apply",
     "bootstrap-superadmin:recover:preview": "./scripts/with-db-target.sh preview node ./scripts/bootstrap-superadmin.js --apply --recover --clear-mfa",
-    "bootstrap-superadmin:recover:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js --apply --recover --clear-mfa"
+    "bootstrap-superadmin:recover:production": "./scripts/with-db-target.sh production node ./scripts/bootstrap-superadmin.js --apply --recover --clear-mfa",
+    "geo:status:preview": "./scripts/with-db-target.sh preview node ./scripts/backfill-event-geo.js",
+    "geo:status:production": "./scripts/with-db-target.sh production node ./scripts/backfill-event-geo.js",
+    "geo:backfill:preview": "./scripts/with-db-target.sh preview node ./scripts/backfill-event-geo.js --apply",
+    "geo:backfill:production": "./scripts/with-db-target.sh production node ./scripts/backfill-event-geo.js --apply"
   },
   "dependencies": {
     "@prisma/client": "6.19.2",
