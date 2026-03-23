@@ -17,6 +17,7 @@ import {
   hasVerifiedBackofficeMfaForRequest,
   resolveBackofficePostAuthDestination,
 } from "../../server/backofficeAuth";
+import { buildSetupRedirect, isInstallInitialized } from "../../server/installState";
 import { getApiRequestHost } from "../../server/requestHost";
 
 type AdminSignInProps = {
@@ -154,6 +155,10 @@ export default function AdminSignInPage({ allowedHosts, recommendedAdminHost }: 
 }
 
 export const getServerSideProps: GetServerSideProps<AdminSignInProps> = async (ctx) => {
+  if (!(await isInstallInitialized())) {
+    return buildSetupRedirect();
+  }
+
   const session = await getServerSession(ctx.req, ctx.res, authOptions);
   const runtimeHost = await getRuntimeHostConfig(getApiRequestHost(ctx.req));
 

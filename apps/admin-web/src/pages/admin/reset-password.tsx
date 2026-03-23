@@ -1,8 +1,10 @@
+import type { GetServerSideProps } from "next";
 import { useMemo, useState } from "react";
 import type { CSSProperties, FormEvent } from "react";
 import { useRouter } from "next/router";
 import { MIN_BACKOFFICE_PASSWORD_LENGTH } from "@command/core-auth-backoffice";
 import { BackofficeAuthShell } from "../../components/BackofficeAuthShell";
+import { buildSetupRedirect, isInstallInitialized } from "../../server/installState";
 
 function readQueryValue(value: string | string[] | undefined): string {
   if (Array.isArray(value)) return value[0] || "";
@@ -112,6 +114,14 @@ export default function AdminResetPasswordPage() {
     </BackofficeAuthShell>
   );
 }
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  if (!(await isInstallInitialized())) {
+    return buildSetupRedirect();
+  }
+
+  return { props: {} };
+};
 
 const fieldStyle: CSSProperties = {
   display: "grid",

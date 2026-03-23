@@ -13,6 +13,7 @@ import {
 } from "@command/core-auth-backoffice";
 import { authOptions } from "./authOptions";
 import { hasSatisfiedBackofficeMfaChallenge } from "./backofficeMfaChallenge";
+import { buildSetupRedirect, isInstallInitialized } from "./installState";
 
 type RequireBackofficeOptions = {
   callbackUrl?: string;
@@ -80,6 +81,10 @@ export async function requireBackofficeApi(
   res: NextApiResponse,
   options?: RequireBackofficeOptions
 ) {
+  if (!(await isInstallInitialized())) {
+    return { ok: false as const, session: null, principal: null, reason: "SETUP_REQUIRED" as const };
+  }
+
   const session = await getServerSession(req, res, authOptions);
   const principal = await loadResolvedPrincipal(session, options);
 
@@ -95,6 +100,16 @@ export async function requireBackofficeApi(
 }
 
 export async function requireBackofficePage(ctx: GetServerSidePropsContext, options?: RequireBackofficeOptions) {
+  if (!(await isInstallInitialized())) {
+    return {
+      ok: false as const,
+      session: null,
+      principal: null,
+      reason: "SETUP_REQUIRED" as const,
+      response: buildSetupRedirect(),
+    };
+  }
+
   const session = await getServerSession(ctx.req, ctx.res, authOptions);
   const principal = await loadResolvedPrincipal(session, options);
 

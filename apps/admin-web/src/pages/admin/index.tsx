@@ -9,11 +9,16 @@ import {
   hasVerifiedBackofficeMfaForRequest,
   resolveBackofficePostAuthDestination,
 } from "../../server/backofficeAuth";
+import { buildSetupRedirect, isInstallInitialized } from "../../server/installState";
 
 const AdminIndexPage = () => null;
 export default AdminIndexPage;
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  if (!(await isInstallInitialized())) {
+    return buildSetupRedirect();
+  }
+
   const session = await getServerSession(ctx.req, ctx.res, authOptions);
 
   if (!isBackofficeSession(session)) {

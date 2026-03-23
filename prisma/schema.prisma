@@ -218,6 +218,17 @@ model BrandEmailConfig {
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
 }
 
+model InstallProfile {
+  id               String   @id @default("install")
+  displayName      String?
+  setupCompletedAt DateTime?
+  primaryBrandId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([primaryBrandId])
+}
+
 model BackofficeUser {
   id                          String               @id @default(cuid())
   username                    String               @unique

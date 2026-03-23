@@ -9,6 +9,7 @@ import {
   authorizeBackofficeCredentials,
   refreshBackofficeIdentity,
 } from "@command/core-auth-backoffice";
+import { isInstallInitialized } from "./installState";
 
 const IS_PREVIEW = process.env.VERCEL_ENV === "preview";
 const IS_SECURE_COOKIE_ENV = process.env.NODE_ENV === "production";
@@ -62,6 +63,9 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        if (!(await isInstallInitialized())) {
+          return null;
+        }
         return authorizeBackofficeCredentials(credentials);
       },
     }),
