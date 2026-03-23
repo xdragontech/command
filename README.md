@@ -39,6 +39,7 @@ scripts/
 - [`docs/command-bff-session-forwarding-contract.md`](./docs/command-bff-session-forwarding-contract.md)
 - [`docs/command-repo-skeleton-and-bff-extraction-plan.md`](./docs/command-repo-skeleton-and-bff-extraction-plan.md)
 - [`docs/public-api-preview-deployment-and-cutover.md`](./docs/public-api-preview-deployment-and-cutover.md)
+- [`docs/install-bootstrap-config.md`](./docs/install-bootstrap-config.md)
 - [`docs/xdragon-specific-assumption-audit.md`](./docs/xdragon-specific-assumption-audit.md)
 
 ## Public API Preview Deployment

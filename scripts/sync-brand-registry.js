@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { PrismaClient, BrandEnvironment, BrandHostKind, BrandStatus } = require("@prisma/client");
+const { INSTALL_ENV_KEYS, requireInstallEnv } = require("./install-config");
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes("--apply");
@@ -31,24 +32,32 @@ function required(label, value) {
 }
 
 function buildSeedConfig() {
-  const brandKey = normalizeBrandKey(process.env.BRAND_KEY || "xdragon");
-  const name = String(process.env.NEXT_PUBLIC_BRAND_NAME || "X Dragon").trim();
-  const apexHost = normalizeHost(process.env.NEXT_PUBLIC_APEX_HOST || "xdragon.tech");
-  const productionPublicHost = normalizeHost(process.env.NEXT_PUBLIC_PROD_WWW_HOST || "www.xdragon.tech");
-  const productionAdminHost = normalizeHost(process.env.NEXT_PUBLIC_PROD_ADMIN_HOST || "admin.xdragon.tech");
-  const previewPublicHost = normalizeHost(process.env.NEXT_PUBLIC_WWW_HOST || "staging.xdragon.tech");
-  const previewAdminHost = normalizeHost(process.env.NEXT_PUBLIC_ADMIN_HOST || "stg-admin.xdragon.tech");
+  const brandKey = normalizeBrandKey(requireInstallEnv(INSTALL_ENV_KEYS.brandKey, "Install brand key"));
+  const name = String(requireInstallEnv(INSTALL_ENV_KEYS.brandName, "Install brand name")).trim();
+  const apexHost = normalizeHost(requireInstallEnv(INSTALL_ENV_KEYS.apexHost, "Install apex host"));
+  const productionPublicHost = normalizeHost(
+    requireInstallEnv(INSTALL_ENV_KEYS.productionPublicHost, "Install production public host")
+  );
+  const productionAdminHost = normalizeHost(
+    requireInstallEnv(INSTALL_ENV_KEYS.productionAdminHost, "Install production admin host")
+  );
+  const previewPublicHost = normalizeHost(
+    requireInstallEnv(INSTALL_ENV_KEYS.previewPublicHost, "Install preview public host")
+  );
+  const previewAdminHost = normalizeHost(
+    requireInstallEnv(INSTALL_ENV_KEYS.previewAdminHost, "Install preview admin host")
+  );
 
   if (!brandKey || !BRAND_KEY_PATTERN.test(brandKey)) {
-    throw new Error("BRAND_KEY must use lowercase letters, numbers, and hyphens only");
+    throw new Error("Install brand key must use lowercase letters, numbers, and hyphens only");
   }
 
-  required("NEXT_PUBLIC_BRAND_NAME", name);
-  required("NEXT_PUBLIC_APEX_HOST", apexHost);
-  required("NEXT_PUBLIC_PROD_WWW_HOST", productionPublicHost);
-  required("NEXT_PUBLIC_PROD_ADMIN_HOST", productionAdminHost);
-  required("NEXT_PUBLIC_WWW_HOST", previewPublicHost);
-  required("NEXT_PUBLIC_ADMIN_HOST", previewAdminHost);
+  required("Install brand name", name);
+  required("Install apex host", apexHost);
+  required("Install production public host", productionPublicHost);
+  required("Install production admin host", productionAdminHost);
+  required("Install preview public host", previewPublicHost);
+  required("Install preview admin host", previewAdminHost);
 
   const uniqueHosts = new Set([apexHost, productionPublicHost, productionAdminHost, previewPublicHost, previewAdminHost]);
   if (uniqueHosts.size !== 5) {

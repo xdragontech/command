@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const { PrismaClient, BrandEmailConfigStatus, BrandEmailProvider } = require("@prisma/client");
+const { INSTALL_ENV_KEYS, getOptionalInstallEnv, requireInstallEnv } = require("./install-config");
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes("--apply");
@@ -51,8 +52,8 @@ function parseEmailList(value) {
 }
 
 function buildSeedConfig() {
-  const brandKey = normalizeBrandKey(process.env.BRAND_KEY || "xdragon");
-  const brandName = String(process.env.NEXT_PUBLIC_BRAND_NAME || "X Dragon").trim() || "X Dragon";
+  const brandKey = normalizeBrandKey(requireInstallEnv(INSTALL_ENV_KEYS.brandKey, "Install brand key"));
+  const brandName = String(getOptionalInstallEnv(INSTALL_ENV_KEYS.brandName)).trim() || null;
   const fromRaw =
     process.env.RESEND_FROM ||
     process.env.RESEND_FROM_EMAIL ||
@@ -63,7 +64,7 @@ function buildSeedConfig() {
   const supportEmails = parseEmailList(
     process.env.RESEND_TO_EMAIL || process.env.CONTACT_TO_EMAIL || process.env.CONTACT_TO || ""
   );
-  const providerSecretRef = String(process.env.BRAND_EMAIL_PROVIDER_SECRET_REF || DEFAULT_SECRET_REF)
+  const providerSecretRef = String(getOptionalInstallEnv(INSTALL_ENV_KEYS.emailProviderSecretRef) || DEFAULT_SECRET_REF)
     .trim()
     .toUpperCase();
   const providerSecretPresent = Boolean(String(process.env[providerSecretRef] || "").trim());
@@ -107,6 +108,7 @@ async function main() {
         }
       : null,
     seedConfig: {
+      brandName: seed.brandName,
       provider: seed.provider,
       providerSecretRef: seed.providerSecretRef,
       providerSecretPresent: seed.providerSecretPresent,

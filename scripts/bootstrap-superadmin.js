@@ -6,7 +6,7 @@ const {
   BackofficeRole,
   BackofficeUserStatus,
 } = require("@prisma/client");
-const bootstrapConfig = require("../config/backoffice-bootstrap.json");
+const bootstrapConfig = require("../packages/core-config/src/bootstrapConfig.json");
 
 const prisma = new PrismaClient();
 const APPLY = process.argv.includes("--apply");
@@ -33,11 +33,27 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-const PROTECTED_EMAIL = normalizeEmail(bootstrapConfig.protectedEmail || "grant@xdragon.tech");
+const PROTECTED_EMAIL_ENV_KEY = String(bootstrapConfig.protectedEmailEnvKey || "COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL")
+  .trim()
+  .toUpperCase();
 const PASSWORD_ENV_KEY = String(bootstrapConfig.passwordEnvKey || "BACKOFFICE_BOOTSTRAP_PASSWORD")
   .trim()
   .toUpperCase();
-const DEFAULT_USERNAME = normalizeUsernameSeed(String(PROTECTED_EMAIL || "").split("@")[0] || "") || "grant";
+const CONFIGURED_PROTECTED_EMAIL = normalizeEmail(
+  process.env[PROTECTED_EMAIL_ENV_KEY] || bootstrapConfig.protectedEmail || ""
+);
+const PROTECTED_EMAIL = CONFIGURED_PROTECTED_EMAIL;
+const DEFAULT_USERNAME = normalizeUsernameSeed(String(PROTECTED_EMAIL || "").split("@")[0] || "") || "bootstrap-admin";
+
+function ensureProtectedEmailConfigured() {
+  if (!PROTECTED_EMAIL) {
+    throw new Error(
+      `${PROTECTED_EMAIL_ENV_KEY} is required or packages/core-config/src/bootstrapConfig.json must define protectedEmail.`
+    );
+  }
+
+  return PROTECTED_EMAIL;
+}
 
 function getBootstrapPassword() {
   return String(process.env[PASSWORD_ENV_KEY] || "").trim();
@@ -152,6 +168,8 @@ function buildSummary(user, allBrands) {
 }
 
 async function main() {
+  ensureProtectedEmailConfigured();
+
   if (CLEAR_MFA && !RECOVER) {
     throw new Error("--clear-mfa may only be used together with --recover");
   }
