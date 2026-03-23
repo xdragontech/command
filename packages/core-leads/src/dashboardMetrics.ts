@@ -21,7 +21,7 @@ export type DashboardMetrics = {
   labels: string[];
   signups: number[];
   logins: number[];
-  totals: { signups: number; logins: number };
+  totals: { signups: number; logins: number; leads: number; chatLeads: number };
   ipGroups: DashboardIpGroup[];
   signupCountries: DashboardCountryCount[];
 };
@@ -171,12 +171,19 @@ export async function loadDashboardMetrics(params: {
   const signups = Array(labels.length).fill(0) as number[];
   const logins = Array(labels.length).fill(0) as number[];
   const isSuperadmin = scope.role === "SUPERADMIN";
+  const leadWhere = isSuperadmin
+    ? { createdAt: { gte: start, lte: end } }
+    : {
+        brandId: { in: scope.allowedBrandIds },
+        createdAt: { gte: start, lte: end },
+      };
 
   let signupRows: SignupRow[] = [];
   let events: LoginMetricEvent[] = [];
+  let leadTotals = { leads: 0, chatLeads: 0 };
 
   if (isSuperadmin) {
-    const [legacyUsers, externalUsers, legacyEvents, externalEvents] = await Promise.all([
+    const [legacyUsers, externalUsers, legacyEvents, externalEvents, totalLeadCount, chatLeadCount] = await Promise.all([
       prisma.user.findMany({
         where: { createdAt: { gte: start, lte: end } },
         select: { id: true, createdAt: true },
@@ -194,6 +201,15 @@ export async function loadDashboardMetrics(params: {
         where: { createdAt: { gte: start, lte: end } },
         select: { externalUserId: true, createdAt: true, ip: true, countryIso2: true, countryName: true },
         orderBy: { createdAt: "desc" },
+      }),
+      prisma.leadEvent.count({
+        where: leadWhere,
+      }),
+      prisma.leadEvent.count({
+        where: {
+          ...leadWhere,
+          source: "CHAT",
+        },
       }),
     ]);
 
@@ -235,8 +251,13 @@ export async function loadDashboardMetrics(params: {
         countryName: event.countryName || null,
       })),
     ].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+
+    leadTotals = {
+      leads: totalLeadCount,
+      chatLeads: chatLeadCount,
+    };
   } else {
-    const [externalUsers, externalEvents] = await Promise.all([
+    const [externalUsers, externalEvents, totalLeadCount, chatLeadCount] = await Promise.all([
       prisma.externalUser.findMany({
         where: {
           brandId: { in: scope.allowedBrandIds },
@@ -251,6 +272,15 @@ export async function loadDashboardMetrics(params: {
         },
         select: { externalUserId: true, createdAt: true, ip: true, countryIso2: true, countryName: true },
         orderBy: { createdAt: "desc" },
+      }),
+      prisma.leadEvent.count({
+        where: leadWhere,
+      }),
+      prisma.leadEvent.count({
+        where: {
+          ...leadWhere,
+          source: "CHAT",
+        },
       }),
     ]);
 
@@ -270,6 +300,11 @@ export async function loadDashboardMetrics(params: {
         countryName: event.countryName || null,
       }))
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+
+    leadTotals = {
+      leads: totalLeadCount,
+      chatLeads: chatLeadCount,
+    };
   }
 
   for (const signup of signupRows) {
@@ -300,6 +335,8 @@ export async function loadDashboardMetrics(params: {
   const totals = {
     signups: signupRows.length,
     logins: events.length,
+    leads: leadTotals.leads,
+    chatLeads: leadTotals.chatLeads,
   };
 
   const ipGroups: DashboardIpGroup[] = Array.from(ipCounts.entries())
