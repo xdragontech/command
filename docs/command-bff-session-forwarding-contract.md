@@ -6,7 +6,7 @@ Define how a brand-specific public website should integrate with `command` for e
 This document is the operational companion to:
 - [`docs/repo-split-and-service-contract.md`](./repo-split-and-service-contract.md)
 - [`docs/command-public-api-contract.md`](./command-public-api-contract.md)
-- [`openapi/command-public-api.v1.yaml`](../openapi/command-public-api.v1.yaml)
+- [`packages/contracts-openapi/command-public-api.v1.yaml`](../packages/contracts-openapi/command-public-api.v1.yaml)
 
 **Core Decision**
 - `command` owns the external-user session

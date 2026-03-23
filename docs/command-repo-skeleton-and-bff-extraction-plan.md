@@ -1,4 +1,4 @@
-# Command Repo Skeleton And BFF Extraction Plan
+# Command Repo Skeleton And BFF Extraction Plan (X Dragon Migration History)
 
 **Purpose**
 Turn the repo-split architecture into an implementation-oriented extraction plan.
@@ -13,6 +13,8 @@ This is the bridge between:
 - [`docs/repo-split-and-service-contract.md`](./repo-split-and-service-contract.md)
 - [`docs/command-public-api-contract.md`](./command-public-api-contract.md)
 - [`docs/command-bff-session-forwarding-contract.md`](./command-bff-session-forwarding-contract.md)
+
+This document is preserved as migration history from the X Dragon extraction. It explains how the split was executed, not the generic install path for new `command` operators.
 
 ## Core Recommendation
 

@@ -4,7 +4,7 @@
 Explain the initial public-site integration surface for `command` in human terms, while treating OpenAPI as the source of truth.
 
 OpenAPI source of truth:
-- [`openapi/command-public-api.v1.yaml`](../openapi/command-public-api.v1.yaml)
+- [`packages/contracts-openapi/command-public-api.v1.yaml`](../packages/contracts-openapi/command-public-api.v1.yaml)
 
 Operational BFF/session companion:
 - [`docs/command-bff-session-forwarding-contract.md`](./command-bff-session-forwarding-contract.md)
