@@ -18,6 +18,7 @@ Implementation/extraction companion:
 - password reset
 - brand-scoped prompt feed
 - brand-scoped guide feed
+- brand-scoped published schedule feeds
 - public contact flow
 - public chat flow
 
@@ -83,6 +84,10 @@ Deferred from this contract:
 - list prompts
 - list guides
 - fetch guide detail by slug
+
+**Scheduling**
+- published schedule calendar feed
+- published schedule listing feed
 
 **Services**
 - submit contact requests

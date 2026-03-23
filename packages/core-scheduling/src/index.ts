@@ -5,4 +5,5 @@ export * from "./participants";
 export * from "./occurrences";
 export * from "./assignments";
 export * from "./conflicts";
+export * from "./public";
 export { SchedulingConflictError } from "./common";
