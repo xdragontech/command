@@ -29,7 +29,7 @@ export function BackofficeAuthShell({
       <div
         style={{
           minHeight: "100vh",
-          background: "#f1f5f9",
+          background: "#f8fafc",
           color: "#0f172a",
           fontFamily:
             "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
