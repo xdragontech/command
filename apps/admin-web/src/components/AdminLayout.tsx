@@ -43,8 +43,8 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
         >
           <div
             style={{
-              margin: "0 auto",
-              maxWidth: "1320px",
+              width: "100%",
+              boxSizing: "border-box",
               padding: "17px 20px 15px",
               display: "flex",
               flexWrap: "nowrap",
@@ -117,8 +117,8 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
 
         <main
           style={{
-            margin: "0 auto",
-            maxWidth: "1320px",
+            width: "100%",
+            boxSizing: "border-box",
             padding: "24px 20px 72px",
           }}
         >
