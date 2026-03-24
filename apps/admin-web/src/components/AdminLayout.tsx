@@ -1,5 +1,6 @@
 import Head from "next/head";
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 
@@ -13,7 +14,30 @@ type AdminLayoutProps = {
   children: ReactNode;
 };
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = "command-admin-sidebar-collapsed";
+
 export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, brands, children }: AdminLayoutProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
+      if (stored === "true") {
+        setSidebarCollapsed(true);
+      }
+    } catch {
+      // Ignore browser storage failures and fall back to expanded.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarCollapsed ? "true" : "false");
+    } catch {
+      // Ignore browser storage failures.
+    }
+  }, [sidebarCollapsed]);
+
   return (
     <>
       <Head>
@@ -125,11 +149,16 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
           <section
             style={{
               display: "grid",
-              gap: "18px",
-              gridTemplateColumns: "minmax(250px, 290px) minmax(0, 1fr)",
+              gap: "14px",
+              gridTemplateColumns: sidebarCollapsed ? "72px minmax(0, 1fr)" : "220px minmax(0, 1fr)",
+              alignItems: "start",
             }}
           >
-            <AdminSidebar active={active} />
+            <AdminSidebar
+              active={active}
+              collapsed={sidebarCollapsed}
+              onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
+            />
 
             <div style={{ display: "grid", gap: "18px" }}>{children}</div>
           </section>
