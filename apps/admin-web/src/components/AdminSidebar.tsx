@@ -6,7 +6,6 @@ import type { CSSProperties, ReactNode } from "react";
 type AdminSidebarProps = {
   active: "dashboard" | "accounts" | "library" | "leads" | "analytics" | "settings" | "scheduling";
   collapsed: boolean;
-  onToggleCollapsed: () => void;
 };
 
 type NavSection = {
@@ -32,10 +31,9 @@ type IconName =
   | "analytics"
   | "scheduling"
   | "library"
-  | "settings"
-  | "collapse";
+  | "settings";
 
-export function AdminSidebar({ active, collapsed, onToggleCollapsed }: AdminSidebarProps) {
+export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
   const router = useRouter();
   const pathname = router.pathname;
   const asideRef = useRef<HTMLElement | null>(null);
@@ -211,27 +209,10 @@ export function AdminSidebar({ active, collapsed, onToggleCollapsed }: AdminSide
       ref={asideRef}
       style={{
         display: "grid",
-        gap: "10px",
         alignSelf: "start",
         minWidth: 0,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: collapsed ? "center" : "flex-end",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onToggleCollapsed}
-          aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-          style={toggleButtonStyle}
-        >
-          <NavIcon name="collapse" mirrored={collapsed} />
-        </button>
-      </div>
-
       {collapsed ? (
         <nav
           style={{
@@ -399,7 +380,7 @@ function SubNavLink({ href, active, children }: { href: string; active: boolean;
   );
 }
 
-function NavIcon({ name, mirrored = false }: { name: IconName; mirrored?: boolean }) {
+function NavIcon({ name }: { name: IconName }) {
   const commonProps = {
     width: 18,
     height: 18,
@@ -409,7 +390,6 @@ function NavIcon({ name, mirrored = false }: { name: IconName; mirrored?: boolea
     strokeWidth: 1.8,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
-    style: mirrored ? ({ transform: "scaleX(-1)" } as CSSProperties) : undefined,
   };
 
   switch (name) {
@@ -476,12 +456,6 @@ function NavIcon({ name, mirrored = false }: { name: IconName; mirrored?: boolea
           <path d="M19.4 15a1 1 0 0 0 .2 1.1l.1.1a1 1 0 0 1 0 1.4l-1.1 1.1a1 1 0 0 1-1.4 0l-.1-.1a1 1 0 0 0-1.1-.2 1 1 0 0 0-.6.9V20a1 1 0 0 1-1 1h-1.6a1 1 0 0 1-1-1v-.2a1 1 0 0 0-.7-.9 1 1 0 0 0-1.1.2l-.1.1a1 1 0 0 1-1.4 0l-1.1-1.1a1 1 0 0 1 0-1.4l.1-.1a1 1 0 0 0 .2-1.1 1 1 0 0 0-.9-.6H4a1 1 0 0 1-1-1v-1.6a1 1 0 0 1 1-1h.2a1 1 0 0 0 .9-.7 1 1 0 0 0-.2-1.1l-.1-.1a1 1 0 0 1 0-1.4l1.1-1.1a1 1 0 0 1 1.4 0l.1.1a1 1 0 0 0 1.1.2 1 1 0 0 0 .6-.9V4a1 1 0 0 1 1-1h1.6a1 1 0 0 1 1 1v.2a1 1 0 0 0 .7.9 1 1 0 0 0 1.1-.2l.1-.1a1 1 0 0 1 1.4 0l1.1 1.1a1 1 0 0 1 0 1.4l-.1.1a1 1 0 0 0-.2 1.1 1 1 0 0 0 .9.6H20a1 1 0 0 1 1 1v1.6a1 1 0 0 1-1 1h-.2a1 1 0 0 0-.9.7Z" />
         </svg>
       );
-    case "collapse":
-      return (
-        <svg {...commonProps}>
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-      );
   }
 }
 
@@ -499,20 +473,6 @@ function collapsedRailButtonStyle(active: boolean, pinned: boolean): CSSProperti
     cursor: "pointer",
   };
 }
-
-const toggleButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: "40px",
-  height: "40px",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "#ffffff",
-  color: "#0f172a",
-  cursor: "pointer",
-  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
-};
 
 const flyoutPanelStyle: CSSProperties = {
   position: "absolute",

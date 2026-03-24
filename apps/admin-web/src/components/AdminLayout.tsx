@@ -152,13 +152,23 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
               gap: "14px",
               gridTemplateColumns: sidebarCollapsed ? "72px minmax(0, 1fr)" : "220px minmax(0, 1fr)",
               alignItems: "start",
+              position: "relative",
             }}
           >
-            <AdminSidebar
-              active={active}
-              collapsed={sidebarCollapsed}
-              onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
-            />
+            <div style={{ position: "relative", minWidth: 0 }}>
+              <AdminSidebar active={active} collapsed={sidebarCollapsed} />
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed((current) => !current)}
+                aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+                style={{
+                  ...dividerToggleStyle,
+                  right: "-19px",
+                }}
+              >
+                <CollapseIcon collapsed={sidebarCollapsed} />
+              </button>
+            </div>
 
             <div style={{ display: "grid", gap: "18px" }}>{children}</div>
           </section>
@@ -173,3 +183,38 @@ const loggedInStyle: CSSProperties = {
   fontSize: "0.95rem",
   fontWeight: 500,
 };
+
+const dividerToggleStyle: CSSProperties = {
+  position: "absolute",
+  top: "10px",
+  zIndex: 20,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "38px",
+  height: "38px",
+  borderRadius: "12px",
+  border: "1px solid rgba(148,163,184,0.24)",
+  background: "#ffffff",
+  color: "#0f172a",
+  cursor: "pointer",
+  boxShadow: "0 10px 28px rgba(15,23,42,0.05)",
+};
+
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={collapsed ? ({ transform: "scaleX(-1)" } as CSSProperties) : undefined}
+    >
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  );
+}
