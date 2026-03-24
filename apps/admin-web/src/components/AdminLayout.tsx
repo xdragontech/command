@@ -191,10 +191,10 @@ const dividerToggleStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  width: "38px",
-  height: "38px",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
+  width: "29px",
+  height: "29px",
+  borderRadius: "9px",
+  border: "0.75px solid rgba(148,163,184,0.24)",
   background: "#ffffff",
   color: "#0f172a",
   cursor: "pointer",
@@ -204,8 +204,8 @@ const dividerToggleStyle: CSSProperties = {
 function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width="15"
+      height="15"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
