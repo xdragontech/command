@@ -92,27 +92,17 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
       {
         id: "scheduling",
         label: "Scheduling",
-        href: "/admin/scheduling/planner",
+        href: "/admin/scheduling/calendar",
         icon: "scheduling",
         active: active === "scheduling",
         children: [
           {
-            label: "Planner",
-            href: "/admin/scheduling/planner",
-            active: pathname === "/admin/scheduling/planner" || pathname === "/admin/scheduling",
-          },
-          {
             label: "Calendar",
             href: "/admin/scheduling/calendar",
-            active: pathname === "/admin/scheduling/calendar",
+            active: pathname === "/admin/scheduling/calendar" || pathname === "/admin/scheduling",
           },
           {
-            label: "Assignments",
-            href: "/admin/scheduling/assignments",
-            active: pathname === "/admin/scheduling/assignments",
-          },
-          {
-            label: "Event Series",
+            label: "Event",
             href: "/admin/scheduling/series",
             active: pathname === "/admin/scheduling/series",
           },
@@ -125,6 +115,16 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             label: "Participants",
             href: "/admin/scheduling/participants",
             active: pathname === "/admin/scheduling/participants",
+          },
+          {
+            label: "Planner",
+            href: "/admin/scheduling/planner",
+            active: pathname === "/admin/scheduling/planner",
+          },
+          {
+            label: "Assignments",
+            href: "/admin/scheduling/assignments",
+            active: pathname === "/admin/scheduling/assignments",
           },
           {
             label: "Conflicts",
