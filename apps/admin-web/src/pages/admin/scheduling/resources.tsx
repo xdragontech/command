@@ -387,7 +387,7 @@ export default function SchedulingResourcesPage({
               <div style={{ display: "grid", gap: "18px" }}>
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Brand</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Brand</span>
                     <select value={form.brandId} onChange={(event) => updateField("brandId", event.target.value)} style={inputStyle} disabled={!isNewResource}>
                       {brands.map((brand) => (
                         <option key={brand.id} value={brand.id}>
@@ -398,7 +398,7 @@ export default function SchedulingResourcesPage({
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource Type</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Type</span>
                     <select
                       value={form.type}
                       onChange={(event) => updateField("type", event.target.value as ScheduleResourceType)}
@@ -415,24 +415,24 @@ export default function SchedulingResourcesPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource Name</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Name</span>
                     <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={inputStyle} />
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Slug</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Slug</span>
                     <input value={form.slug} onChange={(event) => updateField("slug", event.target.value)} placeholder="Auto if blank" style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Sort Order</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Sort Order</span>
                     <input value={form.sortOrder} onChange={(event) => updateField("sortOrder", event.target.value)} style={inputStyle} />
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Active State</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Active State</span>
                     <select
                       value={form.isActive ? "ACTIVE" : "INACTIVE"}
                       onChange={(event) => updateField("isActive", event.target.value === "ACTIVE")}
@@ -445,7 +445,7 @@ export default function SchedulingResourcesPage({
                 </div>
 
                 <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Description</span>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Description</span>
                   <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} style={textAreaStyle} />
                 </label>
 

@@ -69,9 +69,9 @@ function resourceTypeTone(resourceType: ScheduleResourceType) {
 function assignmentColors(assignment: ScheduleAssignmentRecord) {
   if (assignment.status === ScheduleAssignmentStatus.CANCELLED) {
     return {
-      background: "#e2e8f0",
-      border: "1px solid rgba(148,163,184,0.38)",
-      color: "#475569",
+      background: "var(--admin-surface-tertiary)",
+      border: "1px solid var(--admin-border-strong)",
+      color: "var(--admin-text-secondary)",
     };
   }
 
@@ -421,11 +421,11 @@ export default function SchedulingPlannerPage({
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Visible Resources</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{visibleResources.length}</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{visibleResources.length}</div>
           </div>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Assigned Resources</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{assignedResourceCount}</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{assignedResourceCount}</div>
           </div>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Conflicted Resources</div>
@@ -445,7 +445,7 @@ export default function SchedulingPlannerPage({
               <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
                 <div>
                   <div style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence</div>
-                  <div style={{ marginTop: "6px", fontSize: "1.2rem", fontWeight: 800, color: "#0f172a" }}>
+                  <div style={{ marginTop: "6px", fontSize: "1.2rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>
                     {selectedOccurrence.seriesName} · {formatDateOnly(selectedOccurrence.occursOn)}
                   </div>
                   <p style={{ ...paragraphStyle, marginTop: "8px" }}>
@@ -465,7 +465,7 @@ export default function SchedulingPlannerPage({
                     display: "grid",
                     gridTemplateColumns: `repeat(${timelineMarks.length}, minmax(0, 1fr))`,
                     gap: "8px",
-                    color: "#64748b",
+                    color: "var(--admin-text-muted)",
                     fontSize: "0.8rem",
                     fontWeight: 700,
                   }}
@@ -486,7 +486,7 @@ export default function SchedulingPlannerPage({
                   groupedResources.map((group) => (
                     <div key={group.type} style={{ display: "grid", gap: "12px" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                        <div style={{ fontWeight: 800, color: "#0f172a" }}>{group.label}</div>
+                        <div style={{ fontWeight: 800, color: "var(--admin-text-primary)" }}>{group.label}</div>
                         <TonePill label={`${group.resources.length} resources`} tone={resourceTypeTone(group.type)} />
                       </div>
 
@@ -520,7 +520,7 @@ export default function SchedulingPlannerPage({
                               }}
                             >
                               <div style={{ display: "grid", gap: "8px", minWidth: 0 }}>
-                                <div style={{ fontWeight: 800, color: "#0f172a" }}>{resource.name}</div>
+                                <div style={{ fontWeight: 800, color: "var(--admin-text-primary)" }}>{resource.name}</div>
                                 <div style={subtleTextStyle}>{resource.description || resourceTypeLabels[resource.type]}</div>
                                 <div style={actionRowStyle}>
                                   <TonePill label={resourceTypeLabels[resource.type]} tone={resourceTypeTone(resource.type)} />
@@ -542,8 +542,8 @@ export default function SchedulingPlannerPage({
                                   position: "relative",
                                   minHeight: `${trackHeight}px`,
                                   borderRadius: "12px",
-                                  border: "1px solid rgba(148,163,184,0.22)",
-                                  background: "#f8fafc",
+                                  border: "1px solid var(--admin-border-subtle)",
+                                  background: "var(--admin-surface-secondary)",
                                   overflow: "hidden",
                                 }}
                               >
@@ -554,11 +554,11 @@ export default function SchedulingPlannerPage({
                                       inset: "10px",
                                       borderRadius: "10px",
                                       border: "1px dashed rgba(148,163,184,0.45)",
-                                      color: "#64748b",
+                                      color: "var(--admin-text-muted)",
                                       display: "grid",
                                       placeItems: "center",
                                       fontSize: "0.88rem",
-                                      background: "#ffffff",
+                                      background: "var(--admin-surface-primary)",
                                     }}
                                   >
                                     Unassigned

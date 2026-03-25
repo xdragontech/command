@@ -808,7 +808,7 @@ export default function SchedulingAssignmentsPage({
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "flex-start" }}>
                       <div>
-                        <div style={{ fontWeight: 700, color: "#0f172a" }}>{summary.seriesName}</div>
+                        <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{summary.seriesName}</div>
                         <div style={{ ...subtleTextStyle, marginTop: "6px" }}>{`${formatDateOnly(summary.occursOn)}${summary.occurrenceName ? ` · ${summary.occurrenceName}` : ""}`}</div>
                       </div>
                       <TonePill
@@ -824,10 +824,10 @@ export default function SchedulingAssignmentsPage({
                     </div>
 
                     <div style={{ ...subtleTextStyle, marginTop: "14px", lineHeight: 1.7 }}>
-                      <strong style={{ color: "#0f172a" }}>{summary.publishedCount}</strong> published ·{" "}
-                      <strong style={{ color: "#0f172a" }}>{summary.draftCount}</strong> draft ·{" "}
-                      <strong style={{ color: "#0f172a" }}>{summary.cancelledCount}</strong> cancelled ·{" "}
-                      <strong style={{ color: "#0f172a" }}>{summary.totalAssignments}</strong> total
+                      <strong style={{ color: "var(--admin-text-primary)" }}>{summary.publishedCount}</strong> published ·{" "}
+                      <strong style={{ color: "var(--admin-text-primary)" }}>{summary.draftCount}</strong> draft ·{" "}
+                      <strong style={{ color: "var(--admin-text-primary)" }}>{summary.cancelledCount}</strong> cancelled ·{" "}
+                      <strong style={{ color: "var(--admin-text-primary)" }}>{summary.totalAssignments}</strong> total
                     </div>
 
                     <div
@@ -923,7 +923,7 @@ export default function SchedulingAssignmentsPage({
 
             {activeOccurrenceSummary ? (
               <div style={{ ...(activeOccurrenceSummary.conflictCount > 0 ? warningStyle : infoPanelStyle), marginBottom: "16px" }}>
-                <strong style={{ color: "#0f172a" }}>{activeOccurrenceSummary.visibilityState}</strong>
+                <strong style={{ color: "var(--admin-text-primary)" }}>{activeOccurrenceSummary.visibilityState}</strong>
                 {` · ${activeOccurrenceSummary.publishedCount} published / ${activeOccurrenceSummary.draftCount} draft / ${activeOccurrenceSummary.cancelledCount} cancelled`}
                 {activeOccurrenceSummary.conflictCount > 0
                   ? ` · ${activeOccurrenceSummary.conflictCount} active conflicts still block safe publish.`
@@ -937,7 +937,7 @@ export default function SchedulingAssignmentsPage({
               <div style={{ display: "grid", gap: "18px" }}>
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Occurrence</span>
                     <select value={form.occurrenceId} onChange={(event) => handleOccurrenceChange(event.target.value)} style={inputStyle}>
                       <option value="">Select occurrence</option>
                       {visibleOccurrences.map((occurrence) => (
@@ -949,7 +949,7 @@ export default function SchedulingAssignmentsPage({
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Status</span>
                     <select
                       value={form.status}
                       onChange={(event) => updateField("status", event.target.value as ScheduleAssignmentStatus)}
@@ -966,7 +966,7 @@ export default function SchedulingAssignmentsPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Participant</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Participant</span>
                     <select value={form.participantId} onChange={(event) => handleParticipantChange(event.target.value)} style={inputStyle}>
                       <option value="">Select participant</option>
                       {visibleParticipants.map((participant) => (
@@ -978,7 +978,7 @@ export default function SchedulingAssignmentsPage({
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource</span>
                     <select value={form.resourceId} onChange={(event) => updateField("resourceId", event.target.value)} style={inputStyle}>
                       <option value="">Select resource</option>
                       {compatibleResources.map((resource) => (
@@ -1001,11 +1001,11 @@ export default function SchedulingAssignmentsPage({
                 {isTimedAssignment ? (
                   <div style={twoColumnStyle}>
                     <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Starts At</span>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Starts At</span>
                       <input type="time" value={form.startsAt} onChange={(event) => updateField("startsAt", event.target.value)} style={inputStyle} />
                     </label>
                     <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Ends At</span>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Ends At</span>
                       <input type="time" value={form.endsAt} onChange={(event) => updateField("endsAt", event.target.value)} style={inputStyle} />
                     </label>
                   </div>
@@ -1017,33 +1017,33 @@ export default function SchedulingAssignmentsPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Title</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Title</span>
                     <input value={form.publicTitle} onChange={(event) => updateField("publicTitle", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Subtitle</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Subtitle</span>
                     <input value={form.publicSubtitle} onChange={(event) => updateField("publicSubtitle", event.target.value)} style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Location Label</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Location Label</span>
                     <input value={form.publicLocationLabel} onChange={(event) => updateField("publicLocationLabel", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public URL</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public URL</span>
                     <input value={form.publicUrl} onChange={(event) => updateField("publicUrl", event.target.value)} style={inputStyle} placeholder="https://..." />
                   </label>
                 </div>
 
                 <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Description</span>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Description</span>
                   <textarea value={form.publicDescription} onChange={(event) => updateField("publicDescription", event.target.value)} style={textAreaStyle} />
                 </label>
 
                 <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Internal Notes</span>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Internal Notes</span>
                   <textarea value={form.internalNotes} onChange={(event) => updateField("internalNotes", event.target.value)} style={textAreaStyle} />
                 </label>
 

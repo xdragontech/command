@@ -198,7 +198,7 @@ export default function SchedulingConflictsPage({
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Visible Conflicts</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{filteredConflicts.length}</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{filteredConflicts.length}</div>
           </div>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Resource Double-Bookings</div>

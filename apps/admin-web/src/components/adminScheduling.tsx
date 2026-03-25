@@ -73,7 +73,7 @@ export function EntityListButton({
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 700 }}>{title}</div>
           {subtitle ? (
-            <div style={{ marginTop: "6px", fontSize: "0.84rem", color: selected ? "#cbd5e1" : "#64748b" }}>
+            <div style={{ marginTop: "6px", fontSize: "0.84rem", color: selected ? "var(--admin-text-secondary)" : "var(--admin-text-muted)" }}>
               {subtitle}
             </div>
           ) : null}
@@ -107,9 +107,9 @@ export function TonePill({
 
 export const infoPanelStyle: CSSProperties = {
   borderRadius: "12px",
-  background: "#f8fafc",
-  border: "1px solid rgba(148,163,184,0.22)",
-  color: "#475569",
+  background: "var(--admin-info-bg)",
+  border: "1px solid var(--admin-info-border)",
+  color: "var(--admin-info-text)",
   padding: "14px 16px",
   fontSize: "0.92rem",
   lineHeight: 1.6,
@@ -117,9 +117,9 @@ export const infoPanelStyle: CSSProperties = {
 
 export const mutedPanelStyle: CSSProperties = {
   borderRadius: "12px",
-  background: "#f8fafc",
-  border: "1px dashed rgba(148,163,184,0.4)",
-  color: "#64748b",
+  background: "var(--admin-muted-bg)",
+  border: "1px dashed var(--admin-muted-border)",
+  color: "var(--admin-muted-text)",
   padding: "14px 16px",
   fontSize: "0.92rem",
   lineHeight: 1.6,
@@ -127,9 +127,9 @@ export const mutedPanelStyle: CSSProperties = {
 
 export const errorStyle: CSSProperties = {
   borderRadius: "12px",
-  background: "#fef2f2",
-  border: "1px solid rgba(239,68,68,0.2)",
-  color: "#991b1b",
+  background: "var(--admin-error-bg)",
+  border: "1px solid var(--admin-error-border)",
+  color: "var(--admin-error-text)",
   padding: "14px 16px",
   fontSize: "0.92rem",
   lineHeight: 1.6,
@@ -137,9 +137,9 @@ export const errorStyle: CSSProperties = {
 
 export const successStyle: CSSProperties = {
   borderRadius: "12px",
-  background: "#f0fdf4",
-  border: "1px solid rgba(34,197,94,0.2)",
-  color: "#166534",
+  background: "var(--admin-success-bg)",
+  border: "1px solid var(--admin-success-border)",
+  color: "var(--admin-success-text)",
   padding: "14px 16px",
   fontSize: "0.92rem",
   lineHeight: 1.6,
@@ -147,9 +147,9 @@ export const successStyle: CSSProperties = {
 
 export const warningStyle: CSSProperties = {
   borderRadius: "12px",
-  background: "#fff7ed",
-  border: "1px solid rgba(249,115,22,0.18)",
-  color: "#9a3412",
+  background: "var(--admin-warning-bg)",
+  border: "1px solid var(--admin-warning-border)",
+  color: "var(--admin-warning-text)",
   padding: "14px 16px",
   fontSize: "0.92rem",
   lineHeight: 1.6,
@@ -163,19 +163,19 @@ export const splitLayoutStyle: CSSProperties = {
 
 export const panelStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
+  border: "1px solid var(--admin-border-subtle)",
   padding: "18px",
-  background: "#ffffff",
+  background: "var(--admin-surface-primary)",
 };
 
 export const inputStyle: CSSProperties = {
   width: "100%",
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.34)",
-  background: "#ffffff",
+  border: "1px solid var(--admin-border-strong)",
+  background: "var(--admin-input-bg)",
   padding: "12px 14px",
   fontSize: "0.95rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   outline: "none",
   boxSizing: "border-box",
 };
@@ -189,7 +189,7 @@ export const textAreaStyle: CSSProperties = {
 
 export const labelStyle: CSSProperties = {
   fontWeight: 700,
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   fontSize: "0.86rem",
 };
 
@@ -217,7 +217,7 @@ export const actionRowStyle: CSSProperties = {
 };
 
 export const primaryButtonStyle: CSSProperties = {
-  border: "1px solid rgba(239,68,68,0.3)",
+  border: "1px solid rgba(239,68,68,0.32)",
   background: "#dc2626",
   color: "#ffffff",
   borderRadius: "12px",
@@ -228,9 +228,9 @@ export const primaryButtonStyle: CSSProperties = {
 };
 
 export const secondaryButtonStyle: CSSProperties = {
-  border: "1px solid rgba(148,163,184,0.34)",
-  background: "#ffffff",
-  color: "#334155",
+  border: "1px solid var(--admin-border-strong)",
+  background: "var(--admin-surface-primary)",
+  color: "var(--admin-text-secondary)",
   borderRadius: "12px",
   padding: "12px 16px",
   fontSize: "0.9rem",
@@ -250,7 +250,7 @@ export const dangerButtonStyle: CSSProperties = {
 };
 
 export const subtleTextStyle: CSSProperties = {
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.85rem",
 };
 
@@ -270,7 +270,7 @@ export const detailTitleStyle: CSSProperties = {
 
 export const paragraphStyle: CSSProperties = {
   margin: "8px 0 0",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.92rem",
   lineHeight: 1.6,
 };
@@ -278,7 +278,7 @@ export const paragraphStyle: CSSProperties = {
 export const tableWrapStyle: CSSProperties = {
   overflowX: "auto",
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
+  border: "1px solid var(--admin-border-subtle)",
 };
 
 export const tableStyle: CSSProperties = {
@@ -292,16 +292,16 @@ export const tableHeadCellStyle: CSSProperties = {
   fontSize: "0.74rem",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontWeight: 700,
   padding: "12px 14px",
-  background: "#f8fafc",
-  borderBottom: "1px solid rgba(148,163,184,0.24)",
+  background: "var(--admin-surface-secondary)",
+  borderBottom: "1px solid var(--admin-border-subtle)",
 };
 
 export const tableCellStyle: CSSProperties = {
   padding: "12px 14px",
-  borderBottom: "1px solid rgba(226,232,240,0.9)",
+  borderBottom: "1px solid var(--admin-border-subtle)",
   fontSize: "0.92rem",
   verticalAlign: "top",
 };
@@ -321,23 +321,23 @@ const pillStyle: CSSProperties = {
 const entityCardStyle: CSSProperties = {
   width: "100%",
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.2)",
-  background: "#ffffff",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-primary)",
   padding: "14px",
   textAlign: "left",
   cursor: "pointer",
 };
 
 const selectedEntityCardStyle: CSSProperties = {
-  background: "#0f172a",
-  borderColor: "rgba(15,23,42,0.86)",
-  color: "#ffffff",
+  background: "var(--admin-nav-active-bg)",
+  borderColor: "var(--admin-nav-active-bg)",
+  color: "var(--admin-nav-active-text)",
 };
 
 const toneStyles: Record<string, CSSProperties> = {
-  success: { background: "#dcfce7", color: "#166534" },
-  warning: { background: "#fef3c7", color: "#92400e" },
-  danger: { background: "#fee2e2", color: "#991b1b" },
-  subtle: { background: "#e2e8f0", color: "#475569" },
-  slate: { background: "#e2e8f0", color: "#0f172a" },
+  success: { background: "var(--admin-pill-success-bg)", color: "var(--admin-pill-success-text)" },
+  warning: { background: "var(--admin-pill-warning-bg)", color: "var(--admin-pill-warning-text)" },
+  danger: { background: "var(--admin-pill-danger-bg)", color: "var(--admin-pill-danger-text)" },
+  subtle: { background: "var(--admin-pill-subtle-bg)", color: "var(--admin-pill-subtle-text)" },
+  slate: { background: "var(--admin-pill-slate-bg)", color: "var(--admin-pill-slate-text)" },
 };

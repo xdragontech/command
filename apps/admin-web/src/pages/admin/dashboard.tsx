@@ -87,9 +87,9 @@ function PeriodButton({
       disabled={disabled}
       style={{
         borderRadius: "12px",
-        border: active ? "1px solid rgba(239,68,68,0.32)" : "1px solid rgba(148,163,184,0.34)",
-        background: active ? "#fee2e2" : "rgba(255,255,255,0.92)",
-        color: active ? "#991b1b" : "#334155",
+        border: active ? "1px solid rgba(239,68,68,0.32)" : "1px solid var(--admin-border-strong)",
+        background: active ? "var(--admin-pill-danger-bg)" : "var(--admin-surface-primary)",
+        color: active ? "var(--admin-pill-danger-text)" : "var(--admin-text-secondary)",
         padding: "7px 12px",
         fontSize: "0.82rem",
         lineHeight: 1.1,
@@ -106,10 +106,10 @@ function PeriodButton({
 function SummaryCard({ label, value, tone }: { label: string; value: string; tone?: "red" | "slate" | "amber" }) {
   const palette =
     tone === "amber"
-      ? { bg: "rgba(245, 158, 11, 0.08)", border: "rgba(245, 158, 11, 0.22)", value: "#92400e" }
+      ? { bg: "var(--admin-warning-bg)", border: "var(--admin-warning-border)", value: "var(--admin-warning-text)" }
       : tone === "slate"
-        ? { bg: "rgba(15, 23, 42, 0.05)", border: "rgba(148, 163, 184, 0.24)", value: "#0f172a" }
-        : { bg: "rgba(239, 68, 68, 0.08)", border: "rgba(239, 68, 68, 0.2)", value: "#b91c1c" };
+        ? { bg: "var(--admin-surface-secondary)", border: "var(--admin-border-subtle)", value: "var(--admin-text-primary)" }
+        : { bg: "var(--admin-error-bg)", border: "var(--admin-error-border)", value: "#b91c1c" };
 
   return (
     <div
@@ -143,29 +143,29 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
 
   return (
     <div style={{ display: "grid", gap: "12px" }}>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", color: "#475569", fontSize: "0.9rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "14px", color: "var(--admin-text-secondary)", fontSize: "0.9rem" }}>
         <span style={legendStyle}>
           <span style={{ ...legendDotStyle, background: "#b91c1c" }} />
           Signups
         </span>
         <span style={legendStyle}>
-          <span style={{ ...legendDotStyle, background: "#0f172a" }} />
+          <span style={{ ...legendDotStyle, background: "var(--admin-text-primary)" }} />
           Logins
         </span>
       </div>
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        style={{
-          width: "100%",
-          height: "240px",
-          borderRadius: "12px",
-          border: "1px solid rgba(148,163,184,0.24)",
-          background:
-            "linear-gradient(180deg, rgba(248,250,252,0.94) 0%, rgba(226,232,240,0.82) 100%)",
-        }}
+          style={{
+            width: "100%",
+            height: "240px",
+            borderRadius: "12px",
+            border: "1px solid var(--admin-border-subtle)",
+            background:
+              "linear-gradient(180deg, var(--admin-surface-secondary) 0%, var(--admin-surface-tertiary) 100%)",
+          }}
       >
-        <path d={loginsPath} fill="none" stroke="#0f172a" strokeWidth="3.5" strokeLinecap="round" />
+        <path d={loginsPath} fill="none" stroke="var(--admin-text-primary)" strokeWidth="3.5" strokeLinecap="round" />
         <path d={signupsPath} fill="none" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
       </svg>
 
@@ -174,7 +174,7 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
           display: "grid",
           gridTemplateColumns: `repeat(${Math.min(points.length, 7)}, minmax(0, 1fr))`,
           gap: "8px",
-          color: "#64748b",
+          color: "var(--admin-text-muted)",
           fontSize: "0.78rem",
         }}
       >
@@ -202,13 +202,13 @@ function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
       {rows.map((row) => (
         <div key={`${row.country || "Unknown"}-${row.count}`} style={{ display: "grid", gap: "6px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "0.92rem" }}>
-            <span style={{ color: "#0f172a", fontWeight: 700 }}>{row.country || "Unknown"}</span>
-            <span style={{ color: "#475569" }}>{formatCount(row.count)}</span>
+            <span style={{ color: "var(--admin-text-primary)", fontWeight: 700 }}>{row.country || "Unknown"}</span>
+            <span style={{ color: "var(--admin-text-secondary)" }}>{formatCount(row.count)}</span>
           </div>
           <div
             style={{
               borderRadius: "12px",
-              background: "#e2e8f0",
+              background: "var(--admin-surface-tertiary)",
               overflow: "hidden",
               height: "10px",
             }}
@@ -218,7 +218,7 @@ function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
                 width: `${Math.max(8, (row.count / maxValue) * 100)}%`,
                 height: "100%",
                 borderRadius: "12px",
-                background: "linear-gradient(90deg, #2563eb 0%, #0f172a 100%)",
+                background: "linear-gradient(90deg, #2563eb 0%, var(--admin-text-primary) 100%)",
               }}
             />
           </div>
@@ -236,10 +236,10 @@ function LoginIpTable({ metrics }: { metrics: DashboardMetrics }) {
   }
 
   return (
-    <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
+    <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid var(--admin-border-subtle)" }}>
       <table style={{ width: "100%", minWidth: "560px", borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+          <tr style={{ background: "var(--admin-surface-secondary)", color: "var(--admin-text-secondary)" }}>
             <th style={tableHeaderStyle}>IP</th>
             <th style={tableHeaderStyle}>Country</th>
             <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Logins</th>
@@ -247,7 +247,7 @@ function LoginIpTable({ metrics }: { metrics: DashboardMetrics }) {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.ip} style={{ borderTop: "1px solid rgba(226,232,240,0.95)" }}>
+            <tr key={row.ip} style={{ borderTop: "1px solid var(--admin-border-subtle)" }}>
               <td style={{ ...tableCellStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{row.ip}</td>
               <td style={tableCellStyle}>{row.country || row.countryIso2 || "Unknown"}</td>
               <td style={{ ...tableCellStyle, textAlign: "right", fontWeight: 700 }}>{formatCount(row.count)}</td>
@@ -318,7 +318,7 @@ export default function DashboardPage({
               style={{
                 fontSize: "0.92rem",
                 fontWeight: 600,
-                color: "#64748b",
+                color: "var(--admin-text-muted)",
                 letterSpacing: "0.01em",
               }}
             >
@@ -340,11 +340,11 @@ export default function DashboardPage({
               ))}
             </div>
             <div style={{ display: "grid", justifyItems: "end", gap: "4px" }}>
-              <div style={{ color: "#475569", fontSize: "0.88rem", textAlign: "right" }}>
-                Viewing: <strong style={{ color: "#0f172a" }}>{formatDateRange(metrics)}</strong>
+              <div style={{ color: "var(--admin-text-secondary)", fontSize: "0.88rem", textAlign: "right" }}>
+                Viewing: <strong style={{ color: "var(--admin-text-primary)" }}>{formatDateRange(metrics)}</strong>
               </div>
               {loading ? (
-                <div style={{ color: "#475569", fontSize: "0.82rem", textAlign: "right" }}>Refreshing metrics…</div>
+                <div style={{ color: "var(--admin-text-secondary)", fontSize: "0.82rem", textAlign: "right" }}>Refreshing metrics…</div>
               ) : null}
             </div>
           </div>
@@ -356,8 +356,8 @@ export default function DashboardPage({
               style={{
                 borderRadius: "12px",
                 border: "1px solid rgba(248,113,113,0.28)",
-                background: "rgba(254,242,242,0.94)",
-                color: "#991b1b",
+                background: "var(--admin-error-bg)",
+                color: "var(--admin-error-text)",
                 padding: "14px 16px",
                 fontSize: "0.95rem",
               }}
@@ -435,7 +435,7 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (ctx
 };
 
 const summaryLabelStyle: CSSProperties = {
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.62rem",
   letterSpacing: "0.12em",
   textTransform: "uppercase",
@@ -466,15 +466,15 @@ const tableHeaderStyle: CSSProperties = {
 const tableCellStyle: CSSProperties = {
   padding: "12px 14px",
   fontSize: "0.94rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
 };
 
 const emptyStateStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px dashed rgba(148,163,184,0.38)",
-  background: "rgba(248,250,252,0.9)",
+  border: "1px dashed var(--admin-muted-border)",
+  background: "var(--admin-muted-bg)",
   padding: "18px",
-  color: "#475569",
+  color: "var(--admin-text-secondary)",
   fontSize: "0.95rem",
   lineHeight: 1.6,
 };
