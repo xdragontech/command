@@ -846,250 +846,262 @@ export default function SchedulingCalendarPage({
             ) : null}
           </section>
 
-          <section style={panelStyle}>
-            <div style={detailHeaderStyle}>
-              <div>
-                <h3 style={detailTitleStyle}>{isNewAssignment ? "New Assignment" : selectedAssignment?.participantName || "Assignment Details"}</h3>
-                <p style={paragraphStyle}>
-                  Select an existing event to edit it, or select a calendar slot to prefill a new assignment.
-                </p>
+          <div style={{ display: "grid", gap: "16px", alignContent: "start" }}>
+            <section style={panelStyle}>
+              <div style={{ display: "grid", gap: "14px" }}>
+                <label style={fieldStyle}>
+                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
+                  <select
+                    value={brandFilter}
+                    onChange={(event) => {
+                      setBrandFilter(event.target.value);
+                      setSeriesFilter("ALL");
+                      setResourceFilter("ALL");
+                      setParticipantFilter("ALL");
+                      setSelectedId(null);
+                      setForm(null);
+                      setPendingConflicts([]);
+                      setNotice("");
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="ALL">All Brands</option>
+                    {brands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={fieldStyle}>
+                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event Series</span>
+                  <select
+                    value={seriesFilter}
+                    onChange={(event) => {
+                      setSeriesFilter(event.target.value);
+                      setSelectedId(null);
+                      setForm(null);
+                      setPendingConflicts([]);
+                      setNotice("");
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="ALL">All Series</option>
+                    {visibleSeries.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={fieldStyle}>
+                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
+                  <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
+                    <option value="ALL">All Resources</option>
+                    {resources
+                      .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                      .map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+
+                <label style={fieldStyle}>
+                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
+                  <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
+                    <option value="ALL">All Participants</option>
+                    {participants
+                      .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                      .map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.displayName}
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
-              {form ? <TonePill label={derivedKind} tone="subtle" /> : null}
-            </div>
+            </section>
 
-            {!form ? (
-              <div style={mutedPanelStyle}>
-                No assignment selected. Click an existing calendar item or select a date/time range to begin.
+            <section
+              style={{
+                ...panelStyle,
+                height: "440px",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <div style={detailHeaderStyle}>
+                <div>
+                  <h3 style={detailTitleStyle}>{isNewAssignment ? "New Assignment" : selectedAssignment?.participantName || "Assignment Details"}</h3>
+                  <p style={paragraphStyle}>
+                    Select an existing event to edit it, or select a calendar slot to prefill a new assignment.
+                  </p>
+                </div>
+                {form ? <TonePill label={derivedKind} tone="subtle" /> : null}
               </div>
-            ) : (
-              <div style={{ display: "grid", gap: "18px" }}>
-                <div style={twoColumnStyle}>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence</span>
-                    <select value={form.occurrenceId} onChange={(event) => handleOccurrenceChange(event.target.value)} style={inputStyle}>
-                      <option value="">Select occurrence</option>
-                      {visibleOccurrences.map((occurrence) => (
-                        <option key={occurrence.id} value={occurrence.id}>
-                          {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
 
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
-                    <select
-                      value={form.status}
-                      onChange={(event) => updateField("status", event.target.value as ScheduleAssignmentStatus)}
-                      style={inputStyle}
-                    >
-                      {Object.values(ScheduleAssignmentStatus).map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                <div style={twoColumnStyle}>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Participant</span>
-                    <select value={form.participantId} onChange={(event) => handleParticipantChange(event.target.value)} style={inputStyle}>
-                      <option value="">Select participant</option>
-                      {visibleParticipants.map((participant) => (
-                        <option key={participant.id} value={participant.id}>
-                          {`${participant.displayName} · ${participant.type}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource</span>
-                    <select value={form.resourceId} onChange={(event) => updateField("resourceId", event.target.value)} style={inputStyle}>
-                      <option value="">Select resource</option>
-                      {compatibleResources.map((resource) => (
-                        <option key={resource.id} value={resource.id}>
-                          {`${resource.name} · ${resource.type}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                {selectedOccurrence ? (
+              <div style={{ marginTop: "16px", minHeight: 0, overflowY: "auto", paddingRight: "4px" }}>
+                {!form ? (
                   <div style={mutedPanelStyle}>
-                    Occurrence window: {formatMinuteRange(selectedOccurrence.dayStartsAtMinutes, selectedOccurrence.dayEndsAtMinutes)}
-                    {selectedResource ? ` · Resource: ${selectedResource.name}` : ""}
-                    {selectedParticipant ? ` · Participant type: ${selectedParticipant.type}` : ""}
-                  </div>
-                ) : null}
-
-                {isTimedAssignment ? (
-                  <div style={twoColumnStyle}>
-                    <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Starts At</span>
-                      <input type="time" value={form.startsAt} onChange={(event) => updateField("startsAt", event.target.value)} style={inputStyle} />
-                    </label>
-                    <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Ends At</span>
-                      <input type="time" value={form.endsAt} onChange={(event) => updateField("endsAt", event.target.value)} style={inputStyle} />
-                    </label>
+                    No assignment selected. Click an existing calendar item or select a date/time range to begin.
                   </div>
                 ) : (
-                  <div style={mutedPanelStyle}>
-                    Full-day vendor assignments automatically inherit the occurrence window. Start and end times are not operator-editable in this mode.
+                  <div style={{ display: "grid", gap: "18px" }}>
+                    <div style={twoColumnStyle}>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence</span>
+                        <select value={form.occurrenceId} onChange={(event) => handleOccurrenceChange(event.target.value)} style={inputStyle}>
+                          <option value="">Select occurrence</option>
+                          {visibleOccurrences.map((occurrence) => (
+                            <option key={occurrence.id} value={occurrence.id}>
+                              {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
+                        <select
+                          value={form.status}
+                          onChange={(event) => updateField("status", event.target.value as ScheduleAssignmentStatus)}
+                          style={inputStyle}
+                        >
+                          {Object.values(ScheduleAssignmentStatus).map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div style={twoColumnStyle}>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Participant</span>
+                        <select value={form.participantId} onChange={(event) => handleParticipantChange(event.target.value)} style={inputStyle}>
+                          <option value="">Select participant</option>
+                          {visibleParticipants.map((participant) => (
+                            <option key={participant.id} value={participant.id}>
+                              {`${participant.displayName} · ${participant.type}`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource</span>
+                        <select value={form.resourceId} onChange={(event) => updateField("resourceId", event.target.value)} style={inputStyle}>
+                          <option value="">Select resource</option>
+                          {compatibleResources.map((resource) => (
+                            <option key={resource.id} value={resource.id}>
+                              {`${resource.name} · ${resource.type}`}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    {selectedOccurrence ? (
+                      <div style={mutedPanelStyle}>
+                        Occurrence window: {formatMinuteRange(selectedOccurrence.dayStartsAtMinutes, selectedOccurrence.dayEndsAtMinutes)}
+                        {selectedResource ? ` · Resource: ${selectedResource.name}` : ""}
+                        {selectedParticipant ? ` · Participant type: ${selectedParticipant.type}` : ""}
+                      </div>
+                    ) : null}
+
+                    {isTimedAssignment ? (
+                      <div style={twoColumnStyle}>
+                        <label style={fieldStyle}>
+                          <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Starts At</span>
+                          <input type="time" value={form.startsAt} onChange={(event) => updateField("startsAt", event.target.value)} style={inputStyle} />
+                        </label>
+                        <label style={fieldStyle}>
+                          <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Ends At</span>
+                          <input type="time" value={form.endsAt} onChange={(event) => updateField("endsAt", event.target.value)} style={inputStyle} />
+                        </label>
+                      </div>
+                    ) : (
+                      <div style={mutedPanelStyle}>
+                        Full-day vendor assignments automatically inherit the occurrence window. Start and end times are not operator-editable in this mode.
+                      </div>
+                    )}
+
+                    <div style={twoColumnStyle}>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Title</span>
+                        <input value={form.publicTitle} onChange={(event) => updateField("publicTitle", event.target.value)} style={inputStyle} />
+                      </label>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Subtitle</span>
+                        <input value={form.publicSubtitle} onChange={(event) => updateField("publicSubtitle", event.target.value)} style={inputStyle} />
+                      </label>
+                    </div>
+
+                    <div style={twoColumnStyle}>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Location Label</span>
+                        <input value={form.publicLocationLabel} onChange={(event) => updateField("publicLocationLabel", event.target.value)} style={inputStyle} />
+                      </label>
+                      <label style={fieldStyle}>
+                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public URL</span>
+                        <input value={form.publicUrl} onChange={(event) => updateField("publicUrl", event.target.value)} style={inputStyle} placeholder="https://..." />
+                      </label>
+                    </div>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Description</span>
+                      <textarea value={form.publicDescription} onChange={(event) => updateField("publicDescription", event.target.value)} style={textAreaStyle} />
+                    </label>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Internal Notes</span>
+                      <textarea value={form.internalNotes} onChange={(event) => updateField("internalNotes", event.target.value)} style={textAreaStyle} />
+                    </label>
+
+                    <div style={actionRowStyle}>
+                      <button type="button" onClick={() => void saveAssignment(false)} disabled={!isDirty || saving} style={primaryButtonStyle}>
+                        {saving ? (isNewAssignment ? "Creating..." : "Saving...") : isNewAssignment ? "Create Assignment" : "Save Changes"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selectedAssignment) {
+                            setForm(assignmentFormFromRecord(selectedAssignment));
+                          } else {
+                            setForm(
+                              buildAssignmentForm({
+                                brands,
+                                brandFilter,
+                                occurrences,
+                                resources,
+                                participants,
+                              })
+                            );
+                          }
+                          setError("");
+                          setNotice("");
+                          setPendingConflicts([]);
+                        }}
+                        disabled={!isDirty || saving}
+                        style={secondaryButtonStyle}
+                      >
+                        Reset
+                      </button>
+                      <button type="button" onClick={() => void deleteAssignment()} disabled={!selectedAssignment || deleting} style={secondaryButtonStyle}>
+                        {deleting ? "Deleting..." : "Delete Assignment"}
+                      </button>
+                    </div>
                   </div>
                 )}
-
-                <div style={twoColumnStyle}>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Title</span>
-                    <input value={form.publicTitle} onChange={(event) => updateField("publicTitle", event.target.value)} style={inputStyle} />
-                  </label>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Subtitle</span>
-                    <input value={form.publicSubtitle} onChange={(event) => updateField("publicSubtitle", event.target.value)} style={inputStyle} />
-                  </label>
-                </div>
-
-                <div style={twoColumnStyle}>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Location Label</span>
-                    <input value={form.publicLocationLabel} onChange={(event) => updateField("publicLocationLabel", event.target.value)} style={inputStyle} />
-                  </label>
-                  <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public URL</span>
-                    <input value={form.publicUrl} onChange={(event) => updateField("publicUrl", event.target.value)} style={inputStyle} placeholder="https://..." />
-                  </label>
-                </div>
-
-                <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Description</span>
-                  <textarea value={form.publicDescription} onChange={(event) => updateField("publicDescription", event.target.value)} style={textAreaStyle} />
-                </label>
-
-                <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Internal Notes</span>
-                  <textarea value={form.internalNotes} onChange={(event) => updateField("internalNotes", event.target.value)} style={textAreaStyle} />
-                </label>
-
-                <div style={actionRowStyle}>
-                  <button type="button" onClick={() => void saveAssignment(false)} disabled={!isDirty || saving} style={primaryButtonStyle}>
-                    {saving ? (isNewAssignment ? "Creating..." : "Saving...") : isNewAssignment ? "Create Assignment" : "Save Changes"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedAssignment) {
-                        setForm(assignmentFormFromRecord(selectedAssignment));
-                      } else {
-                        setForm(
-                          buildAssignmentForm({
-                            brands,
-                            brandFilter,
-                            occurrences,
-                            resources,
-                            participants,
-                          })
-                        );
-                      }
-                      setError("");
-                      setNotice("");
-                      setPendingConflicts([]);
-                    }}
-                    disabled={!isDirty || saving}
-                    style={secondaryButtonStyle}
-                  >
-                    Reset
-                  </button>
-                  <button type="button" onClick={() => void deleteAssignment()} disabled={!selectedAssignment || deleting} style={secondaryButtonStyle}>
-                    {deleting ? "Deleting..." : "Delete Assignment"}
-                  </button>
-                </div>
               </div>
-            )}
-          </section>
-        </div>
-
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                setBrandFilter(event.target.value);
-                setSeriesFilter("ALL");
-                setResourceFilter("ALL");
-                setParticipantFilter("ALL");
-                setSelectedId(null);
-                setForm(null);
-                setPendingConflicts([]);
-                setNotice("");
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event Series</span>
-            <select
-              value={seriesFilter}
-              onChange={(event) => {
-                setSeriesFilter(event.target.value);
-                setSelectedId(null);
-                setForm(null);
-                setPendingConflicts([]);
-                setNotice("");
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Series</option>
-              {visibleSeries.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
-            <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
-              <option value="ALL">All Resources</option>
-              {resources
-                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                .map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
-            <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
-              <option value="ALL">All Participants</option>
-              {participants
-                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                .map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.displayName}
-                  </option>
-                ))}
-            </select>
-          </label>
+            </section>
+          </div>
         </div>
 
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
