@@ -163,7 +163,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                 aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
                 style={{
                   ...dividerToggleStyle,
-                  right: "-19px",
+                  right: "-24px",
                 }}
               >
                 <CollapseIcon collapsed={sidebarCollapsed} />
