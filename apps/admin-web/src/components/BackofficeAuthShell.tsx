@@ -24,6 +24,10 @@ export function BackofficeAuthShell({
     <>
       <Head>
         <title>{pageTitle}</title>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </Head>
 
       <div
@@ -50,23 +54,40 @@ export function BackofficeAuthShell({
           >
             <div
               style={{
-                fontSize: "0.82rem",
-                letterSpacing: "0.18em",
-                textTransform: "uppercase",
-                color: "#475569",
-                marginBottom: "10px",
+                display: "inline-flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "6px",
               }}
             >
-              {eyebrow}
-            </div>
-            <div
-              style={{
-                fontSize: "2.35rem",
-                fontWeight: 700,
-                letterSpacing: "-0.04em",
-              }}
-            >
-              Command
+              <img
+                src="/logo.png"
+                alt="X Dragon logo"
+                style={{ height: "58px", width: "auto", display: "block" }}
+              />
+              <div
+                style={{
+                  fontFamily: "Orbitron, ui-sans-serif, system-ui",
+                  fontSize: "2.15rem",
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: "-0.03em",
+                  color: "#0f172a",
+                }}
+              >
+                Command
+              </div>
+              <div
+                style={{
+                  fontSize: "0.82rem",
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  color: "#475569",
+                  marginTop: "4px",
+                }}
+              >
+                {eyebrow}
+              </div>
             </div>
           </div>
 
