@@ -770,7 +770,6 @@ export default function SchedulingCalendarPage({
     >
       <AdminCard
         title="Scheduling Calendar"
-        description="Calendar view over current schedule assignments."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData()} disabled={loading || !visibleRange} style={secondaryButtonStyle}>
@@ -803,100 +802,6 @@ export default function SchedulingCalendarPage({
             </div>
           </div>
         ) : null}
-
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                setBrandFilter(event.target.value);
-                setSeriesFilter("ALL");
-                setResourceFilter("ALL");
-                setParticipantFilter("ALL");
-                setSelectedId(null);
-                setForm(null);
-                setPendingConflicts([]);
-                setNotice("");
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event Series</span>
-            <select
-              value={seriesFilter}
-              onChange={(event) => {
-                setSeriesFilter(event.target.value);
-                setSelectedId(null);
-                setForm(null);
-                setPendingConflicts([]);
-                setNotice("");
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Series</option>
-              {visibleSeries.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
-            <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
-              <option value="ALL">All Resources</option>
-              {resources
-                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                .map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.name}
-                  </option>
-                ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
-            <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
-              <option value="ALL">All Participants</option>
-              {participants
-                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                .map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.displayName}
-                  </option>
-                ))}
-            </select>
-          </label>
-        </div>
-
-        <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Visible Assignments</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{filteredAssignments.length}</div>
-          </div>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Visible Conflicts</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#991b1b" }}>{filteredConflicts.length}</div>
-          </div>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Occurrences In Range</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{occurrences.length}</div>
-          </div>
-        </div>
 
         <div
           style={{
@@ -1106,6 +1011,100 @@ export default function SchedulingCalendarPage({
               </div>
             )}
           </section>
+        </div>
+
+        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
+          <label style={fieldStyle}>
+            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
+            <select
+              value={brandFilter}
+              onChange={(event) => {
+                setBrandFilter(event.target.value);
+                setSeriesFilter("ALL");
+                setResourceFilter("ALL");
+                setParticipantFilter("ALL");
+                setSelectedId(null);
+                setForm(null);
+                setPendingConflicts([]);
+                setNotice("");
+              }}
+              style={inputStyle}
+            >
+              <option value="ALL">All Brands</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label style={fieldStyle}>
+            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event Series</span>
+            <select
+              value={seriesFilter}
+              onChange={(event) => {
+                setSeriesFilter(event.target.value);
+                setSelectedId(null);
+                setForm(null);
+                setPendingConflicts([]);
+                setNotice("");
+              }}
+              style={inputStyle}
+            >
+              <option value="ALL">All Series</option>
+              {visibleSeries.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
+          <label style={fieldStyle}>
+            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
+            <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
+              <option value="ALL">All Resources</option>
+              {resources
+                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                .map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+
+          <label style={fieldStyle}>
+            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
+            <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
+              <option value="ALL">All Participants</option>
+              {participants
+                .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                .map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.displayName}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+
+        <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
+          <div style={panelStyle}>
+            <div style={subtleTextStyle}>Visible Assignments</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{filteredAssignments.length}</div>
+          </div>
+          <div style={panelStyle}>
+            <div style={subtleTextStyle}>Visible Conflicts</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#991b1b" }}>{filteredConflicts.length}</div>
+          </div>
+          <div style={panelStyle}>
+            <div style={subtleTextStyle}>Occurrences In Range</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{occurrences.length}</div>
+          </div>
         </div>
       </AdminCard>
     </AdminLayout>
