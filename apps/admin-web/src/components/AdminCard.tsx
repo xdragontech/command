@@ -12,10 +12,10 @@ export function AdminCard({ title, description, actions, children }: AdminCardPr
     <section
       style={{
         borderRadius: "12px",
-        border: "1px solid rgba(148,163,184,0.24)",
-        background: "#ffffff",
+        border: "1px solid var(--admin-border-subtle)",
+        background: "var(--admin-surface-primary)",
         padding: "24px",
-        boxShadow: "0 24px 60px rgba(15,23,42,0.08)",
+        boxShadow: "var(--admin-shadow-card)",
       }}
     >
       <div
@@ -44,7 +44,7 @@ export function AdminCard({ title, description, actions, children }: AdminCardPr
                 marginTop: "10px",
                 fontSize: "0.96rem",
                 lineHeight: 1.7,
-                color: "#475569",
+                color: "var(--admin-text-secondary)",
                 maxWidth: "72ch",
               }}
             >

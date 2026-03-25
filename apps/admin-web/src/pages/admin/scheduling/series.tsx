@@ -477,7 +477,7 @@ export default function SchedulingSeriesPage({
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
                     <span style={{ ...fieldStyle, gap: "4px" }}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Brand</span>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Brand</span>
                     </span>
                     <select value={form.brandId} onChange={(event) => updateField("brandId", event.target.value)} style={inputStyle} disabled={!isNewSeries}>
                       {brands.map((brand) => (
@@ -489,7 +489,7 @@ export default function SchedulingSeriesPage({
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Status</span>
                     <select
                       value={form.status}
                       onChange={(event) => updateField("status", event.target.value as ScheduleEventSeriesStatus)}
@@ -504,22 +504,22 @@ export default function SchedulingSeriesPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Series Name</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Series Name</span>
                     <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Slug</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Slug</span>
                     <input value={form.slug} onChange={(event) => updateField("slug", event.target.value)} placeholder="Auto if blank" style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Timezone</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Timezone</span>
                     <input value={form.timezone} onChange={(event) => updateField("timezone", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Recurrence Pattern</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Recurrence Pattern</span>
                     <select
                       value={form.recurrencePattern}
                       onChange={(event) => updateField("recurrencePattern", event.target.value as ScheduleRecurrencePattern)}
@@ -532,39 +532,39 @@ export default function SchedulingSeriesPage({
                 </div>
 
                 <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Description</span>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Description</span>
                   <textarea value={form.description} onChange={(event) => updateField("description", event.target.value)} style={{ ...inputStyle, minHeight: "88px", resize: "vertical" }} />
                 </label>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Season Starts On</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Season Starts On</span>
                     <input type="date" value={form.seasonStartsOn} onChange={(event) => updateField("seasonStartsOn", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Season Ends On</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Season Ends On</span>
                     <input type="date" value={form.seasonEndsOn} onChange={(event) => updateField("seasonEndsOn", event.target.value)} style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence Day Starts</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Occurrence Day Starts</span>
                     <input type="time" value={form.occurrenceDayStartsAt} onChange={(event) => updateField("occurrenceDayStartsAt", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence Day Ends</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Occurrence Day Ends</span>
                     <input type="time" value={form.occurrenceDayEndsAt} onChange={(event) => updateField("occurrenceDayEndsAt", event.target.value)} style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Recurrence Interval</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Recurrence Interval</span>
                     <input value={form.recurrenceInterval} onChange={(event) => updateField("recurrenceInterval", event.target.value)} style={inputStyle} />
                   </label>
                   <div style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence Days</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Occurrence Days</span>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {WEEKDAY_OPTIONS.map((day) => {
                         const selected = form.recurrenceDays.includes(day);

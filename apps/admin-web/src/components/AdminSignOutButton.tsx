@@ -19,11 +19,11 @@ export function AdminSignOutButton() {
       onClick={onClick}
       disabled={busy}
       style={{
-        border: 0,
+        border: "1px solid var(--admin-button-strong-border)",
         borderRadius: "12px",
         padding: "8px 12px",
-        background: "#0f172a",
-        color: "#fff",
+        background: "var(--admin-button-strong-bg)",
+        color: "var(--admin-button-strong-text)",
         fontSize: "0.9rem",
         fontWeight: 700,
         cursor: busy ? "wait" : "pointer",

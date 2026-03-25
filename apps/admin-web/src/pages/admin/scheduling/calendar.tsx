@@ -829,7 +829,7 @@ export default function SchedulingCalendarPage({
             {filteredConflicts.length > 0 ? (
               <div style={{ ...panelStyle, marginTop: "18px", padding: "16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", alignItems: "center" }}>
-                  <div style={{ fontWeight: 800, color: "#0f172a" }}>Visible Conflict Summary</div>
+                  <div style={{ fontWeight: 800, color: "var(--admin-text-primary)" }}>Visible Conflict Summary</div>
                   <TonePill label={`${filteredConflicts.length} conflicts`} tone="danger" />
                 </div>
                 <div style={{ display: "grid", gap: "10px", marginTop: "14px" }}>
@@ -954,7 +954,7 @@ export default function SchedulingCalendarPage({
                   <div style={{ display: "grid", gap: "18px" }}>
                     <div style={twoColumnStyle}>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Occurrence</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Occurrence</span>
                         <select value={form.occurrenceId} onChange={(event) => handleOccurrenceChange(event.target.value)} style={inputStyle}>
                           <option value="">Select occurrence</option>
                           {visibleOccurrences.map((occurrence) => (
@@ -966,7 +966,7 @@ export default function SchedulingCalendarPage({
                       </label>
 
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Status</span>
                         <select
                           value={form.status}
                           onChange={(event) => updateField("status", event.target.value as ScheduleAssignmentStatus)}
@@ -983,7 +983,7 @@ export default function SchedulingCalendarPage({
 
                     <div style={twoColumnStyle}>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Participant</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Participant</span>
                         <select value={form.participantId} onChange={(event) => handleParticipantChange(event.target.value)} style={inputStyle}>
                           <option value="">Select participant</option>
                           {visibleParticipants.map((participant) => (
@@ -995,7 +995,7 @@ export default function SchedulingCalendarPage({
                       </label>
 
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Resource</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource</span>
                         <select value={form.resourceId} onChange={(event) => updateField("resourceId", event.target.value)} style={inputStyle}>
                           <option value="">Select resource</option>
                           {compatibleResources.map((resource) => (
@@ -1018,11 +1018,11 @@ export default function SchedulingCalendarPage({
                     {isTimedAssignment ? (
                       <div style={twoColumnStyle}>
                         <label style={fieldStyle}>
-                          <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Starts At</span>
+                          <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Starts At</span>
                           <input type="time" value={form.startsAt} onChange={(event) => updateField("startsAt", event.target.value)} style={inputStyle} />
                         </label>
                         <label style={fieldStyle}>
-                          <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Ends At</span>
+                          <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Ends At</span>
                           <input type="time" value={form.endsAt} onChange={(event) => updateField("endsAt", event.target.value)} style={inputStyle} />
                         </label>
                       </div>
@@ -1034,33 +1034,33 @@ export default function SchedulingCalendarPage({
 
                     <div style={twoColumnStyle}>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Title</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Title</span>
                         <input value={form.publicTitle} onChange={(event) => updateField("publicTitle", event.target.value)} style={inputStyle} />
                       </label>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Subtitle</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Subtitle</span>
                         <input value={form.publicSubtitle} onChange={(event) => updateField("publicSubtitle", event.target.value)} style={inputStyle} />
                       </label>
                     </div>
 
                     <div style={twoColumnStyle}>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Location Label</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Location Label</span>
                         <input value={form.publicLocationLabel} onChange={(event) => updateField("publicLocationLabel", event.target.value)} style={inputStyle} />
                       </label>
                       <label style={fieldStyle}>
-                        <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public URL</span>
+                        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public URL</span>
                         <input value={form.publicUrl} onChange={(event) => updateField("publicUrl", event.target.value)} style={inputStyle} placeholder="https://..." />
                       </label>
                     </div>
 
                     <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Public Description</span>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Public Description</span>
                       <textarea value={form.publicDescription} onChange={(event) => updateField("publicDescription", event.target.value)} style={textAreaStyle} />
                     </label>
 
                     <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Internal Notes</span>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Internal Notes</span>
                       <textarea value={form.internalNotes} onChange={(event) => updateField("internalNotes", event.target.value)} style={textAreaStyle} />
                     </label>
 
@@ -1107,7 +1107,7 @@ export default function SchedulingCalendarPage({
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Visible Assignments</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{filteredAssignments.length}</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{filteredAssignments.length}</div>
           </div>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Visible Conflicts</div>
@@ -1115,7 +1115,7 @@ export default function SchedulingCalendarPage({
           </div>
           <div style={panelStyle}>
             <div style={subtleTextStyle}>Occurrences In Range</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#0f172a" }}>{occurrences.length}</div>
+            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{occurrences.length}</div>
           </div>
         </div>
       </AdminCard>

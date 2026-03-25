@@ -337,8 +337,8 @@ function MainNavLink({
         textDecoration: "none",
         borderRadius: "12px",
         padding: "12px 14px",
-        background: active ? "#0f172a" : "#e2e8f0",
-        color: active ? "#ffffff" : "#0f172a",
+        background: active ? "var(--admin-nav-active-bg)" : "var(--admin-nav-bg)",
+        color: active ? "var(--admin-nav-active-text)" : "var(--admin-nav-text)",
         fontWeight: 700,
         fontSize: "0.95rem",
       }}
@@ -369,8 +369,8 @@ function SubNavLink({ href, active, children }: { href: string; active: boolean;
         textDecoration: "none",
         borderRadius: "12px",
         padding: "10px 12px",
-        background: active ? "#dc2626" : "#f1f5f9",
-        color: active ? "#ffffff" : "#334155",
+        background: active ? "var(--admin-nav-sub-active-bg)" : "var(--admin-nav-subtle-bg)",
+        color: active ? "var(--admin-nav-sub-active-text)" : "var(--admin-nav-sub-text)",
         fontWeight: 700,
         fontSize: "0.82rem",
       }}
@@ -468,8 +468,12 @@ function collapsedRailButtonStyle(active: boolean, pinned: boolean): CSSProperti
     height: "48px",
     borderRadius: "12px",
     border: "none",
-    background: active ? "#0f172a" : pinned ? "#cbd5e1" : "#e2e8f0",
-    color: active ? "#ffffff" : "#0f172a",
+    background: active
+      ? "var(--admin-nav-active-bg)"
+      : pinned
+        ? "var(--admin-nav-pinned-bg)"
+        : "var(--admin-nav-bg)",
+    color: active ? "var(--admin-nav-active-text)" : "var(--admin-nav-text)",
     cursor: "pointer",
   };
 }
@@ -487,17 +491,17 @@ const flyoutPanelInnerStyle: CSSProperties = {
   gap: "10px",
   padding: "12px",
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "#ffffff",
-  boxShadow: "0 18px 48px rgba(15,23,42,0.08)",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-flyout-bg)",
+  boxShadow: "var(--admin-shadow-card)",
 };
 
 const disabledSubNavStyle: CSSProperties = {
   display: "block",
   borderRadius: "12px",
   padding: "10px 12px",
-  background: "#e2e8f0",
-  color: "#64748b",
+  background: "var(--admin-nav-disabled-bg)",
+  color: "var(--admin-nav-disabled-text)",
   fontWeight: 700,
   fontSize: "0.82rem",
   opacity: 0.8,

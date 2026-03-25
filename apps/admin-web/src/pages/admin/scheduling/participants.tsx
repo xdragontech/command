@@ -390,7 +390,7 @@ export default function SchedulingParticipantsPage({
               <div style={{ display: "grid", gap: "18px" }}>
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Brand</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Brand</span>
                     <select
                       value={form.brandId}
                       onChange={(event) => updateField("brandId", event.target.value)}
@@ -406,7 +406,7 @@ export default function SchedulingParticipantsPage({
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Participant Type</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Participant Type</span>
                     <select
                       value={form.type}
                       onChange={(event) => updateField("type", event.target.value as ScheduleParticipantType)}
@@ -423,19 +423,19 @@ export default function SchedulingParticipantsPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Display Name</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Display Name</span>
                     <input value={form.displayName} onChange={(event) => updateField("displayName", event.target.value)} style={inputStyle} />
                   </label>
 
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Slug</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Slug</span>
                     <input value={form.slug} onChange={(event) => updateField("slug", event.target.value)} placeholder="Auto if blank" style={inputStyle} />
                   </label>
                 </div>
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Status</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Status</span>
                     <select
                       value={form.status}
                       onChange={(event) => updateField("status", event.target.value as ScheduleParticipantStatus)}
@@ -451,7 +451,7 @@ export default function SchedulingParticipantsPage({
                 </div>
 
                 <label style={fieldStyle}>
-                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "0.86rem" }}>Summary</span>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Summary</span>
                   <textarea value={form.summary} onChange={(event) => updateField("summary", event.target.value)} style={textAreaStyle} />
                 </label>
 
