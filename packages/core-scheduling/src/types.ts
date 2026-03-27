@@ -43,6 +43,8 @@ export type ScheduleResourceRecord = {
   brandId: string;
   brandKey: string;
   brandName: string;
+  seriesId: string | null;
+  seriesName: string | null;
   name: string;
   slug: string;
   type: ScheduleResourceType;
@@ -193,6 +195,7 @@ export type UpdateScheduleEventSeriesInput = {
 
 export type CreateScheduleResourceInput = {
   brandId?: string | null;
+  scheduleEventSeriesId?: string | null;
   name: string;
   slug?: string;
   type: ScheduleResourceType;
@@ -203,6 +206,7 @@ export type CreateScheduleResourceInput = {
 };
 
 export type UpdateScheduleResourceInput = {
+  scheduleEventSeriesId?: string | null;
   name?: string;
   slug?: string;
   type?: ScheduleResourceType;

@@ -1,11 +1,10 @@
 import { ScheduleResourceType } from "@prisma/client";
-import type { ScheduleResourceRecord } from "@command/core-scheduling";
+import type { ScheduleEventSeriesRecord, ScheduleResourceRecord } from "@command/core-scheduling";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import {
-  EntityListButton,
   TonePill,
   actionRowStyle,
   detailHeaderStyle,
@@ -23,7 +22,6 @@ import {
   subtleTextStyle,
   successStyle,
   textAreaStyle,
-  twoColumnStyle,
   warningStyle,
 } from "../../../components/adminScheduling";
 import { requireBackofficePage } from "../../../server/backofficeAuth";
@@ -37,6 +35,7 @@ type BrandOption = {
 
 type ResourceForm = {
   brandId: string;
+  scheduleEventSeriesId: string;
   name: string;
   slug: string;
   type: ScheduleResourceType;
@@ -53,11 +52,36 @@ type PageProps = {
 
 const NEW_RESOURCE_ID = "__new_resource__";
 const RESOURCE_TYPES = Object.values(ScheduleResourceType);
+const FILTER_GRID_STYLE = {
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+} as const;
 
-function blankResourceForm(brands: BrandOption[], brandFilter: string): ResourceForm {
+function resolveDefaultSeriesId(params: {
+  brands: BrandOption[];
+  series: ScheduleEventSeriesRecord[];
+  brandFilter: string;
+  eventFilter: string;
+  brandId?: string | null;
+}) {
+  const preferredBrandId =
+    params.brandId ||
+    (params.brandFilter !== "ALL" ? params.brandFilter : params.brands[0]?.id || "");
+
+  if (params.eventFilter !== "ALL") {
+    const selectedSeries = params.series.find((item) => item.id === params.eventFilter && item.brandId === preferredBrandId);
+    if (selectedSeries) return selectedSeries.id;
+  }
+
+  return params.series.find((item) => item.brandId === preferredBrandId)?.id || "";
+}
+
+function blankResourceForm(brands: BrandOption[], series: ScheduleEventSeriesRecord[], brandFilter: string, eventFilter: string): ResourceForm {
   const defaultBrandId = brandFilter !== "ALL" ? brandFilter : brands[0]?.id || "";
   return {
     brandId: defaultBrandId,
+    scheduleEventSeriesId: resolveDefaultSeriesId({ brands, series, brandFilter, eventFilter, brandId: defaultBrandId }),
     name: "",
     slug: "",
     type: ScheduleResourceType.STAGE,
@@ -70,6 +94,7 @@ function blankResourceForm(brands: BrandOption[], brandFilter: string): Resource
 function resourceFormFromRecord(resource: ScheduleResourceRecord): ResourceForm {
   return {
     brandId: resource.brandId,
+    scheduleEventSeriesId: resource.seriesId || "",
     name: resource.name,
     slug: resource.slug,
     type: resource.type,
@@ -82,6 +107,7 @@ function resourceFormFromRecord(resource: ScheduleResourceRecord): ResourceForm 
 function normalizeResourceForm(form: ResourceForm) {
   return JSON.stringify({
     brandId: form.brandId,
+    scheduleEventSeriesId: form.scheduleEventSeriesId,
     name: form.name.trim(),
     slug: form.slug.trim(),
     type: form.type,
@@ -97,7 +123,10 @@ export default function SchedulingResourcesPage({
   principalBrands,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
+  const [series, setSeries] = useState<ScheduleEventSeriesRecord[]>([]);
   const [brandFilter, setBrandFilter] = useState("ALL");
+  const [eventFilter, setEventFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const [resources, setResources] = useState<ScheduleResourceRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<ResourceForm | null>(null);
@@ -117,41 +146,54 @@ export default function SchedulingResourcesPage({
   async function loadData(options?: {
     nextSelectedId?: string | null;
     nextBrandFilter?: string;
+    nextEventFilter?: string;
+    nextTypeFilter?: string;
   }) {
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
+    const resolvedEventFilter = options?.nextEventFilter ?? eventFilter;
+    const resolvedTypeFilter = options?.nextTypeFilter ?? typeFilter;
     setLoading(true);
     setError("");
 
     try {
-      const params = new URLSearchParams();
-      if (resolvedBrandFilter !== "ALL") params.set("brandId", resolvedBrandFilter);
+      const resourceParams = new URLSearchParams();
+      if (resolvedBrandFilter !== "ALL") resourceParams.set("brandId", resolvedBrandFilter);
+      if (resolvedEventFilter !== "ALL") resourceParams.set("seriesId", resolvedEventFilter);
+      if (resolvedTypeFilter !== "ALL") resourceParams.set("type", resolvedTypeFilter);
 
-      const [brandsRes, resourcesRes] = await Promise.all([
+      const [brandsRes, seriesRes, resourcesRes] = await Promise.all([
         fetch("/api/admin/brands"),
-        fetch(`/api/admin/scheduling/resources?${params.toString()}`),
+        fetch("/api/admin/scheduling/series"),
+        fetch(`/api/admin/scheduling/resources?${resourceParams.toString()}`),
       ]);
 
-      const [brandsPayload, resourcesPayload] = await Promise.all([
+      const [brandsPayload, seriesPayload, resourcesPayload] = await Promise.all([
         brandsRes.json().catch(() => null),
+        seriesRes.json().catch(() => null),
         resourcesRes.json().catch(() => null),
       ]);
 
       if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
+      if (!seriesRes.ok || !seriesPayload?.ok) throw new Error(seriesPayload?.error || "Failed to load events");
       if (!resourcesRes.ok || !resourcesPayload?.ok) {
         throw new Error(resourcesPayload?.error || "Failed to load resources");
       }
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
+      const nextSeries = Array.isArray(seriesPayload.series)
+        ? (seriesPayload.series as ScheduleEventSeriesRecord[])
+        : [];
       const nextResources = Array.isArray(resourcesPayload.resources)
         ? (resourcesPayload.resources as ScheduleResourceRecord[])
         : [];
       setBrands(nextBrands);
+      setSeries(nextSeries);
       setResources(nextResources);
 
       const desiredId = options?.nextSelectedId ?? selectedId;
       if (desiredId === NEW_RESOURCE_ID) {
         setSelectedId(NEW_RESOURCE_ID);
-        setForm(blankResourceForm(nextBrands, resolvedBrandFilter));
+        setForm(blankResourceForm(nextBrands, nextSeries, resolvedBrandFilter, resolvedEventFilter));
         return;
       }
 
@@ -163,7 +205,7 @@ export default function SchedulingResourcesPage({
         setForm(resourceFormFromRecord(nextSelected));
       } else {
         setSelectedId(NEW_RESOURCE_ID);
-        setForm(blankResourceForm(nextBrands, resolvedBrandFilter));
+        setForm(blankResourceForm(nextBrands, nextSeries, resolvedBrandFilter, resolvedEventFilter));
       }
     } catch (nextError: any) {
       setError(nextError?.message || "Failed to load resources");
@@ -185,6 +227,7 @@ export default function SchedulingResourcesPage({
         resource.name,
         resource.slug,
         resource.brandName,
+        resource.seriesName || "",
         resource.type,
         resource.description || "",
         resource.isActive ? "active" : "inactive",
@@ -197,14 +240,26 @@ export default function SchedulingResourcesPage({
 
   const isDirty = useMemo(() => {
     if (!form) return false;
-    if (isNewResource) return normalizeResourceForm(form) !== normalizeResourceForm(blankResourceForm(brands, brandFilter));
+    if (isNewResource) {
+      return normalizeResourceForm(form) !== normalizeResourceForm(blankResourceForm(brands, series, brandFilter, eventFilter));
+    }
     if (!selectedResource) return false;
     return normalizeResourceForm(form) !== normalizeResourceForm(resourceFormFromRecord(selectedResource));
-  }, [brands, brandFilter, form, isNewResource, selectedResource]);
+  }, [brands, brandFilter, eventFilter, form, isNewResource, selectedResource, series]);
+
+  const formSeriesOptions = useMemo(() => {
+    if (!form?.brandId) return [];
+    return series.filter((item) => item.brandId === form.brandId);
+  }, [form?.brandId, series]);
+
+  const visibleSeriesFilters = useMemo(() => {
+    if (brandFilter === "ALL") return series;
+    return series.filter((item) => item.brandId === brandFilter);
+  }, [brandFilter, series]);
 
   function startNewResource() {
     setSelectedId(NEW_RESOURCE_ID);
-    setForm(blankResourceForm(brands, brandFilter));
+    setForm(blankResourceForm(brands, series, brandFilter, eventFilter));
     setError("");
     setNotice("");
   }
@@ -228,8 +283,13 @@ export default function SchedulingResourcesPage({
     setNotice("");
 
     try {
+      if (!form.scheduleEventSeriesId) {
+        throw new Error("Event is required");
+      }
+
       const payload = {
         brandId: form.brandId,
+        scheduleEventSeriesId: form.scheduleEventSeriesId || null,
         name: form.name,
         slug: form.slug,
         type: form.type,
@@ -296,8 +356,7 @@ export default function SchedulingResourcesPage({
       active="scheduling"
     >
       <AdminCard
-        title="Schedule Resources"
-        description="Manage stages, vendor booths, and other named schedule locations. Assignment compatibility and overlap checks are enforced by the scheduling domain."
+        title="Resources"
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData({ nextSelectedId: selectedId })} disabled={loading} style={secondaryButtonStyle}>
@@ -309,39 +368,93 @@ export default function SchedulingResourcesPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          Resource type determines what can be assigned to it. Entertainment must use stage-style resources, while vendors must use the matching booth/spot type unless you intentionally use the generic <code>OTHER</code> type.
+        <div style={{ ...infoPanelStyle, display: "grid", gap: "14px" }}>
+          <div style={FILTER_GRID_STYLE}>
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources..." style={inputStyle} />
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  const nextBrandFilter = event.target.value;
+                  setBrandFilter(nextBrandFilter);
+                  setEventFilter("ALL");
+                  void loadData({
+                    nextBrandFilter,
+                    nextEventFilter: "ALL",
+                    nextTypeFilter: typeFilter,
+                    nextSelectedId: NEW_RESOURCE_ID,
+                  });
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
+              <select
+                value={eventFilter}
+                onChange={(event) => {
+                  const nextEventFilter = event.target.value;
+                  setEventFilter(nextEventFilter);
+                  void loadData({
+                    nextBrandFilter: brandFilter,
+                    nextEventFilter,
+                    nextTypeFilter: typeFilter,
+                    nextSelectedId: NEW_RESOURCE_ID,
+                  });
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Events</option>
+                {visibleSeriesFilters.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Type</span>
+              <select
+                value={typeFilter}
+                onChange={(event) => {
+                  const nextTypeFilter = event.target.value;
+                  setTypeFilter(nextTypeFilter);
+                  void loadData({
+                    nextBrandFilter: brandFilter,
+                    nextEventFilter: eventFilter,
+                    nextTypeFilter,
+                    nextSelectedId: NEW_RESOURCE_ID,
+                  });
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Types</option>
+                {RESOURCE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
         {!error && notice ? <div style={{ ...successStyle, marginTop: "16px" }}>{notice}</div> : null}
-
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                const nextBrandFilter = event.target.value;
-                setBrandFilter(nextBrandFilter);
-                void loadData({ nextBrandFilter, nextSelectedId: NEW_RESOURCE_ID });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources..." style={inputStyle} />
-          </label>
-        </div>
 
         <div style={{ ...splitLayoutStyle, marginTop: "18px" }}>
           <section style={panelStyle}>
@@ -354,19 +467,27 @@ export default function SchedulingResourcesPage({
                 <div style={mutedPanelStyle}>No resources matched the current filter.</div>
               ) : (
                 filteredResources.map((resource) => (
-                  <EntityListButton
+                  <button
                     key={resource.id}
-                    selected={resource.id === selectedId}
+                    type="button"
                     onClick={() => selectResource(resource)}
-                    title={resource.name}
-                    subtitle={`${resource.brandName} · ${resource.slug}`}
-                    meta={
-                      <>
-                        <TonePill label={resource.type} tone="subtle" />
-                        <TonePill label={resource.isActive ? "Active" : "Inactive"} tone={resource.isActive ? "success" : "slate"} />
-                      </>
-                    }
-                  />
+                    style={{
+                      ...resourceRowStyle,
+                      ...(resource.id === selectedId ? selectedResourceRowStyle : {}),
+                    }}
+                  >
+                    <span style={resourceCellStyle}>{resource.name}</span>
+                    <span style={resourceCellStyle}>{resource.type}</span>
+                    <span style={resourceCellStyle}>{resource.seriesName || "No Event"}</span>
+                    <span
+                      style={{
+                        ...resourceCellStyle,
+                        color: resource.isActive ? "var(--admin-success-text)" : "var(--admin-text-muted)",
+                      }}
+                    >
+                      {resource.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </button>
                 ))
               )}
             </div>
@@ -385,13 +506,39 @@ export default function SchedulingResourcesPage({
               <div style={mutedPanelStyle}>Select a resource to edit it.</div>
             ) : (
               <div style={{ display: "grid", gap: "18px" }}>
-                <div style={twoColumnStyle}>
+                <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Brand</span>
-                    <select value={form.brandId} onChange={(event) => updateField("brandId", event.target.value)} style={inputStyle} disabled={!isNewResource}>
+                    <select
+                      value={form.brandId}
+                      onChange={(event) => {
+                        const nextBrandId = event.target.value;
+                        updateField("brandId", nextBrandId);
+                        const nextSeriesId = series.find((item) => item.brandId === nextBrandId)?.id || "";
+                        updateField("scheduleEventSeriesId", nextSeriesId);
+                      }}
+                      style={inputStyle}
+                      disabled={!isNewResource}
+                    >
                       {brands.map((brand) => (
                         <option key={brand.id} value={brand.id}>
                           {brand.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label style={fieldStyle}>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Event</span>
+                    <select
+                      value={form.scheduleEventSeriesId}
+                      onChange={(event) => updateField("scheduleEventSeriesId", event.target.value)}
+                      style={inputStyle}
+                    >
+                      <option value="">Select event</option>
+                      {formSeriesOptions.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
                         </option>
                       ))}
                     </select>
@@ -413,7 +560,7 @@ export default function SchedulingResourcesPage({
                   </label>
                 </div>
 
-                <div style={twoColumnStyle}>
+                <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Name</span>
                     <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={inputStyle} />
@@ -425,7 +572,7 @@ export default function SchedulingResourcesPage({
                   </label>
                 </div>
 
-                <div style={twoColumnStyle}>
+                <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Sort Order</span>
                     <input value={form.sortOrder} onChange={(event) => updateField("sortOrder", event.target.value)} style={inputStyle} />
@@ -459,7 +606,7 @@ export default function SchedulingResourcesPage({
                       if (selectedResource) {
                         setForm(resourceFormFromRecord(selectedResource));
                       } else {
-                        setForm(blankResourceForm(brands, brandFilter));
+                        setForm(blankResourceForm(brands, series, brandFilter, eventFilter));
                       }
                       setError("");
                       setNotice("");
@@ -498,3 +645,30 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     },
   };
 };
+
+const resourceRowStyle = {
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 0.8fr)",
+  gap: "12px",
+  alignItems: "center",
+  borderRadius: "12px",
+  border: "1px solid rgba(239,68,68,0.18)",
+  background: "#fef2f2",
+  padding: "12px 14px",
+  textAlign: "left",
+  cursor: "pointer",
+} as const;
+
+const selectedResourceRowStyle = {
+  border: "1px solid rgba(239,68,68,0.34)",
+  background: "#fee2e2",
+} as const;
+
+const resourceCellStyle = {
+  fontSize: "0.92rem",
+  color: "var(--admin-text-secondary)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as const;

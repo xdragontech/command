@@ -299,6 +299,7 @@ model ScheduleEventSeries {
 
   brand       Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
   occurrences ScheduleEventOccurrence[]
+  resources   ScheduleResource[]
 
   @@index([brandId])
   @@index([status])
@@ -331,22 +332,25 @@ model ScheduleEventOccurrence {
 }
 
 model ScheduleResource {
-  id          String               @id @default(cuid())
-  brandId     String
-  name        String
-  slug        String
-  type        ScheduleResourceType
-  description String?
-  sortOrder   Int                  @default(0)
-  isActive    Boolean              @default(true)
-  metadata    Json?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id                    String               @id @default(cuid())
+  brandId               String
+  scheduleEventSeriesId String?
+  name                  String
+  slug                  String
+  type                  ScheduleResourceType
+  description           String?
+  sortOrder             Int                  @default(0)
+  isActive              Boolean              @default(true)
+  metadata              Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series      ScheduleEventSeries? @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: SetNull)
   assignments ScheduleAssignment[]
 
   @@index([brandId])
+  @@index([scheduleEventSeriesId])
   @@index([type, isActive])
   @@unique([brandId, slug])
   @@unique([brandId, name])
