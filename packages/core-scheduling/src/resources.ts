@@ -26,6 +26,12 @@ type ResourceWithBrand = Prisma.ScheduleResourceGetPayload<{
         name: true;
       };
     };
+    series: {
+      select: {
+        id: true;
+        name: true;
+      };
+    };
   };
 }>;
 
@@ -35,6 +41,8 @@ function toResourceRecord(resource: ResourceWithBrand): ScheduleResourceRecord {
     brandId: resource.brandId,
     brandKey: resource.brand.brandKey,
     brandName: resource.brand.name,
+    seriesId: resource.series?.id || null,
+    seriesName: resource.series?.name || null,
     name: resource.name,
     slug: resource.slug,
     type: resource.type,
@@ -62,16 +70,37 @@ async function buildUniqueResourceSlug(brandId: string, preferred: string, exclu
   throw new Error("Unable to allocate a unique resource slug");
 }
 
+async function resolveResourceSeries(brandId: string, scheduleEventSeriesId: string | null | undefined) {
+  const seriesId = normalizeNullableId(scheduleEventSeriesId);
+  if (!seriesId) return null;
+
+  const series = await prisma.scheduleEventSeries.findUnique({
+    where: { id: seriesId },
+    select: { id: true, brandId: true, name: true },
+  });
+  if (!series) throw new Error("Event not found");
+  if (series.brandId !== brandId) throw new Error("Resource event must match the resource brand");
+  return series;
+}
+
 export async function listScheduleResources(params: {
   scope: SchedulingScope;
   q?: string;
   brandId?: string | null;
+  seriesId?: string | null;
+  type?: string | null;
 }) {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeNullableId(params.brandId));
   if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ScheduleResourceRecord[];
 
   const q = normalizeText(params.q);
-  const where: Prisma.ScheduleResourceWhereInput = brandIds === null ? {} : { brandId: { in: brandIds } };
+  const type = normalizeText(params.type);
+  const seriesId = normalizeNullableId(params.seriesId);
+  const where: Prisma.ScheduleResourceWhereInput = {
+    ...(brandIds === null ? {} : { brandId: { in: brandIds } }),
+    ...(seriesId ? { scheduleEventSeriesId: seriesId } : {}),
+    ...(type ? { type: parseResourceType(type) } : {}),
+  };
   const searchWhere: Prisma.ScheduleResourceWhereInput =
     q.length > 0
       ? {
@@ -82,6 +111,7 @@ export async function listScheduleResources(params: {
                 { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { slug: { contains: q, mode: Prisma.QueryMode.insensitive } },
                 { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                { series: { is: { name: { contains: q, mode: Prisma.QueryMode.insensitive } } } },
               ],
             },
           ],
@@ -98,6 +128,12 @@ export async function listScheduleResources(params: {
           name: true,
         },
       },
+      series: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
@@ -111,6 +147,7 @@ export async function createScheduleResource(params: {
 }) {
   const brandId = resolveWriteBrandId(params.scope, params.input.brandId);
   await ensureBrand(brandId);
+  const series = await resolveResourceSeries(brandId, params.input.scheduleEventSeriesId);
 
   const name = normalizeText(params.input.name);
   if (!name) throw new Error("Resource name is required");
@@ -118,6 +155,7 @@ export async function createScheduleResource(params: {
   const resource = await prisma.scheduleResource.create({
     data: {
       brandId,
+      scheduleEventSeriesId: series?.id || null,
       name,
       slug: await buildUniqueResourceSlug(brandId, normalizeText(params.input.slug) || name),
       type: parseResourceType(params.input.type),
@@ -131,6 +169,12 @@ export async function createScheduleResource(params: {
         select: {
           id: true,
           brandKey: true,
+          name: true,
+        },
+      },
+      series: {
+        select: {
+          id: true,
           name: true,
         },
       },
@@ -155,12 +199,22 @@ export async function updateScheduleResource(params: {
           name: true,
         },
       },
+      series: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
   if (!existing) throw new Error("Resource not found");
 
   const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
   if (brandId !== existing.brandId) throw new Error("Resource brand cannot be reassigned");
+  const series =
+    params.input.scheduleEventSeriesId !== undefined
+      ? await resolveResourceSeries(brandId, params.input.scheduleEventSeriesId)
+      : existing.series;
 
   const name = normalizeText(params.input.name ?? existing.name);
   if (!name) throw new Error("Resource name is required");
@@ -168,6 +222,7 @@ export async function updateScheduleResource(params: {
   const updated = await prisma.scheduleResource.update({
     where: { id: existing.id },
     data: {
+      scheduleEventSeriesId: params.input.scheduleEventSeriesId !== undefined ? series?.id || null : existing.scheduleEventSeriesId,
       name,
       slug:
         params.input.slug !== undefined || name !== existing.name
@@ -185,6 +240,12 @@ export async function updateScheduleResource(params: {
         select: {
           id: true,
           brandKey: true,
+          name: true,
+        },
+      },
+      series: {
+        select: {
+          id: true,
           name: true,
         },
       },

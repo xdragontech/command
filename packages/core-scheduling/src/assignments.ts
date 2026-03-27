@@ -594,10 +594,13 @@ async function resolveAssignmentMutation(params: {
 
   const resource = await prisma.scheduleResource.findUnique({
     where: { id: params.input.resourceId },
-    select: { id: true, brandId: true, name: true, type: true },
+    select: { id: true, brandId: true, name: true, type: true, scheduleEventSeriesId: true },
   });
   if (!resource) throw new Error("Resource not found");
   if (resource.brandId !== brandId) throw new Error("Resource brand must match the assignment brand");
+  if (resource.scheduleEventSeriesId && resource.scheduleEventSeriesId !== occurrence.scheduleEventSeriesId) {
+    throw new Error("Resource event must match the selected occurrence event");
+  }
 
   const participant = await prisma.scheduleParticipant.findUnique({
     where: { id: params.input.participantId },

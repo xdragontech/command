@@ -15,10 +15,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === "GET") {
       const q = Array.isArray(req.query.q) ? req.query.q[0] : req.query.q;
       const brandId = Array.isArray(req.query.brandId) ? req.query.brandId[0] : req.query.brandId;
+      const seriesId = Array.isArray(req.query.seriesId) ? req.query.seriesId[0] : req.query.seriesId;
+      const type = Array.isArray(req.query.type) ? req.query.type[0] : req.query.type;
       const resources = await listScheduleResources({
         scope: toSchedulingScope(auth.principal),
         q: String(q || ""),
         brandId: brandId || null,
+        seriesId: seriesId || null,
+        type: type || null,
       });
       return json(res, 200, { ok: true, resources });
     }

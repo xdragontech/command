@@ -247,9 +247,10 @@ export default function SchedulingAssignmentsPage({
   const compatibleResources = useMemo(() => {
     return resources.filter((resource) => {
       if (currentBrandId && resource.brandId !== currentBrandId) return false;
+      if (selectedOccurrence?.seriesId && resource.seriesId && resource.seriesId !== selectedOccurrence.seriesId) return false;
       return resourceSupportsParticipantType(resource.type, selectedParticipant?.type || null);
     });
-  }, [currentBrandId, resources, selectedParticipant?.type]);
+  }, [currentBrandId, resources, selectedOccurrence?.seriesId, selectedParticipant?.type]);
 
   const visibleParticipants = useMemo(() => {
     return participants.filter((participant) => (currentBrandId ? participant.brandId === currentBrandId : true));
