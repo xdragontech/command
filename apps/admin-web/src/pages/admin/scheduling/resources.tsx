@@ -509,19 +509,18 @@ export default function SchedulingResourcesPage({
                   >
                     <span style={resourceNameStyle}>{resource.name}</span>
                     <span style={resourceTypeStyle}>{resource.type}</span>
-                    <div style={resourceMetaStackStyle}>
-                      <span style={{ ...resourcePillStyle, ...resourceEventPillStyle }}>
-                        {resource.seriesName || "No Event"}
-                      </span>
-                      <span
-                        style={{
-                          ...resourcePillStyle,
-                          ...(resource.isActive ? resourceActivePillStyle : resourceInactivePillStyle),
-                        }}
-                      >
-                        {resource.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </div>
+                    <span style={{ ...resourcePillStyle, ...resourceEventPillStyle, ...resourceEventStyle }}>
+                      {resource.seriesName || "No Event"}
+                    </span>
+                    <span
+                      style={{
+                        ...resourcePillStyle,
+                        ...(resource.isActive ? resourceActivePillStyle : resourceInactivePillStyle),
+                        ...resourceStatusStyle,
+                      }}
+                    >
+                      {resource.isActive ? "Active" : "Inactive"}
+                    </span>
                   </button>
                 ))
               )}
@@ -685,13 +684,15 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 const resourceRowStyle = {
   width: "100%",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.5fr) minmax(72px, 0.9fr) minmax(120px, 1.05fr)",
-  gap: "12px",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateAreas: `"name type" "event status"`,
+  columnGap: "12px",
+  rowGap: "4px",
   alignItems: "center",
   borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.18)",
   background: "#ffffff",
-  padding: "9px 14px",
+  padding: "7px 14px",
   textAlign: "left",
   cursor: "pointer",
 } as const;
@@ -711,24 +712,32 @@ const resourceCellStyle = {
 
 const resourceNameStyle = {
   ...resourceCellStyle,
+  gridArea: "name",
   fontWeight: 700,
   color: "var(--admin-text-primary)",
+  alignSelf: "end",
 } as const;
 
 const resourceTypeStyle = {
   ...resourceCellStyle,
-  textAlign: "center",
-  justifySelf: "center",
+  gridArea: "type",
+  textAlign: "right",
+  justifySelf: "end",
+  alignSelf: "end",
+  color: "var(--admin-text-secondary)",
 } as const;
 
-const resourceMetaStackStyle = {
-  display: "grid",
-  gap: "4px",
-  justifyItems: "end",
+const resourceEventStyle = {
+  gridArea: "event",
+  justifySelf: "start",
+  alignSelf: "start",
+} as const;
+
+const resourceStatusStyle = {
+  gridArea: "status",
   justifySelf: "end",
+  alignSelf: "start",
   textAlign: "right",
-  minWidth: 0,
-  width: "100%",
 } as const;
 
 const resourcePillStyle = {
