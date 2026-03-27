@@ -718,18 +718,22 @@ const resourceNameStyle = {
 const resourceMetaStackStyle = {
   display: "grid",
   gap: "4px",
-  justifyItems: "start",
+  justifyItems: "end",
+  justifySelf: "end",
+  textAlign: "right",
   minWidth: 0,
+  width: "100%",
 } as const;
 
 const resourcePillStyle = {
   display: "inline-flex",
   alignItems: "center",
   maxWidth: "100%",
-  minHeight: "24px",
+  minHeight: "17px",
   borderRadius: "12px",
-  padding: "3px 8px",
-  fontSize: "0.68rem",
+  padding: "2px 7px",
+  fontSize: "0.6rem",
+  lineHeight: 1,
   fontWeight: 800,
   letterSpacing: "0.04em",
   textTransform: "uppercase",
