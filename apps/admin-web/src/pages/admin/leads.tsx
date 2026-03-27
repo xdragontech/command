@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
+import { formatAdminDateTime } from "../../lib/adminDates";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
 type LeadSource = "chat" | "contact";
@@ -270,7 +271,7 @@ export default function LeadsPage({ principal, role, brands }: InferGetServerSid
                       {item.ip || "—"}
                     </td>
                     <td style={tableCellStyle}>
-                      {new Date(item.ts).toLocaleString()}
+                      {formatAdminDateTime(item.ts)}
                     </td>
                     <td style={{ ...tableCellStyle, textAlign: "right" }}>
                       <button type="button" onClick={() => copyJson(item)} style={secondaryButtonStyle}>

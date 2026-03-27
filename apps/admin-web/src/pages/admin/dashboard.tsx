@@ -4,6 +4,7 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { loadDashboardMetrics, parseMetricsPeriod, type DashboardMetrics, type MetricsPeriod } from "@command/core-leads";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
+import { formatAdminDateRange } from "../../lib/adminDates";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
 type DashboardProps = {
@@ -55,18 +56,44 @@ function buildLinePath(points: MetricPoint[], key: "signups" | "logins", width: 
     .join(" ");
 }
 
-function formatDateRange(metrics: DashboardMetrics) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  return `${formatter.format(new Date(metrics.from))} - ${formatter.format(new Date(metrics.to))}`;
-}
-
 function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardMetrics {
+  const now = new Date();
+  const iso = now.toISOString();
+  return {
+    period,
+    from: iso,
+    to: iso,
+    labels: [],
+    signups: [],
+    logins: [],
+    totals: { signups: 0, logins: 0, leads: 0, chatLeads: 0 },
+    ipGroups: [],
+    signupCountries: [],
+  };
+}
+
+function isDashboardMetrics(value: unknown): value is DashboardMetrics {
+  if (!value || typeof value !== "object") return false;
+  const input = value as DashboardMetrics;
+  return (
+    (input.period === "today" || input.period === "7d" || input.period === "month") &&
+    typeof input.from === "string" &&
+    typeof input.to === "string" &&
+    Array.isArray(input.labels) &&
+    Array.isArray(input.signups) &&
+    Array.isArray(input.logins) &&
+    Array.isArray(input.ipGroups) &&
+    Array.isArray(input.signupCountries) &&
+    !!input.totals &&
+    typeof input.totals.signups === "number" &&
+    typeof input.totals.logins === "number" &&
+    typeof input.totals.leads === "number" &&
+    typeof input.totals.chatLeads === "number"
+  );
 }
 
 function PeriodButton({
@@ -265,10 +292,13 @@ export default function DashboardPage({
   brands,
   initialMetrics,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const [metrics, setMetrics] = useState(initialMetrics);
-  const [selectedPeriod, setSelectedPeriod] = useState<MetricsPeriod>(initialMetrics.period);
+  const safeInitialMetrics = isDashboardMetrics(initialMetrics) ? initialMetrics : fallbackMetrics();
+  const [metrics, setMetrics] = useState<DashboardMetrics>(safeInitialMetrics);
+  const [selectedPeriod, setSelectedPeriod] = useState<MetricsPeriod>(safeInitialMetrics.period);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    isDashboardMetrics(initialMetrics) ? null : "Dashboard metrics were unavailable. Refresh the page to try again."
+  );
 
   async function loadPeriod(nextPeriod: MetricsPeriod) {
     if (nextPeriod === selectedPeriod && !error) return;
@@ -283,6 +313,10 @@ export default function DashboardPage({
       const payload = (await response.json()) as MetricsResponse;
       if (!response.ok || !payload.ok) {
         throw new Error(payload.ok ? "Request failed" : payload.error || "Request failed");
+      }
+
+      if (!isDashboardMetrics(payload)) {
+        throw new Error("Dashboard metrics response was incomplete.");
       }
 
       setMetrics(payload);
@@ -341,7 +375,7 @@ export default function DashboardPage({
             </div>
             <div style={{ display: "grid", justifyItems: "end", gap: "4px" }}>
               <div style={{ color: "var(--admin-text-secondary)", fontSize: "0.88rem", textAlign: "right" }}>
-                Viewing: <strong style={{ color: "var(--admin-text-primary)" }}>{formatDateRange(metrics)}</strong>
+                Viewing: <strong style={{ color: "var(--admin-text-primary)" }}>{formatAdminDateRange(metrics.from, metrics.to)}</strong>
               </div>
               {loading ? (
                 <div style={{ color: "var(--admin-text-secondary)", fontSize: "0.82rem", textAlign: "right" }}>Refreshing metrics…</div>

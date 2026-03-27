@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
+import { formatAdminDateTime } from "../../../lib/adminDates";
 import { requireBackofficePage } from "../../../server/backofficeAuth";
 
 type BrandOption = {
@@ -103,10 +104,7 @@ function categoryFormFromRecord(category: CategoryRecord): CategoryForm {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString();
+  return formatAdminDateTime(value);
 }
 
 function StatusPill({ status }: { status: PromptStatus }) {
