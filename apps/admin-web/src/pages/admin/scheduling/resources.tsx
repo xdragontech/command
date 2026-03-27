@@ -508,7 +508,7 @@ export default function SchedulingResourcesPage({
                     }}
                   >
                     <span style={resourceNameStyle}>{resource.name}</span>
-                    <span style={resourceCellStyle}>{resource.type}</span>
+                    <span style={resourceTypeStyle}>{resource.type}</span>
                     <div style={resourceMetaStackStyle}>
                       <span style={{ ...resourcePillStyle, ...resourceEventPillStyle }}>
                         {resource.seriesName || "No Event"}
@@ -713,6 +713,12 @@ const resourceNameStyle = {
   ...resourceCellStyle,
   fontWeight: 700,
   color: "var(--admin-text-primary)",
+} as const;
+
+const resourceTypeStyle = {
+  ...resourceCellStyle,
+  textAlign: "center",
+  justifySelf: "center",
 } as const;
 
 const resourceMetaStackStyle = {
