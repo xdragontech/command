@@ -87,6 +87,20 @@ type PageProps = {
 };
 
 const NEW_ASSIGNMENT_ID = "__new_assignment__";
+const FILTER_GRID_STYLE = {
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+} as const;
+const FILTER_CARD_STYLE = {
+  ...infoPanelStyle,
+  display: "grid",
+  padding: "10px 16px",
+} as const;
+const FILTER_FIELD_STYLE = {
+  ...fieldStyle,
+  gap: "4px",
+} as const;
 
 function deriveAssignmentKind(participantType: ScheduleParticipantType | null) {
   return participantType === ScheduleParticipantType.ENTERTAINMENT
@@ -761,7 +775,7 @@ export default function SchedulingCalendarPage({
 
   return (
     <AdminLayout
-      title="Command Admin — Scheduling / Calendar"
+      title="Command Admin — Calendar"
       sectionLabel="Scheduling / Calendar"
       loggedInAs={loggedInAs}
       role={principalRole}
@@ -769,7 +783,7 @@ export default function SchedulingCalendarPage({
       active="scheduling"
     >
       <AdminCard
-        title="Scheduling Calendar"
+        title="Calendar"
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData()} disabled={loading || !visibleRange} style={secondaryButtonStyle}>
@@ -781,8 +795,83 @@ export default function SchedulingCalendarPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          Use the calendar to inspect and select schedule slots. Public display title, subtitle, location, and description are still edited in the detail panel, not inline on the calendar.
+        <div style={FILTER_CARD_STYLE}>
+          <div style={FILTER_GRID_STYLE}>
+            <label style={FILTER_FIELD_STYLE}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  setBrandFilter(event.target.value);
+                  setSeriesFilter("ALL");
+                  setResourceFilter("ALL");
+                  setParticipantFilter("ALL");
+                  setSelectedId(null);
+                  setForm(null);
+                  setPendingConflicts([]);
+                  setNotice("");
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={FILTER_FIELD_STYLE}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
+              <select
+                value={seriesFilter}
+                onChange={(event) => {
+                  setSeriesFilter(event.target.value);
+                  setSelectedId(null);
+                  setForm(null);
+                  setPendingConflicts([]);
+                  setNotice("");
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Events</option>
+                {visibleSeries.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={FILTER_FIELD_STYLE}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
+              <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
+                <option value="ALL">All Resources</option>
+                {resources
+                  .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                  .map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            <label style={FILTER_FIELD_STYLE}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
+              <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
+                <option value="ALL">All Participants</option>
+                {participants
+                  .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
+                  .map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.displayName}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
@@ -847,85 +936,6 @@ export default function SchedulingCalendarPage({
           </section>
 
           <div style={{ display: "grid", gap: "16px", alignContent: "start" }}>
-            <section style={panelStyle}>
-              <div style={{ display: "grid", gap: "14px" }}>
-                <label style={fieldStyle}>
-                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-                  <select
-                    value={brandFilter}
-                    onChange={(event) => {
-                      setBrandFilter(event.target.value);
-                      setSeriesFilter("ALL");
-                      setResourceFilter("ALL");
-                      setParticipantFilter("ALL");
-                      setSelectedId(null);
-                      setForm(null);
-                      setPendingConflicts([]);
-                      setNotice("");
-                    }}
-                    style={inputStyle}
-                  >
-                    <option value="ALL">All Brands</option>
-                    {brands.map((brand) => (
-                      <option key={brand.id} value={brand.id}>
-                        {brand.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label style={fieldStyle}>
-                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event Series</span>
-                  <select
-                    value={seriesFilter}
-                    onChange={(event) => {
-                      setSeriesFilter(event.target.value);
-                      setSelectedId(null);
-                      setForm(null);
-                      setPendingConflicts([]);
-                      setNotice("");
-                    }}
-                    style={inputStyle}
-                  >
-                    <option value="ALL">All Series</option>
-                    {visibleSeries.map((entry) => (
-                      <option key={entry.id} value={entry.id}>
-                        {entry.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label style={fieldStyle}>
-                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
-                  <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
-                    <option value="ALL">All Resources</option>
-                    {resources
-                      .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                      .map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-
-                <label style={fieldStyle}>
-                  <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
-                  <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
-                    <option value="ALL">All Participants</option>
-                    {participants
-                      .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
-                      .map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.displayName}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              </div>
-            </section>
-
             <section
               style={{
                 ...panelStyle,
