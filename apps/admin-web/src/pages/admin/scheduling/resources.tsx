@@ -509,14 +509,18 @@ export default function SchedulingResourcesPage({
                   >
                     <span style={resourceNameStyle}>{resource.name}</span>
                     <span style={resourceCellStyle}>{resource.type}</span>
-                    <div style={resourcePillCellStyle}>
-                      <TonePill label={resource.seriesName || "No Event"} tone="slate" />
-                    </div>
-                    <div style={resourcePillCellStyle}>
-                      <TonePill
-                        label={resource.isActive ? "Active" : "Inactive"}
-                        tone={resource.isActive ? "success" : "subtle"}
-                      />
+                    <div style={resourceMetaStackStyle}>
+                      <span style={{ ...resourcePillStyle, ...resourceEventPillStyle }}>
+                        {resource.seriesName || "No Event"}
+                      </span>
+                      <span
+                        style={{
+                          ...resourcePillStyle,
+                          ...(resource.isActive ? resourceActivePillStyle : resourceInactivePillStyle),
+                        }}
+                      >
+                        {resource.isActive ? "Active" : "Inactive"}
+                      </span>
                     </div>
                   </button>
                 ))
@@ -681,13 +685,13 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 const resourceRowStyle = {
   width: "100%",
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 0.8fr)",
+  gridTemplateColumns: "minmax(0, 1.5fr) minmax(72px, 0.9fr) minmax(120px, 1.05fr)",
   gap: "12px",
   alignItems: "center",
   borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.18)",
   background: "#ffffff",
-  padding: "12px 14px",
+  padding: "9px 14px",
   textAlign: "left",
   cursor: "pointer",
 } as const;
@@ -711,7 +715,40 @@ const resourceNameStyle = {
   color: "var(--admin-text-primary)",
 } as const;
 
-const resourcePillCellStyle = {
-  display: "flex",
-  justifyContent: "flex-start",
+const resourceMetaStackStyle = {
+  display: "grid",
+  gap: "4px",
+  justifyItems: "start",
+  minWidth: 0,
+} as const;
+
+const resourcePillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  maxWidth: "100%",
+  minHeight: "24px",
+  borderRadius: "12px",
+  padding: "3px 8px",
+  fontSize: "0.68rem",
+  fontWeight: 800,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+} as const;
+
+const resourceEventPillStyle = {
+  background: "var(--admin-pill-slate-bg)",
+  color: "var(--admin-pill-slate-text)",
+} as const;
+
+const resourceActivePillStyle = {
+  background: "var(--admin-pill-success-bg)",
+  color: "var(--admin-pill-success-text)",
+} as const;
+
+const resourceInactivePillStyle = {
+  background: "var(--admin-pill-subtle-bg)",
+  color: "var(--admin-pill-subtle-text)",
 } as const;
