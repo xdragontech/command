@@ -1,5 +1,7 @@
 import Head from "next/head";
 import type { ReactNode } from "react";
+import { useEffect, useRef } from "react";
+import { observeAutofillMitigations } from "../lib/autofillMitigation";
 
 type BackofficeAuthShellProps = {
   pageTitle: string;
@@ -20,6 +22,13 @@ export function BackofficeAuthShell({
   maxWidth = 520,
   children,
 }: BackofficeAuthShellProps) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!shellRef.current) return;
+    return observeAutofillMitigations(shellRef.current);
+  }, []);
+
   return (
     <>
       <Head>
@@ -31,6 +40,7 @@ export function BackofficeAuthShell({
       </Head>
 
       <div
+        ref={shellRef}
         style={{
           minHeight: "100vh",
           background: "#f8fafc",

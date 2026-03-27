@@ -125,6 +125,7 @@ export default function AdminSignInPage({ allowedHosts, recommendedAdminHost }: 
         <label style={fieldStyle}>
           <span style={labelStyle}>Username or email</span>
           <input
+            name="username"
             style={inputStyle}
             type="text"
             autoComplete="username"
@@ -137,6 +138,7 @@ export default function AdminSignInPage({ allowedHosts, recommendedAdminHost }: 
         <label style={fieldStyle}>
           <span style={labelStyle}>Password</span>
           <input
+            name="password"
             style={inputStyle}
             type="password"
             autoComplete="current-password"

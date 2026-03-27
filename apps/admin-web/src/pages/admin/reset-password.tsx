@@ -86,6 +86,7 @@ export default function AdminResetPasswordPage() {
         <label style={fieldStyle}>
           <span style={labelStyle}>New Password</span>
           <input
+            name="newPassword"
             style={inputStyle}
             type="password"
             autoComplete="new-password"
@@ -98,6 +99,7 @@ export default function AdminResetPasswordPage() {
         <label style={fieldStyle}>
           <span style={labelStyle}>Confirm Password</span>
           <input
+            name="confirmPassword"
             style={inputStyle}
             type="password"
             autoComplete="new-password"

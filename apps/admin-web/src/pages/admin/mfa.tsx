@@ -149,6 +149,7 @@ export default function AdminMfaPage({
         <label style={fieldStyle}>
           <span style={labelStyle}>Authenticator or recovery code</span>
           <input
+            name="oneTimeCode"
             style={inputStyle}
             type="text"
             autoComplete="one-time-code"
