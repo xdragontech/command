@@ -133,6 +133,8 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
     <>
       <Head>
         <title>{title}</title>
+        <link rel="icon" type="image/png" href="/favicon_symbol.png?v=2" />
+        <link rel="shortcut icon" href="/favicon_symbol.png?v=2" />
         <link
           href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap"
           rel="stylesheet"
