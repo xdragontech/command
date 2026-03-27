@@ -44,7 +44,6 @@ import {
   successStyle,
   textAreaStyle,
   timeInputToMinutes,
-  threeColumnStyle,
   twoColumnStyle,
   warningStyle,
 } from "../../../components/adminScheduling";
@@ -936,6 +935,21 @@ export default function SchedulingCalendarPage({
           </section>
 
           <div style={{ display: "grid", gap: "16px", alignContent: "start" }}>
+            <div style={calendarMetricsRowStyle}>
+              <div style={calendarMetricChipStyle}>
+                <div style={calendarMetricLabelStyle}>Visible Assignments</div>
+                <div style={calendarMetricValueStyle}>{filteredAssignments.length}</div>
+              </div>
+              <div style={calendarMetricChipStyle}>
+                <div style={calendarMetricLabelStyle}>Visible Conflicts</div>
+                <div style={{ ...calendarMetricValueStyle, color: "#991b1b" }}>{filteredConflicts.length}</div>
+              </div>
+              <div style={calendarMetricChipStyle}>
+                <div style={calendarMetricLabelStyle}>Occurrences In Range</div>
+                <div style={calendarMetricValueStyle}>{occurrences.length}</div>
+              </div>
+            </div>
+
             <section
               style={{
                 ...panelStyle,
@@ -1113,21 +1127,6 @@ export default function SchedulingCalendarPage({
             </section>
           </div>
         </div>
-
-        <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Visible Assignments</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{filteredAssignments.length}</div>
-          </div>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Visible Conflicts</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "#991b1b" }}>{filteredConflicts.length}</div>
-          </div>
-          <div style={panelStyle}>
-            <div style={subtleTextStyle}>Occurrences In Range</div>
-            <div style={{ marginTop: "8px", fontSize: "1.5rem", fontWeight: 800, color: "var(--admin-text-primary)" }}>{occurrences.length}</div>
-          </div>
-        </div>
       </AdminCard>
     </AdminLayout>
   );
@@ -1145,3 +1144,32 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     },
   };
 };
+
+const calendarMetricsRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: "8px",
+} as const;
+
+const calendarMetricChipStyle = {
+  borderRadius: "12px",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-secondary)",
+  padding: "10px 8px",
+  display: "grid",
+  gap: "4px",
+  textAlign: "center",
+} as const;
+
+const calendarMetricLabelStyle = {
+  fontSize: "0.66rem",
+  lineHeight: 1.2,
+  color: "var(--admin-text-muted)",
+} as const;
+
+const calendarMetricValueStyle = {
+  fontSize: "1.02rem",
+  fontWeight: 800,
+  color: "var(--admin-text-primary)",
+  lineHeight: 1,
+} as const;
