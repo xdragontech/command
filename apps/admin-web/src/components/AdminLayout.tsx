@@ -1,6 +1,7 @@
 import Head from "next/head";
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { observeAutofillMitigations } from "../lib/autofillMitigation";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 
@@ -20,6 +21,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = "command-admin-sidebar-collapsed";
 const THEME_STORAGE_KEY = "command-admin-theme";
 
 export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, brands, children }: AdminLayoutProps) {
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [theme, setTheme] = useState<BackofficeThemePreference>("light");
   const [themeSaving, setThemeSaving] = useState(false);
@@ -86,6 +88,11 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
       // Ignore browser storage failures.
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (!shellRef.current) return;
+    return observeAutofillMitigations(shellRef.current);
+  }, []);
 
   async function toggleTheme() {
     const nextTheme: BackofficeThemePreference = theme === "dark" ? "light" : "dark";
@@ -180,6 +187,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
       `}</style>
 
       <div
+        ref={shellRef}
         className="command-admin-shell"
         data-theme={theme}
         style={{
