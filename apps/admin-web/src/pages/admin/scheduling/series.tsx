@@ -87,6 +87,15 @@ const FILTER_GRID_STYLE = {
   gap: "14px",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
 } as const;
+const FILTER_CARD_STYLE = {
+  ...infoPanelStyle,
+  display: "grid",
+  padding: "10px 16px",
+} as const;
+const FILTER_FIELD_STYLE = {
+  ...fieldStyle,
+  gap: "4px",
+} as const;
 const WEEKDAY_OPTIONS: ScheduleWeekday[] = [
   ScheduleWeekday.SUNDAY,
   ScheduleWeekday.MONDAY,
@@ -395,9 +404,9 @@ export default function SchedulingSeriesPage({
           </div>
         }
       >
-        <div style={{ ...infoPanelStyle, display: "grid", gap: "14px" }}>
+        <div style={FILTER_CARD_STYLE}>
           <div style={FILTER_GRID_STYLE}>
-            <label style={fieldStyle}>
+            <label style={FILTER_FIELD_STYLE}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
               <input
                 value={search}
@@ -407,7 +416,7 @@ export default function SchedulingSeriesPage({
               />
             </label>
 
-            <label style={fieldStyle}>
+            <label style={FILTER_FIELD_STYLE}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
               <select
                 value={brandFilter}
@@ -427,7 +436,7 @@ export default function SchedulingSeriesPage({
               </select>
             </label>
 
-            <label style={fieldStyle}>
+            <label style={FILTER_FIELD_STYLE}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Status</span>
               <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={inputStyle}>
                 <option value="ALL">All Statuses</option>
@@ -437,7 +446,7 @@ export default function SchedulingSeriesPage({
               </select>
             </label>
 
-            <label style={fieldStyle}>
+            <label style={FILTER_FIELD_STYLE}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Recurrence</span>
               <select value={recurrenceFilter} onChange={(event) => setRecurrenceFilter(event.target.value)} style={inputStyle}>
                 <option value="ALL">All Patterns</option>
