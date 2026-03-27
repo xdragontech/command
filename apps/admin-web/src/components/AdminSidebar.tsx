@@ -91,7 +91,7 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
       },
       {
         id: "scheduling",
-        label: "Scheduling",
+        label: "Event Mgmt",
         href: "/admin/scheduling/calendar",
         icon: "scheduling",
         active: active === "scheduling",
@@ -102,7 +102,7 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             active: pathname === "/admin/scheduling/calendar" || pathname === "/admin/scheduling",
           },
           {
-            label: "Event",
+            label: "Events",
             href: "/admin/scheduling/series",
             active: pathname === "/admin/scheduling/series",
           },

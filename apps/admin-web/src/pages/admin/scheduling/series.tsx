@@ -82,6 +82,11 @@ type PageProps = {
 };
 
 const NEW_SERIES_ID = "__new_series__";
+const FILTER_GRID_STYLE = {
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+} as const;
 const WEEKDAY_OPTIONS: ScheduleWeekday[] = [
   ScheduleWeekday.SUNDAY,
   ScheduleWeekday.MONDAY,
@@ -154,6 +159,8 @@ export default function SchedulingSeriesPage({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const [brandFilter, setBrandFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [recurrenceFilter, setRecurrenceFilter] = useState("ALL");
   const [serieses, setSerieses] = useState<SeriesRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<SeriesForm | null>(null);
@@ -191,7 +198,7 @@ export default function SchedulingSeriesPage({
       ]);
 
       if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
-      if (!seriesesRes.ok || !seriesesPayload?.ok) throw new Error(seriesesPayload?.error || "Failed to load event series");
+      if (!seriesesRes.ok || !seriesesPayload?.ok) throw new Error(seriesesPayload?.error || "Failed to load events");
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
       const nextSerieses = Array.isArray(seriesesPayload.serieses) ? (seriesesPayload.serieses as SeriesRecord[]) : [];
@@ -216,7 +223,7 @@ export default function SchedulingSeriesPage({
         setForm(blankSeriesForm(nextBrands, resolvedBrandFilter));
       }
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to load event series");
+      setError(nextError?.message || "Failed to load events");
       setNotice("");
     } finally {
       setLoading(false);
@@ -229,9 +236,12 @@ export default function SchedulingSeriesPage({
 
   const filteredSerieses = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    if (!needle) return serieses;
-    return serieses.filter((series) =>
-      [
+    return serieses.filter((series) => {
+      if (statusFilter !== "ALL" && series.status !== statusFilter) return false;
+      if (recurrenceFilter !== "ALL" && series.recurrencePattern !== recurrenceFilter) return false;
+      if (!needle) return true;
+
+      return [
         series.name,
         series.slug,
         series.brandName,
@@ -242,9 +252,9 @@ export default function SchedulingSeriesPage({
       ]
         .join(" ")
         .toLowerCase()
-        .includes(needle)
-    );
-  }, [search, serieses]);
+        .includes(needle);
+    });
+  }, [recurrenceFilter, search, serieses, statusFilter]);
 
   const isDirty = useMemo(() => {
     if (!form) return false;
@@ -323,14 +333,14 @@ export default function SchedulingSeriesPage({
 
       const responsePayload = await res.json().catch(() => null);
       if (!res.ok || !responsePayload?.ok) {
-        throw new Error(responsePayload?.error || "Failed to save event series");
+        throw new Error(responsePayload?.error || "Failed to save event");
       }
 
       const saved = responsePayload.series as SeriesRecord;
       await loadData({ nextSelectedId: saved.id });
-      setNotice(isNewSeries ? "Event series created." : "Event series updated.");
+      setNotice(isNewSeries ? "Event created." : "Event updated.");
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to save event series");
+      setError(nextError?.message || "Failed to save event");
       setNotice("");
     } finally {
       setSaving(false);
@@ -339,7 +349,7 @@ export default function SchedulingSeriesPage({
 
   async function deleteSeries() {
     if (!selectedSeries) return;
-    const ok = window.confirm(`Delete event series "${selectedSeries.name}"?`);
+    const ok = window.confirm(`Delete event "${selectedSeries.name}"?`);
     if (!ok) return;
 
     setDeleting(true);
@@ -351,12 +361,12 @@ export default function SchedulingSeriesPage({
         method: "DELETE",
       });
       const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to delete event series");
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to delete event");
 
       await loadData({ nextSelectedId: NEW_SERIES_ID });
-      setNotice("Event series deleted.");
+      setNotice("Event deleted.");
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to delete event series");
+      setError(nextError?.message || "Failed to delete event");
       setNotice("");
     } finally {
       setDeleting(false);
@@ -365,77 +375,93 @@ export default function SchedulingSeriesPage({
 
   return (
     <AdminLayout
-      title="Command Admin — Scheduling / Event Series"
-      sectionLabel="Scheduling / Event Series"
+      title="Command Admin — Scheduling / Events"
+      sectionLabel="Scheduling / Events"
       loggedInAs={loggedInAs}
       role={principalRole}
       brands={principalBrands}
       active="scheduling"
     >
       <AdminCard
-        title="Event Series"
-        description="Recurring event programs and their materialized occurrence windows. Recurrence edits are intentionally conservative once assignments exist."
+        title="Events"
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData({ nextSelectedId: selectedId })} disabled={loading} style={secondaryButtonStyle}>
               {loading ? "Refreshing..." : "Refresh"}
             </button>
             <button type="button" onClick={startNewSeries} style={primaryButtonStyle}>
-              Add Series
+              Add Event
             </button>
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          Series own recurrence, season window, and default event-day span. Occurrences are generated from these settings and become assignable in the scheduling workflow.
+        <div style={{ ...infoPanelStyle, display: "grid", gap: "14px" }}>
+          <div style={FILTER_GRID_STYLE}>
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search events..."
+                style={inputStyle}
+              />
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  const nextBrandFilter = event.target.value;
+                  setBrandFilter(nextBrandFilter);
+                  void loadData({ nextBrandFilter, nextSelectedId: NEW_SERIES_ID });
+                }}
+                style={inputStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Status</span>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={inputStyle}>
+                <option value="ALL">All Statuses</option>
+                <option value={ScheduleEventSeriesStatus.DRAFT}>DRAFT</option>
+                <option value={ScheduleEventSeriesStatus.ACTIVE}>ACTIVE</option>
+                <option value={ScheduleEventSeriesStatus.ARCHIVED}>ARCHIVED</option>
+              </select>
+            </label>
+
+            <label style={fieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Recurrence</span>
+              <select value={recurrenceFilter} onChange={(event) => setRecurrenceFilter(event.target.value)} style={inputStyle}>
+                <option value="ALL">All Patterns</option>
+                <option value={ScheduleRecurrencePattern.NONE}>NONE</option>
+                <option value={ScheduleRecurrencePattern.WEEKLY}>WEEKLY</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
         {!error && notice ? <div style={{ ...successStyle, marginTop: "16px" }}>{notice}</div> : null}
 
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                const nextBrandFilter = event.target.value;
-                setBrandFilter(nextBrandFilter);
-                void loadData({ nextBrandFilter, nextSelectedId: NEW_SERIES_ID });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search series..."
-              style={inputStyle}
-            />
-          </label>
-        </div>
-
         <div style={{ ...splitLayoutStyle, marginTop: "18px" }}>
           <section style={panelStyle}>
             <div style={subtleTextStyle}>
-              {loading ? "Loading..." : `${filteredSerieses.length} series shown`}
+              {loading ? "Loading..." : `${filteredSerieses.length} events shown`}
             </div>
 
             <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
               {loading ? (
-                <div style={mutedPanelStyle}>Loading event series...</div>
+                <div style={mutedPanelStyle}>Loading events...</div>
               ) : filteredSerieses.length === 0 ? (
-                <div style={mutedPanelStyle}>No event series matched the current filter.</div>
+                <div style={mutedPanelStyle}>No events matched the current filter.</div>
               ) : (
                 filteredSerieses.map((series) => (
                   <EntityListButton
@@ -459,8 +485,8 @@ export default function SchedulingSeriesPage({
           <section style={panelStyle}>
             <div style={detailHeaderStyle}>
               <div>
-                <h3 style={detailTitleStyle}>{isNewSeries ? "New Event Series" : form?.name || "Series Details"}</h3>
-                <p style={paragraphStyle}>Edit recurrence and day-window settings carefully. Unsafe recurrence changes are blocked once assignments exist.</p>
+                <h3 style={detailTitleStyle}>Event Details</h3>
+                <p style={paragraphStyle}>Edit event details and scheduling defaults carefully. Destructive changes that would invalidate assigned occurrences remain blocked.</p>
               </div>
               {form ? (
                 <TonePill
@@ -471,7 +497,7 @@ export default function SchedulingSeriesPage({
             </div>
 
             {!form ? (
-              <div style={mutedPanelStyle}>Select an event series to edit it.</div>
+              <div style={mutedPanelStyle}>Select an event to edit it.</div>
             ) : (
               <div style={{ display: "grid", gap: "18px" }}>
                 <div style={twoColumnStyle}>
@@ -504,7 +530,7 @@ export default function SchedulingSeriesPage({
 
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
-                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Series Name</span>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Event Name</span>
                     <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={inputStyle} />
                   </label>
                   <label style={fieldStyle}>
@@ -597,7 +623,7 @@ export default function SchedulingSeriesPage({
 
                 <div style={actionRowStyle}>
                   <button type="button" onClick={saveSeries} disabled={!isDirty || saving} style={primaryButtonStyle}>
-                    {saving ? (isNewSeries ? "Creating..." : "Saving...") : isNewSeries ? "Create Series" : "Save Changes"}
+                    {saving ? (isNewSeries ? "Creating..." : "Saving...") : isNewSeries ? "Create Event" : "Save Changes"}
                   </button>
                   <button
                     type="button"
