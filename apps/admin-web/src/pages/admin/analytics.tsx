@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
+import { formatAdminDateTime } from "../../lib/adminDates";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
 type AnalyticsPayload = {
@@ -126,7 +127,7 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
             <ul style={notesListStyle}>
               <li>Counts use deduped lead contacts, not raw event totals.</li>
               <li>Brand boundaries are part of the dedupe key, so the same email on different brands stays distinct.</li>
-              <li>Last updated: {data ? new Date(data.updatedAt).toLocaleString() : "—"}</li>
+              <li>Last updated: {data ? formatAdminDateTime(data.updatedAt) : "—"}</li>
             </ul>
           </div>
         </div>
