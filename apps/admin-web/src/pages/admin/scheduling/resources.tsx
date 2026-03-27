@@ -1,4 +1,4 @@
-import { ScheduleResourceType } from "@prisma/client";
+import { ScheduleEventSeriesStatus, ScheduleResourceType } from "@prisma/client";
 import type { ScheduleEventSeriesRecord, ScheduleResourceRecord } from "@command/core-scheduling";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
@@ -67,6 +67,13 @@ const FILTER_FIELD_STYLE = {
   gap: "4px",
 } as const;
 
+function isSelectableSeries(series: ScheduleEventSeriesRecord) {
+  return (
+    series.status === ScheduleEventSeriesStatus.ACTIVE ||
+    series.status === ScheduleEventSeriesStatus.DRAFT
+  );
+}
+
 function resolveDefaultSeriesId(params: {
   brands: BrandOption[];
   series: ScheduleEventSeriesRecord[];
@@ -83,7 +90,7 @@ function resolveDefaultSeriesId(params: {
     if (selectedSeries) return selectedSeries.id;
   }
 
-  return params.series.find((item) => item.brandId === preferredBrandId)?.id || "";
+  return params.series.find((item) => item.brandId === preferredBrandId && isSelectableSeries(item))?.id || "";
 }
 
 function blankResourceForm(brands: BrandOption[], series: ScheduleEventSeriesRecord[], brandFilter: string, eventFilter: string): ResourceForm {
@@ -189,8 +196,8 @@ export default function SchedulingResourcesPage({
       }
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
-      const nextSeries = Array.isArray(seriesPayload.series)
-        ? (seriesPayload.series as ScheduleEventSeriesRecord[])
+      const nextSeries = Array.isArray(seriesPayload.serieses)
+        ? (seriesPayload.serieses as ScheduleEventSeriesRecord[])
         : [];
       const nextResources = Array.isArray(resourcesPayload.resources)
         ? (resourcesPayload.resources as ScheduleResourceRecord[])
@@ -258,12 +265,27 @@ export default function SchedulingResourcesPage({
 
   const formSeriesOptions = useMemo(() => {
     if (!form?.brandId) return [];
-    return series.filter((item) => item.brandId === form.brandId);
-  }, [form?.brandId, series]);
+    const brandSeries = series.filter((item) => item.brandId === form.brandId);
+    const currentAssigned =
+      form.scheduleEventSeriesId
+        ? brandSeries.find((item) => item.id === form.scheduleEventSeriesId) || null
+        : null;
+    const selectable = brandSeries.filter((item) => isSelectableSeries(item));
+
+    if (
+      currentAssigned &&
+      !isSelectableSeries(currentAssigned) &&
+      !selectable.some((item) => item.id === currentAssigned.id)
+    ) {
+      return [currentAssigned, ...selectable];
+    }
+
+    return selectable;
+  }, [form?.brandId, form?.scheduleEventSeriesId, series]);
 
   const visibleSeriesFilters = useMemo(() => {
-    if (brandFilter === "ALL") return series;
-    return series.filter((item) => item.brandId === brandFilter);
+    const scopedSeries = brandFilter === "ALL" ? series : series.filter((item) => item.brandId === brandFilter);
+    return scopedSeries.filter((item) => isSelectableSeries(item));
   }, [brandFilter, series]);
 
   function startNewResource() {
@@ -485,17 +507,17 @@ export default function SchedulingResourcesPage({
                       ...(resource.id === selectedId ? selectedResourceRowStyle : {}),
                     }}
                   >
-                    <span style={resourceCellStyle}>{resource.name}</span>
+                    <span style={resourceNameStyle}>{resource.name}</span>
                     <span style={resourceCellStyle}>{resource.type}</span>
-                    <span style={resourceCellStyle}>{resource.seriesName || "No Event"}</span>
-                    <span
-                      style={{
-                        ...resourceCellStyle,
-                        color: resource.isActive ? "var(--admin-success-text)" : "var(--admin-text-muted)",
-                      }}
-                    >
-                      {resource.isActive ? "Active" : "Inactive"}
-                    </span>
+                    <div style={resourcePillCellStyle}>
+                      <TonePill label={resource.seriesName || "No Event"} tone="slate" />
+                    </div>
+                    <div style={resourcePillCellStyle}>
+                      <TonePill
+                        label={resource.isActive ? "Active" : "Inactive"}
+                        tone={resource.isActive ? "success" : "subtle"}
+                      />
+                    </div>
                   </button>
                 ))
               )}
@@ -548,6 +570,7 @@ export default function SchedulingResourcesPage({
                       {formSeriesOptions.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.name}
+                          {!isSelectableSeries(item) ? " (Archived)" : ""}
                         </option>
                       ))}
                     </select>
@@ -663,7 +686,7 @@ const resourceRowStyle = {
   alignItems: "center",
   borderRadius: "12px",
   border: "1px solid rgba(239,68,68,0.18)",
-  background: "#fef2f2",
+  background: "#ffffff",
   padding: "12px 14px",
   textAlign: "left",
   cursor: "pointer",
@@ -680,4 +703,15 @@ const resourceCellStyle = {
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
+} as const;
+
+const resourceNameStyle = {
+  ...resourceCellStyle,
+  fontWeight: 700,
+  color: "var(--admin-text-primary)",
+} as const;
+
+const resourcePillCellStyle = {
+  display: "flex",
+  justifyContent: "flex-start",
 } as const;
