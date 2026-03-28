@@ -335,10 +335,9 @@ function MainNavLink({
         alignItems: "center",
         gap: "12px",
         textDecoration: "none",
-        borderRadius: "12px",
-        padding: "12px 14px",
-        background: active ? "var(--admin-nav-active-bg)" : "var(--admin-nav-bg)",
-        color: active ? "var(--admin-nav-active-text)" : "var(--admin-nav-text)",
+        padding: "10px 8px",
+        background: "transparent",
+        color: active ? "var(--admin-nav-accent-text)" : "var(--admin-nav-text)",
         fontWeight: 700,
         fontSize: "0.95rem",
       }}
@@ -367,10 +366,9 @@ function SubNavLink({ href, active, children }: { href: string; active: boolean;
       style={{
         display: "block",
         textDecoration: "none",
-        borderRadius: "12px",
-        padding: "10px 12px",
-        background: active ? "var(--admin-nav-sub-active-bg)" : "var(--admin-nav-subtle-bg)",
-        color: active ? "var(--admin-nav-sub-active-text)" : "var(--admin-nav-sub-text)",
+        padding: "8px 10px",
+        background: "transparent",
+        color: active ? "var(--admin-nav-accent-text)" : "var(--admin-nav-sub-text)",
         fontWeight: 700,
         fontSize: "0.82rem",
       }}
@@ -466,14 +464,9 @@ function collapsedRailButtonStyle(active: boolean, pinned: boolean): CSSProperti
     justifyContent: "center",
     width: "48px",
     height: "48px",
-    borderRadius: "12px",
     border: "none",
-    background: active
-      ? "var(--admin-nav-active-bg)"
-      : pinned
-        ? "var(--admin-nav-pinned-bg)"
-        : "var(--admin-nav-bg)",
-    color: active ? "var(--admin-nav-active-text)" : "var(--admin-nav-text)",
+    background: "transparent",
+    color: active || pinned ? "var(--admin-nav-accent-text)" : "var(--admin-nav-text)",
     cursor: "pointer",
   };
 }
@@ -498,9 +491,8 @@ const flyoutPanelInnerStyle: CSSProperties = {
 
 const disabledSubNavStyle: CSSProperties = {
   display: "block",
-  borderRadius: "12px",
-  padding: "10px 12px",
-  background: "var(--admin-nav-disabled-bg)",
+  padding: "8px 10px",
+  background: "transparent",
   color: "var(--admin-nav-disabled-text)",
   fontWeight: 700,
   fontSize: "0.82rem",
