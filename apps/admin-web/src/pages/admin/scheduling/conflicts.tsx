@@ -9,10 +9,13 @@ import {
   errorStyle,
   fieldStyle,
   formatDateOnly,
-  infoPanelStyle,
   inputStyle,
   mutedPanelStyle,
   panelStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   secondaryButtonStyle,
   subtleTextStyle,
   successStyle,
@@ -133,7 +136,6 @@ export default function SchedulingConflictsPage({
     >
       <AdminCard
         title="Schedule Conflicts"
-        description="Backend-owned overlap report for double-booked resources and participants. This is the operational audit surface for schedule integrity before publishing."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData()} disabled={loading} style={secondaryButtonStyle}>
@@ -142,58 +144,48 @@ export default function SchedulingConflictsPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          Conflicts are computed from all non-cancelled assignments. Draft rows still appear here because silent draft overlaps are exactly the kind of operator error this report is meant to expose early.
+        <div style={schedulingFilterCardStyle}>
+          <div style={schedulingFilterGridStyle}>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search conflict details..."
+                style={schedulingFilterControlStyle}
+              />
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => setBrandFilter(event.target.value)}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>From</span>
+              <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} style={schedulingFilterControlStyle} />
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>To</span>
+              <input type="date" value={to} onChange={(event) => setTo(event.target.value)} style={schedulingFilterControlStyle} />
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
         {!error && notice ? <div style={{ ...successStyle, marginTop: "16px" }}>{notice}</div> : null}
-
-        <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => setBrandFilter(event.target.value)}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>From</span>
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} style={inputStyle} />
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>To</span>
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} style={inputStyle} />
-          </label>
-        </div>
-
-        <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conflict details..." style={inputStyle} />
-          </label>
-
-          <div style={{ display: "flex", alignItems: "end" }}>
-            <button
-              type="button"
-              onClick={() => void loadData({ nextBrandFilter: brandFilter, nextFrom: from, nextTo: to })}
-              disabled={loading}
-              style={secondaryButtonStyle}
-            >
-              {loading ? "Loading..." : "Apply Filters"}
-            </button>
-          </div>
-        </div>
 
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
           <div style={panelStyle}>
