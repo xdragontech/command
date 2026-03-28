@@ -15,15 +15,16 @@ import {
   TonePill,
   actionRowStyle,
   errorStyle,
-  fieldStyle,
   formatDateOnly,
   formatMinuteRange,
-  infoPanelStyle,
-  inputStyle,
   mutedPanelStyle,
   panelStyle,
   paragraphStyle,
   primaryButtonStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   secondaryButtonStyle,
   subtleTextStyle,
   successStyle,
@@ -346,7 +347,6 @@ export default function SchedulingPlannerPage({
     >
       <AdminCard
         title="Resource Planner"
-        description="Review a single occurrence by named stages and booth/spot resources. Quick assign actions open the existing assignments editor with the selected occurrence and resource already carried forward."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData({ nextOccurrenceId: occurrenceId || null })} disabled={loading} style={secondaryButtonStyle}>
@@ -360,63 +360,61 @@ export default function SchedulingPlannerPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          This planner is deliberately resource-first. The calendar remains useful for broad time scanning, but actual event operations are usually answered by stage row, booth row, and conflict state.
+        <div style={schedulingFilterCardStyle}>
+          <div style={{ ...schedulingFilterGridStyle, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  const nextBrandFilter = event.target.value;
+                  setBrandFilter(nextBrandFilter);
+                  setOccurrenceId("");
+                  void loadData({ nextBrandFilter, nextOccurrenceId: null });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence</span>
+              <select value={occurrenceId} onChange={(event) => setOccurrenceId(event.target.value)} style={schedulingFilterControlStyle}>
+                <option value="">Select occurrence</option>
+                {occurrences.map((occurrence) => (
+                  <option key={occurrence.id} value={occurrence.id}>
+                    {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource Type</span>
+              <select
+                value={resourceTypeFilter}
+                onChange={(event) => setResourceTypeFilter(event.target.value as "ALL" | ScheduleResourceType)}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Resources</option>
+                {RESOURCE_TYPE_ORDER.map((resourceType) => (
+                  <option key={resourceType} value={resourceType}>
+                    {resourceTypeLabels[resourceType]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
         {!error && notice ? <div style={{ ...successStyle, marginTop: "16px" }}>{notice}</div> : null}
-
-        <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                const nextBrandFilter = event.target.value;
-                setBrandFilter(nextBrandFilter);
-                setOccurrenceId("");
-                void loadData({ nextBrandFilter, nextOccurrenceId: null });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence</span>
-            <select value={occurrenceId} onChange={(event) => setOccurrenceId(event.target.value)} style={inputStyle}>
-              <option value="">Select occurrence</option>
-              {occurrences.map((occurrence) => (
-                <option key={occurrence.id} value={occurrence.id}>
-                  {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource Type</span>
-            <select
-              value={resourceTypeFilter}
-              onChange={(event) => setResourceTypeFilter(event.target.value as "ALL" | ScheduleResourceType)}
-              style={inputStyle}
-            >
-              <option value="ALL">All Resources</option>
-              {RESOURCE_TYPE_ORDER.map((resourceType) => (
-                <option key={resourceType} value={resourceType}>
-                  {resourceTypeLabels[resourceType]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
 
         <div style={{ ...threeColumnStyle, marginTop: "18px" }}>
           <div style={panelStyle}>
