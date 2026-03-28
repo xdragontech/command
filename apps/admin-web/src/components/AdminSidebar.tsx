@@ -68,7 +68,15 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             active: pathname === "/admin/accounts/clients",
           },
           {
-            label: "Partner Accts",
+            label: "Vendors",
+            disabled: true,
+          },
+          {
+            label: "Entertainment",
+            disabled: true,
+          },
+          {
+            label: "Sponsors",
             disabled: true,
           },
         ],
