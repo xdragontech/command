@@ -21,6 +21,7 @@ import {
   primaryButtonStyle,
   secondaryButtonStyle,
   schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
   schedulingFilterGridStyle,
   splitLayoutStyle,
@@ -401,7 +402,7 @@ export default function SchedulingSeriesPage({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search events..."
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               />
             </label>
 
@@ -414,7 +415,7 @@ export default function SchedulingSeriesPage({
                   setBrandFilter(nextBrandFilter);
                   void loadData({ nextBrandFilter, nextSelectedId: NEW_SERIES_ID });
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Brands</option>
                 {brands.map((brand) => (
@@ -427,7 +428,7 @@ export default function SchedulingSeriesPage({
 
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Status</span>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={inputStyle}>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} style={schedulingFilterControlStyle}>
                 <option value="ALL">All Statuses</option>
                 <option value={ScheduleEventSeriesStatus.DRAFT}>DRAFT</option>
                 <option value={ScheduleEventSeriesStatus.ACTIVE}>ACTIVE</option>
@@ -437,7 +438,7 @@ export default function SchedulingSeriesPage({
 
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Recurrence</span>
-              <select value={recurrenceFilter} onChange={(event) => setRecurrenceFilter(event.target.value)} style={inputStyle}>
+              <select value={recurrenceFilter} onChange={(event) => setRecurrenceFilter(event.target.value)} style={schedulingFilterControlStyle}>
                 <option value="ALL">All Patterns</option>
                 <option value={ScheduleRecurrencePattern.NONE}>NONE</option>
                 <option value={ScheduleRecurrencePattern.WEEKLY}>WEEKLY</option>
