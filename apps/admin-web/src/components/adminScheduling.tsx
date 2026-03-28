@@ -192,26 +192,27 @@ export const fieldStyle: CSSProperties = {
 export const schedulingFilterCardStyle: CSSProperties = {
   ...infoPanelStyle,
   display: "grid",
-  padding: "10px 16px",
+  padding: "8px 16px",
 };
 
 export const schedulingFilterGridStyle: CSSProperties = {
   display: "grid",
-  gap: "14px",
+  gap: "12px",
   gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
 };
 
 export const schedulingFilterFieldStyle: CSSProperties = {
   ...fieldStyle,
-  gap: "4px",
+  gap: "3px",
 };
 
 export const schedulingFilterControlStyle: CSSProperties = {
   ...inputStyle,
-  height: "44px",
-  minHeight: "44px",
-  padding: "10px 14px",
-  lineHeight: 1.2,
+  height: "40px",
+  minHeight: "40px",
+  padding: "8px 14px",
+  fontSize: "0.92rem",
+  lineHeight: 1.15,
 };
 
 export const twoColumnStyle: CSSProperties = {
