@@ -18,6 +18,9 @@ import {
   paragraphStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   splitLayoutStyle,
   subtleTextStyle,
   successStyle,
@@ -52,21 +55,6 @@ type PageProps = {
 
 const NEW_RESOURCE_ID = "__new_resource__";
 const RESOURCE_TYPES = Object.values(ScheduleResourceType);
-const FILTER_GRID_STYLE = {
-  display: "grid",
-  gap: "14px",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-} as const;
-const FILTER_CARD_STYLE = {
-  ...infoPanelStyle,
-  display: "grid",
-  padding: "10px 16px",
-} as const;
-const FILTER_FIELD_STYLE = {
-  ...fieldStyle,
-  gap: "4px",
-} as const;
-
 function isSelectableSeries(series: ScheduleEventSeriesRecord) {
   return (
     series.status === ScheduleEventSeriesStatus.ACTIVE ||
@@ -399,14 +387,14 @@ export default function SchedulingResourcesPage({
           </div>
         }
       >
-        <div style={FILTER_CARD_STYLE}>
-          <div style={FILTER_GRID_STYLE}>
-            <label style={FILTER_FIELD_STYLE}>
+        <div style={schedulingFilterCardStyle}>
+          <div style={schedulingFilterGridStyle}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources..." style={inputStyle} />
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
               <select
                 value={brandFilter}
@@ -432,7 +420,7 @@ export default function SchedulingResourcesPage({
               </select>
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
               <select
                 value={eventFilter}
@@ -457,7 +445,7 @@ export default function SchedulingResourcesPage({
               </select>
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Type</span>
               <select
                 value={typeFilter}

@@ -189,6 +189,23 @@ export const fieldStyle: CSSProperties = {
   gap: "8px",
 };
 
+export const schedulingFilterCardStyle: CSSProperties = {
+  ...infoPanelStyle,
+  display: "grid",
+  padding: "10px 16px",
+};
+
+export const schedulingFilterGridStyle: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+};
+
+export const schedulingFilterFieldStyle: CSSProperties = {
+  ...fieldStyle,
+  gap: "4px",
+};
+
 export const twoColumnStyle: CSSProperties = {
   display: "grid",
   gap: "16px",
