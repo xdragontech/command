@@ -75,6 +75,38 @@ export function EntityListButton({
   );
 }
 
+export function SchedulingListRow({
+  selected,
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  onClick,
+}: {
+  selected: boolean;
+  topLeft: ReactNode;
+  topRight?: ReactNode;
+  bottomLeft?: ReactNode;
+  bottomRight?: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...schedulingListRowStyle,
+        ...(selected ? selectedSchedulingListRowStyle : {}),
+      }}
+    >
+      <span style={schedulingListTopLeftStyle}>{topLeft}</span>
+      {topRight ? <span style={schedulingListTopRightStyle}>{topRight}</span> : null}
+      {bottomLeft ? <span style={schedulingListBottomLeftStyle}>{bottomLeft}</span> : null}
+      {bottomRight ? <span style={schedulingListBottomRightStyle}>{bottomRight}</span> : null}
+    </button>
+  );
+}
+
 export function TonePill({
   label,
   tone = "subtle",
@@ -349,6 +381,102 @@ const selectedEntityCardStyle: CSSProperties = {
   background: "var(--admin-nav-active-bg)",
   borderColor: "var(--admin-nav-active-bg)",
   color: "var(--admin-nav-active-text)",
+};
+
+export const schedulingListRowStyle: CSSProperties = {
+  width: "100%",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateAreas: `"topLeft topRight" "bottomLeft bottomRight"`,
+  columnGap: "12px",
+  rowGap: "4px",
+  alignItems: "center",
+  borderRadius: "12px",
+  border: "1px solid rgba(239,68,68,0.18)",
+  background: "#ffffff",
+  padding: "7px 14px",
+  textAlign: "left",
+  cursor: "pointer",
+};
+
+export const selectedSchedulingListRowStyle: CSSProperties = {
+  border: "1px solid rgba(239,68,68,0.34)",
+  background: "#fee2e2",
+};
+
+const schedulingListCellStyle: CSSProperties = {
+  fontSize: "0.92rem",
+  color: "var(--admin-text-secondary)",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+export const schedulingListTopLeftStyle: CSSProperties = {
+  ...schedulingListCellStyle,
+  gridArea: "topLeft",
+  fontWeight: 700,
+  color: "var(--admin-text-primary)",
+  alignSelf: "end",
+};
+
+export const schedulingListTopRightStyle: CSSProperties = {
+  ...schedulingListCellStyle,
+  gridArea: "topRight",
+  textAlign: "right",
+  justifySelf: "end",
+  alignSelf: "end",
+  color: "var(--admin-text-secondary)",
+};
+
+export const schedulingListBottomLeftStyle: CSSProperties = {
+  gridArea: "bottomLeft",
+  justifySelf: "start",
+  alignSelf: "start",
+};
+
+export const schedulingListBottomRightStyle: CSSProperties = {
+  gridArea: "bottomRight",
+  justifySelf: "end",
+  alignSelf: "start",
+  textAlign: "right",
+};
+
+export const schedulingListPillStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  maxWidth: "100%",
+  minHeight: "17px",
+  borderRadius: "12px",
+  padding: "2px 7px",
+  fontSize: "0.6rem",
+  lineHeight: 1,
+  fontWeight: 800,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+export const schedulingListSlatePillStyle: CSSProperties = {
+  background: "var(--admin-pill-slate-bg)",
+  color: "var(--admin-pill-slate-text)",
+};
+
+export const schedulingListSuccessPillStyle: CSSProperties = {
+  background: "var(--admin-pill-success-bg)",
+  color: "var(--admin-pill-success-text)",
+};
+
+export const schedulingListWarningPillStyle: CSSProperties = {
+  background: "var(--admin-pill-warning-bg)",
+  color: "var(--admin-pill-warning-text)",
+};
+
+export const schedulingListSubtlePillStyle: CSSProperties = {
+  background: "var(--admin-pill-subtle-bg)",
+  color: "var(--admin-pill-subtle-text)",
 };
 
 const toneStyles: Record<string, CSSProperties> = {

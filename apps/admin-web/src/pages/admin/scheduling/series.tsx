@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import {
-  EntityListButton,
+  SchedulingListRow,
   TonePill,
   actionRowStyle,
   detailHeaderStyle,
@@ -24,6 +24,11 @@ import {
   schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
   schedulingFilterGridStyle,
+  schedulingListPillStyle,
+  schedulingListSlatePillStyle,
+  schedulingListSubtlePillStyle,
+  schedulingListSuccessPillStyle,
+  schedulingListWarningPillStyle,
   splitLayoutStyle,
   subtleTextStyle,
   successStyle,
@@ -463,17 +468,30 @@ export default function SchedulingSeriesPage({
                 <div style={mutedPanelStyle}>No events matched the current filter.</div>
               ) : (
                 filteredSerieses.map((series) => (
-                  <EntityListButton
+                  <SchedulingListRow
                     key={series.id}
                     selected={series.id === selectedId}
                     onClick={() => selectSeries(series)}
-                    title={series.name}
-                    subtitle={`${series.brandName} · ${formatDateOnly(series.seasonStartsOn)} to ${formatDateOnly(series.seasonEndsOn)}`}
-                    meta={
-                      <>
-                        <TonePill label={series.status} tone={series.status === ScheduleEventSeriesStatus.ACTIVE ? "success" : series.status === ScheduleEventSeriesStatus.ARCHIVED ? "slate" : "warning"} />
-                        <TonePill label={`${series.occurrenceCount} Occ`} tone="subtle" />
-                      </>
+                    topLeft={series.name}
+                    topRight={series.recurrencePattern}
+                    bottomLeft={
+                      <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>
+                        {`${formatDateOnly(series.seasonStartsOn)} - ${formatDateOnly(series.seasonEndsOn)}`}
+                      </span>
+                    }
+                    bottomRight={
+                      <span
+                        style={{
+                          ...schedulingListPillStyle,
+                          ...(series.status === ScheduleEventSeriesStatus.ACTIVE
+                            ? schedulingListSuccessPillStyle
+                            : series.status === ScheduleEventSeriesStatus.ARCHIVED
+                              ? schedulingListSubtlePillStyle
+                              : schedulingListWarningPillStyle),
+                        }}
+                      >
+                        {series.status}
+                      </span>
                     }
                   />
                 ))
