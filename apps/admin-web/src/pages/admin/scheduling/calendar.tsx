@@ -42,6 +42,9 @@ import {
   splitLayoutStyle,
   subtleTextStyle,
   successStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   textAreaStyle,
   timeInputToMinutes,
   twoColumnStyle,
@@ -86,21 +89,6 @@ type PageProps = {
 };
 
 const NEW_ASSIGNMENT_ID = "__new_assignment__";
-const FILTER_GRID_STYLE = {
-  display: "grid",
-  gap: "14px",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-} as const;
-const FILTER_CARD_STYLE = {
-  ...infoPanelStyle,
-  display: "grid",
-  padding: "10px 16px",
-} as const;
-const FILTER_FIELD_STYLE = {
-  ...fieldStyle,
-  gap: "4px",
-} as const;
-
 function deriveAssignmentKind(participantType: ScheduleParticipantType | null) {
   return participantType === ScheduleParticipantType.ENTERTAINMENT
     ? ScheduleAssignmentKind.TIMED_SLOT
@@ -794,9 +782,9 @@ export default function SchedulingCalendarPage({
           </div>
         }
       >
-        <div style={FILTER_CARD_STYLE}>
-          <div style={FILTER_GRID_STYLE}>
-            <label style={FILTER_FIELD_STYLE}>
+        <div style={schedulingFilterCardStyle}>
+          <div style={schedulingFilterGridStyle}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
               <select
                 value={brandFilter}
@@ -821,7 +809,7 @@ export default function SchedulingCalendarPage({
               </select>
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
               <select
                 value={seriesFilter}
@@ -843,7 +831,7 @@ export default function SchedulingCalendarPage({
               </select>
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
               <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
                 <option value="ALL">All Resources</option>
@@ -857,7 +845,7 @@ export default function SchedulingCalendarPage({
               </select>
             </label>
 
-            <label style={FILTER_FIELD_STYLE}>
+            <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
               <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
                 <option value="ALL">All Participants</option>
