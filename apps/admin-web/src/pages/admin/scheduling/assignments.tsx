@@ -33,6 +33,10 @@ import {
   panelStyle,
   paragraphStyle,
   primaryButtonStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   secondaryButtonStyle,
   splitLayoutStyle,
   subtleTextStyle,
@@ -703,8 +707,7 @@ export default function SchedulingAssignmentsPage({
       active="scheduling"
     >
       <AdminCard
-        title="Schedule Assignments"
-        description="Assign approved participants to concrete event occurrences and resources. Public-facing title, location, and description data are edited here rather than inside the calendar surface."
+        title="Assignments"
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData({ nextSelectedId: selectedId })} disabled={loading} style={secondaryButtonStyle}>
@@ -716,8 +719,59 @@ export default function SchedulingAssignmentsPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          The schedule domain owns overlap detection. Conflicts are blocked by default and can only be forced deliberately from here after the conflict report is shown. Published schedule data only reaches the public site after occurrence-level publish actions or explicit per-assignment publish changes.
+        <div style={schedulingFilterCardStyle}>
+          <div style={{ ...schedulingFilterGridStyle, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search assignments..."
+                style={schedulingFilterControlStyle}
+              />
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  const nextBrandFilter = event.target.value;
+                  setBrandFilter(nextBrandFilter);
+                  setOccurrenceFilter("ALL");
+                  void loadData({ nextBrandFilter, nextOccurrenceFilter: "ALL", nextSelectedId: NEW_ASSIGNMENT_ID });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence Filter</span>
+              <select
+                value={occurrenceFilter}
+                onChange={(event) => {
+                  const nextOccurrenceFilter = event.target.value;
+                  setOccurrenceFilter(nextOccurrenceFilter);
+                  void loadData({ nextOccurrenceFilter, nextSelectedId: NEW_ASSIGNMENT_ID });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Occurrences</option>
+                {occurrences.map((occurrence) => (
+                  <option key={occurrence.id} value={occurrence.id}>
+                    {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
@@ -737,56 +791,6 @@ export default function SchedulingAssignmentsPage({
             </div>
           </div>
         ) : null}
-
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                const nextBrandFilter = event.target.value;
-                setBrandFilter(nextBrandFilter);
-                setOccurrenceFilter("ALL");
-                void loadData({ nextBrandFilter, nextOccurrenceFilter: "ALL", nextSelectedId: NEW_ASSIGNMENT_ID });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence Filter</span>
-            <select
-              value={occurrenceFilter}
-              onChange={(event) => {
-                const nextOccurrenceFilter = event.target.value;
-                setOccurrenceFilter(nextOccurrenceFilter);
-                void loadData({ nextOccurrenceFilter, nextSelectedId: NEW_ASSIGNMENT_ID });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Occurrences</option>
-              {occurrences.map((occurrence) => (
-                <option key={occurrence.id} value={occurrence.id}>
-                  {`${occurrence.seriesName} · ${formatDateOnly(occurrence.occursOn)}`}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search assignments..." style={inputStyle} />
-          </label>
-        </div>
 
         <div style={{ marginTop: "18px" }}>
           <div style={{ ...subtleTextStyle, fontWeight: 700 }}>Occurrence Visibility</div>
