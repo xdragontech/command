@@ -1,5 +1,5 @@
 import { ScheduleParticipantStatus, ScheduleParticipantType } from "@prisma/client";
-import type { ScheduleParticipantRecord } from "@command/core-scheduling";
+import type { ScheduleEventSeriesRecord, ScheduleParticipantRecord } from "@command/core-scheduling";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { AdminCard } from "../../../components/AdminCard";
@@ -13,12 +13,15 @@ import {
   errorStyle,
   fieldStyle,
   inputStyle,
-  infoPanelStyle,
   mutedPanelStyle,
   panelStyle,
   paragraphStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
+  schedulingFilterFieldStyle,
+  schedulingFilterGridStyle,
   splitLayoutStyle,
   subtleTextStyle,
   successStyle,
@@ -94,7 +97,10 @@ export default function SchedulingParticipantsPage({
   principalBrands,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
+  const [series, setSeries] = useState<ScheduleEventSeriesRecord[]>([]);
   const [brandFilter, setBrandFilter] = useState("ALL");
+  const [eventFilter, setEventFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const [participants, setParticipants] = useState<ScheduleParticipantRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<ParticipantForm | null>(null);
@@ -114,35 +120,48 @@ export default function SchedulingParticipantsPage({
   async function loadData(options?: {
     nextSelectedId?: string | null;
     nextBrandFilter?: string;
+    nextEventFilter?: string;
+    nextTypeFilter?: string;
   }) {
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
+    const resolvedEventFilter = options?.nextEventFilter ?? eventFilter;
+    const resolvedTypeFilter = options?.nextTypeFilter ?? typeFilter;
     setLoading(true);
     setError("");
 
     try {
       const params = new URLSearchParams();
       if (resolvedBrandFilter !== "ALL") params.set("brandId", resolvedBrandFilter);
+      if (resolvedEventFilter !== "ALL") params.set("seriesId", resolvedEventFilter);
+      if (resolvedTypeFilter !== "ALL") params.set("type", resolvedTypeFilter);
 
-      const [brandsRes, participantsRes] = await Promise.all([
+      const [brandsRes, seriesRes, participantsRes] = await Promise.all([
         fetch("/api/admin/brands"),
+        fetch("/api/admin/scheduling/series"),
         fetch(`/api/admin/scheduling/participants?${params.toString()}`),
       ]);
 
-      const [brandsPayload, participantsPayload] = await Promise.all([
+      const [brandsPayload, seriesPayload, participantsPayload] = await Promise.all([
         brandsRes.json().catch(() => null),
+        seriesRes.json().catch(() => null),
         participantsRes.json().catch(() => null),
       ]);
 
       if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
+      if (!seriesRes.ok || !seriesPayload?.ok) throw new Error(seriesPayload?.error || "Failed to load events");
       if (!participantsRes.ok || !participantsPayload?.ok) {
         throw new Error(participantsPayload?.error || "Failed to load participants");
       }
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
+      const nextSeries = Array.isArray(seriesPayload.serieses)
+        ? (seriesPayload.serieses as ScheduleEventSeriesRecord[])
+        : [];
       const nextParticipants = Array.isArray(participantsPayload.participants)
         ? (participantsPayload.participants as ScheduleParticipantRecord[])
         : [];
       setBrands(nextBrands);
+      setSeries(nextSeries);
       setParticipants(nextParticipants);
 
       const desiredId = options?.nextSelectedId ?? selectedId;
@@ -191,6 +210,10 @@ export default function SchedulingParticipantsPage({
         .includes(needle)
     );
   }, [participants, search]);
+
+  const visibleSeries = useMemo(() => {
+    return series.filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter));
+  }, [brandFilter, series]);
 
   const isDirty = useMemo(() => {
     if (!form) return false;
@@ -297,7 +320,6 @@ export default function SchedulingParticipantsPage({
     >
       <AdminCard
         title="Schedule Participants"
-        description="Manage the approved entertainment and vendor records that can be placed on the schedule. Public-facing display details for an appearance still live on the assignment itself."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData({ nextSelectedId: selectedId })} disabled={loading} style={secondaryButtonStyle}>
@@ -309,39 +331,98 @@ export default function SchedulingParticipantsPage({
           </div>
         }
       >
-        <div style={infoPanelStyle}>
-          Phase 1 keeps scheduling participants independent from the future application-review workflow. When that module lands later, approved applications can link into these records without changing the schedule model.
+        <div style={schedulingFilterCardStyle}>
+          <div style={schedulingFilterGridStyle}>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search participants..."
+                style={schedulingFilterControlStyle}
+              />
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand</span>
+              <select
+                value={brandFilter}
+                onChange={(event) => {
+                  const nextBrandFilter = event.target.value;
+                  setBrandFilter(nextBrandFilter);
+                  setEventFilter("ALL");
+                  void loadData({
+                    nextBrandFilter,
+                    nextEventFilter: "ALL",
+                    nextTypeFilter: typeFilter,
+                    nextSelectedId: NEW_PARTICIPANT_ID,
+                  });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Brands</option>
+                {brands.map((brand) => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
+              <select
+                value={eventFilter}
+                onChange={(event) => {
+                  const nextEventFilter = event.target.value;
+                  setEventFilter(nextEventFilter);
+                  void loadData({
+                    nextBrandFilter: brandFilter,
+                    nextEventFilter,
+                    nextTypeFilter: typeFilter,
+                    nextSelectedId: NEW_PARTICIPANT_ID,
+                  });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Events</option>
+                {visibleSeries.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Type</span>
+              <select
+                value={typeFilter}
+                onChange={(event) => {
+                  const nextTypeFilter = event.target.value;
+                  setTypeFilter(nextTypeFilter);
+                  void loadData({
+                    nextBrandFilter: brandFilter,
+                    nextEventFilter: eventFilter,
+                    nextTypeFilter,
+                    nextSelectedId: NEW_PARTICIPANT_ID,
+                  });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Types</option>
+                {PARTICIPANT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         {error ? <div style={{ ...errorStyle, marginTop: "16px" }}>{error}</div> : null}
         {!error && notice ? <div style={{ ...successStyle, marginTop: "16px" }}>{notice}</div> : null}
-
-        <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
-            <select
-              value={brandFilter}
-              onChange={(event) => {
-                const nextBrandFilter = event.target.value;
-                setBrandFilter(nextBrandFilter);
-                void loadData({ nextBrandFilter, nextSelectedId: NEW_PARTICIPANT_ID });
-              }}
-              style={inputStyle}
-            >
-              <option value="ALL">All Brands</option>
-              {brands.map((brand) => (
-                <option key={brand.id} value={brand.id}>
-                  {brand.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={fieldStyle}>
-            <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search participants..." style={inputStyle} />
-          </label>
-        </div>
 
         <div style={{ ...splitLayoutStyle, marginTop: "18px" }}>
           <section style={panelStyle}>

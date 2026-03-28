@@ -66,12 +66,31 @@ export async function listScheduleParticipants(params: {
   scope: SchedulingScope;
   q?: string;
   brandId?: string | null;
+  seriesId?: string | null;
+  type?: string | null;
 }) {
   const brandIds = resolveReadableBrandIds(params.scope, normalizeNullableId(params.brandId));
   if (Array.isArray(brandIds) && brandIds.length === 0) return [] as ScheduleParticipantRecord[];
 
   const q = normalizeText(params.q);
-  const where: Prisma.ScheduleParticipantWhereInput = brandIds === null ? {} : { brandId: { in: brandIds } };
+  const seriesId = normalizeNullableId(params.seriesId);
+  const participantType = normalizeNullableText(params.type) ? parseParticipantType(params.type) : undefined;
+  const where: Prisma.ScheduleParticipantWhereInput = {
+    ...(brandIds === null ? {} : { brandId: { in: brandIds } }),
+    ...(participantType ? { type: participantType } : {}),
+    ...(seriesId
+      ? {
+          assignments: {
+            some: {
+              status: { not: "CANCELLED" },
+              occurrence: {
+                scheduleEventSeriesId: seriesId,
+              },
+            },
+          },
+        }
+      : {}),
+  };
   const searchWhere: Prisma.ScheduleParticipantWhereInput =
     q.length > 0
       ? {
