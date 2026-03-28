@@ -213,19 +213,19 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
             style={{
               width: "100%",
               boxSizing: "border-box",
-              padding: "17px 20px 15px",
+              padding: "12px 20px 11px",
               display: "flex",
               flexWrap: "nowrap",
               alignItems: "flex-start",
               justifyContent: "space-between",
-              gap: "20px",
+              gap: "16px",
             }}
           >
             <div
               style={{
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "18px",
+                gap: "14px",
                 minWidth: 0,
               }}
             >
@@ -241,16 +241,16 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                   style={{
                     background: theme === "dark" ? "#ffffff" : "transparent",
                     borderRadius: theme === "dark" ? "10px" : 0,
-                    padding: theme === "dark" ? "6px 8px" : 0,
+                    padding: theme === "dark" ? "5px 7px" : 0,
                   }}
                 >
-                  <img src="/logo.png" alt="X Dragon logo" style={{ height: "49px", width: "auto", display: "block" }} />
+                  <img src="/logo.png" alt="X Dragon logo" style={{ height: "44px", width: "auto", display: "block" }} />
                 </div>
                 <div
                   style={{
-                    marginTop: "5px",
+                    marginTop: "4px",
                     fontFamily: "Orbitron, ui-sans-serif, system-ui",
-                    fontSize: "1.5rem",
+                    fontSize: "1.35rem",
                     fontWeight: 600,
                     lineHeight: 1,
                     color: "var(--admin-text-primary)",
@@ -263,11 +263,11 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
 
               <div
                 style={{
-                  minHeight: "49px",
+                  minHeight: "44px",
                   display: "flex",
                   alignItems: "center",
                   color: "var(--admin-text-secondary)",
-                  fontSize: "0.98rem",
+                  fontSize: "0.9rem",
                   fontWeight: 500,
                 }}
               >
@@ -281,7 +281,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
                 flexDirection: "column",
                 alignItems: "flex-end",
                 justifyContent: "flex-end",
-                gap: "8px",
+                gap: "6px",
                 flexShrink: 0,
               }}
             >
@@ -341,7 +341,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
 
 const loggedInStyle: CSSProperties = {
   color: "var(--admin-text-secondary)",
-  fontSize: "0.95rem",
+  fontSize: "0.86rem",
   fontWeight: 500,
 };
 
@@ -366,13 +366,13 @@ function themeToggleStyle(theme: BackofficeThemePreference): CSSProperties {
   return {
     display: "inline-flex",
     alignItems: "center",
-    gap: "8px",
+    gap: "7px",
     borderRadius: "12px",
     border: "1px solid var(--admin-border-subtle)",
     background: theme === "dark" ? "var(--admin-surface-secondary)" : "var(--admin-surface-primary)",
     color: "var(--admin-text-primary)",
-    padding: "8px 12px",
-    fontSize: "0.84rem",
+    padding: "7px 11px",
+    fontSize: "0.76rem",
     fontWeight: 700,
     cursor: "pointer",
   };

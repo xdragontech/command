@@ -21,10 +21,10 @@ export function AdminSignOutButton() {
       style={{
         border: "1px solid var(--admin-button-strong-border)",
         borderRadius: "12px",
-        padding: "8px 12px",
+        padding: "7px 11px",
         background: "var(--admin-button-strong-bg)",
         color: "var(--admin-button-strong-text)",
-        fontSize: "0.9rem",
+        fontSize: "0.81rem",
         fontWeight: 700,
         cursor: busy ? "wait" : "pointer",
         opacity: busy ? 0.72 : 1,
