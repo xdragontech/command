@@ -399,6 +399,7 @@ function themeVariables(theme: BackofficeThemePreference): CSSProperties {
     "--admin-floating-shadow": dark ? "0 12px 28px rgba(2,6,23,0.48)" : "0 10px 28px rgba(15,23,42,0.05)",
     "--admin-nav-bg": dark ? "#111827" : "#e2e8f0",
     "--admin-nav-text": dark ? "#e5e7eb" : "#0f172a",
+    "--admin-nav-accent-text": dark ? "#f87171" : "#b91c1c",
     "--admin-nav-active-bg": dark ? "#dc2626" : "#0f172a",
     "--admin-nav-active-text": "#ffffff",
     "--admin-nav-subtle-bg": dark ? "#1f2937" : "#f1f5f9",
