@@ -43,6 +43,7 @@ import {
   subtleTextStyle,
   successStyle,
   schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
   schedulingFilterGridStyle,
   textAreaStyle,
@@ -798,7 +799,7 @@ export default function SchedulingCalendarPage({
                   setPendingConflicts([]);
                   setNotice("");
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Brands</option>
                 {brands.map((brand) => (
@@ -820,7 +821,7 @@ export default function SchedulingCalendarPage({
                   setPendingConflicts([]);
                   setNotice("");
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Events</option>
                 {visibleSeries.map((entry) => (
@@ -833,7 +834,7 @@ export default function SchedulingCalendarPage({
 
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Resource</span>
-              <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={inputStyle}>
+              <select value={resourceFilter} onChange={(event) => setResourceFilter(event.target.value)} style={schedulingFilterControlStyle}>
                 <option value="ALL">All Resources</option>
                 {resources
                   .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))
@@ -847,7 +848,7 @@ export default function SchedulingCalendarPage({
 
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Participant</span>
-              <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={inputStyle}>
+              <select value={participantFilter} onChange={(event) => setParticipantFilter(event.target.value)} style={schedulingFilterControlStyle}>
                 <option value="ALL">All Participants</option>
                 {participants
                   .filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter))

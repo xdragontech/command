@@ -206,6 +206,14 @@ export const schedulingFilterFieldStyle: CSSProperties = {
   gap: "4px",
 };
 
+export const schedulingFilterControlStyle: CSSProperties = {
+  ...inputStyle,
+  height: "44px",
+  minHeight: "44px",
+  padding: "10px 14px",
+  lineHeight: 1.2,
+};
+
 export const twoColumnStyle: CSSProperties = {
   display: "grid",
   gap: "16px",

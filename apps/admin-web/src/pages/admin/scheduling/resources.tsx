@@ -19,6 +19,7 @@ import {
   primaryButtonStyle,
   secondaryButtonStyle,
   schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
   schedulingFilterGridStyle,
   splitLayoutStyle,
@@ -391,7 +392,7 @@ export default function SchedulingResourcesPage({
           <div style={schedulingFilterGridStyle}>
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Search</span>
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources..." style={inputStyle} />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources..." style={schedulingFilterControlStyle} />
             </label>
 
             <label style={schedulingFilterFieldStyle}>
@@ -409,7 +410,7 @@ export default function SchedulingResourcesPage({
                     nextSelectedId: NEW_RESOURCE_ID,
                   });
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Brands</option>
                 {brands.map((brand) => (
@@ -434,7 +435,7 @@ export default function SchedulingResourcesPage({
                     nextSelectedId: NEW_RESOURCE_ID,
                   });
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Events</option>
                 {visibleSeriesFilters.map((item) => (
@@ -459,7 +460,7 @@ export default function SchedulingResourcesPage({
                     nextSelectedId: NEW_RESOURCE_ID,
                   });
                 }}
-                style={inputStyle}
+                style={schedulingFilterControlStyle}
               >
                 <option value="ALL">All Types</option>
                 {RESOURCE_TYPES.map((type) => (
