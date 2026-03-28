@@ -311,7 +311,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
             style={{
               display: "grid",
               gap: "14px",
-              gridTemplateColumns: sidebarCollapsed ? "72px minmax(0, 1fr)" : "220px minmax(0, 1fr)",
+              gridTemplateColumns: sidebarCollapsed ? "72px minmax(0, 1fr)" : "198px minmax(0, 1fr)",
               alignItems: "start",
               position: "relative",
             }}
