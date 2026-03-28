@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import {
-  EntityListButton,
+  SchedulingListRow,
   TonePill,
   actionRowStyle,
   detailHeaderStyle,
@@ -22,6 +22,10 @@ import {
   schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
   schedulingFilterGridStyle,
+  schedulingListPillStyle,
+  schedulingListSlatePillStyle,
+  schedulingListSubtlePillStyle,
+  schedulingListSuccessPillStyle,
   splitLayoutStyle,
   subtleTextStyle,
   successStyle,
@@ -435,20 +439,28 @@ export default function SchedulingParticipantsPage({
                 <div style={mutedPanelStyle}>No participants matched the current filter.</div>
               ) : (
                 filteredParticipants.map((participant) => (
-                  <EntityListButton
+                  <SchedulingListRow
                     key={participant.id}
                     selected={participant.id === selectedId}
                     onClick={() => selectParticipant(participant)}
-                    title={participant.displayName}
-                    subtitle={`${participant.brandName} · ${participant.slug}`}
-                    meta={
-                      <>
-                        <TonePill label={participant.type} tone="subtle" />
-                        <TonePill
-                          label={participant.status}
-                          tone={participant.status === ScheduleParticipantStatus.ACTIVE ? "success" : "slate"}
-                        />
-                      </>
+                    topLeft={participant.displayName}
+                    topRight={participant.type}
+                    bottomLeft={
+                      <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>
+                        {participant.brandName}
+                      </span>
+                    }
+                    bottomRight={
+                      <span
+                        style={{
+                          ...schedulingListPillStyle,
+                          ...(participant.status === ScheduleParticipantStatus.ACTIVE
+                            ? schedulingListSuccessPillStyle
+                            : schedulingListSubtlePillStyle),
+                        }}
+                      >
+                        {participant.status}
+                      </span>
                     }
                   />
                 ))
