@@ -1,7 +1,7 @@
 import type { GetServerSideProps } from "next";
 
-const LegacyAnalyticsPage = () => null;
-export default LegacyAnalyticsPage;
+const ReportsIndexPage = () => null;
+export default ReportsIndexPage;
 
 export const getServerSideProps: GetServerSideProps = async () => {
   return {
