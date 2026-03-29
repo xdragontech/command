@@ -510,7 +510,7 @@ export default function StaffAccountsPage({
 
         <div style={splitLayoutStyle}>
           <section style={panelStyle}>
-            <div style={{ display: "grid", gap: "14px" }}>
+            <div style={{ display: "grid", gap: "8px" }}>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -523,7 +523,7 @@ export default function StaffAccountsPage({
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            <div style={{ display: "grid", gap: "12px", marginTop: "10px" }}>
               {loading ? (
                 <div style={mutedPanelStyle}>Loading...</div>
               ) : filteredUsers.length === 0 ? (
@@ -942,6 +942,7 @@ const inputStyle: CSSProperties = {
 const searchInputStyle: CSSProperties = {
   ...inputStyle,
   boxSizing: "border-box",
+  height: "32px",
   padding: "6px 10px",
   fontSize: "0.86rem",
   lineHeight: 1.2,
