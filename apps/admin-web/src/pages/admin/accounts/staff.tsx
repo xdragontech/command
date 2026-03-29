@@ -544,7 +544,7 @@ export default function StaffAccountsPage({
                       <div style={userCardHeaderStyle}>
                         <div>
                           <div style={{ fontWeight: 700 }}>{user.username}</div>
-                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: selected ? "#cbd5e1" : "#64748b" }}>
+                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#64748b" }}>
                             {user.email || "No email set"}
                           </div>
                         </div>
@@ -554,7 +554,7 @@ export default function StaffAccountsPage({
                           <MfaPill state={user.mfaState} />
                         </div>
                       </div>
-                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: selected ? "#cbd5e1" : "#64748b" }}>
+                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: "#64748b" }}>
                         {user.role === BackofficeRole.SUPERADMIN
                           ? "All brands"
                           : user.brandKeys.length > 0
@@ -885,9 +885,8 @@ const userCardStyle: CSSProperties = {
 };
 
 const selectedUserCardStyle: CSSProperties = {
-  background: "#0f172a",
-  color: "#fff",
-  border: "1px solid #0f172a",
+  background: "#fee2e2",
+  border: "1px solid rgba(239,68,68,0.34)",
 };
 
 const userCardHeaderStyle: CSSProperties = {
