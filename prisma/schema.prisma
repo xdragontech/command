@@ -244,6 +244,8 @@ model Brand {
   externalVerificationTokens      ExternalVerificationToken[]
   externalEmailVerificationTokens ExternalEmailVerificationToken[]
   externalPasswordResetTokens     ExternalPasswordResetToken[]
+  websiteSessions                 WebsiteSession[]
+  websiteAnalyticsEvents          WebsiteAnalyticsEvent[]
 }
 
 model BrandHost {
@@ -730,6 +732,45 @@ enum LeadSource {
   CHAT
 }
 
+enum WebsiteAnalyticsSourceCategory {
+  DIRECT
+  SEARCH
+  SOCIAL
+  REFERRAL
+  EMAIL
+  PAID
+  AI_REFERRAL
+  UNKNOWN
+}
+
+enum WebsiteAnalyticsSourceMedium {
+  DIRECT
+  ORGANIC
+  SOCIAL
+  REFERRAL
+  EMAIL
+  PAID
+  AI_REFERRAL
+  UNKNOWN
+}
+
+enum WebsiteAnalyticsEventType {
+  SESSION_START
+  PAGE_VIEW
+  ENGAGEMENT_PING
+  SESSION_END
+  CONVERSION
+  WEB_VITAL
+}
+
+enum WebsiteAnalyticsConversionType {
+  CONTACT_SUBMIT
+  CHAT_LEAD_SUBMIT
+  CLIENT_LOGIN_SUCCESS
+  CLIENT_SIGNUP_CREATED
+  CLIENT_SIGNUP_VERIFIED
+}
+
 model Lead {
   id        String     @id @default(cuid())
   brandId   String?
@@ -775,4 +816,85 @@ model LeadEvent {
   @@index([createdAt])
   @@index([leadId])
   @@index([conversationId])
+}
+
+model WebsiteSession {
+  id              String                         @id @default(cuid())
+  brandId         String
+  sessionId       String
+  startedAt       DateTime
+  lastSeenAt      DateTime
+  endedAt         DateTime?
+  landingUrl      String?
+  landingPath     String?
+  lastPath        String?
+  pageViewCount   Int                            @default(0)
+  engagedSeconds  Int                            @default(0)
+  engaged         Boolean                        @default(false)
+  bounced         Boolean                        @default(false)
+  converted       Boolean                        @default(false)
+  conversionCount Int                            @default(0)
+  sourceCategory  WebsiteAnalyticsSourceCategory @default(UNKNOWN)
+  sourcePlatform  String?
+  sourceMedium    WebsiteAnalyticsSourceMedium   @default(UNKNOWN)
+  referrerHost    String?
+  referer         String?
+  utmSource       String?
+  utmMedium       String?
+  utmCampaign     String?
+  utmTerm         String?
+  utmContent      String?
+  gclid           String?
+  fbclid          String?
+  msclkid         String?
+  ttclid          String?
+  countryIso2     String?
+  countryName     String?
+  ip              String?
+  userAgent       String?
+  raw             Json?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  brand  Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  events WebsiteAnalyticsEvent[]
+
+  @@unique([brandId, sessionId])
+  @@index([brandId, startedAt])
+  @@index([brandId, sourceCategory, startedAt])
+  @@index([brandId, landingPath, startedAt])
+}
+
+model WebsiteAnalyticsEvent {
+  id               String                         @id @default(cuid())
+  brandId          String
+  websiteSessionId String
+  eventId          String
+  eventType        WebsiteAnalyticsEventType
+  path             String?
+  url              String?
+  occurredAt       DateTime
+  sourceCategory   WebsiteAnalyticsSourceCategory @default(UNKNOWN)
+  sourcePlatform   String?
+  sourceMedium     WebsiteAnalyticsSourceMedium   @default(UNKNOWN)
+  referer          String?
+  referrerHost     String?
+  countryIso2      String?
+  countryName      String?
+  ip               String?
+  userAgent        String?
+  conversionType   WebsiteAnalyticsConversionType?
+  metricName       String?
+  metricValue      Float?
+  engagedSeconds   Int?
+  raw              Json?
+  createdAt        DateTime                       @default(now())
+
+  brand   Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  session WebsiteSession @relation(fields: [websiteSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, eventId])
+  @@index([brandId, occurredAt])
+  @@index([brandId, websiteSessionId, occurredAt])
+  @@index([brandId, eventType, occurredAt])
 }

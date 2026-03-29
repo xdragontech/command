@@ -27,6 +27,9 @@
     },
     {
       "path": "./packages/core-content"
+    },
+    {
+      "path": "./packages/core-website-analytics"
     }
   ]
 }

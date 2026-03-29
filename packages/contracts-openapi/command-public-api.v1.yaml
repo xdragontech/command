@@ -7,7 +7,8 @@ info:
     This is the initial external API contract that brand-specific public websites will consume
     through a server-side BFF/proxy. It is intentionally limited to the current live needs:
     external auth, account access, password reset, brand-scoped resource feeds, and the current
-    public contact/chat service flows.
+    public contact/chat service flows. It now also includes consent-gated first-party website
+    analytics ingestion for branded public sites.
 servers:
   - url: https://command.example.com
     description: Example Command install base URL
@@ -22,6 +23,8 @@ tags:
     description: Integration-authenticated published schedule feeds for public websites
   - name: Services
     description: Public website service flows such as contact and chat lead intake
+  - name: Analytics
+    description: Consent-gated first-party website analytics ingestion for branded public sites
 security:
   - IntegrationKeyAuth: []
 paths:
@@ -545,6 +548,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v1/analytics/collect:
+    post:
+      tags: [Analytics]
+      summary: Ingest a consented first-party website analytics batch
+      description: |
+        Accepts a consented analytics event batch from the public-site BFF. Browsers do not call
+        this endpoint directly. The BFF must forward the trusted website session identifier and
+        the original client identity captured at the first Cloudflare-facing hop.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsCollectRequest'
+      responses:
+        '200':
+          description: Analytics batch accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsCollectResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 components:
   securitySchemes:
     IntegrationKeyAuth:
@@ -568,6 +600,13 @@ components:
       schema:
         type: string
       description: Opaque end-user session token issued by Command.
+    WebsiteSessionHeader:
+      in: header
+      name: X-Command-Website-Session
+      required: true
+      schema:
+        type: string
+      description: Consent-gated first-party analytics session identifier owned by the public-site BFF.
   responses:
     BadRequest:
       description: Invalid request payload
@@ -618,6 +657,96 @@ components:
         ok:
           type: boolean
           const: true
+    AnalyticsEventType:
+      type: string
+      enum: [SESSION_START, PAGE_VIEW, ENGAGEMENT_PING, SESSION_END, WEB_VITAL]
+    AnalyticsEvent:
+      type: object
+      additionalProperties: false
+      required: [eventId, eventType, occurredAt]
+      properties:
+        eventId:
+          type: string
+        eventType:
+          $ref: '#/components/schemas/AnalyticsEventType'
+        occurredAt:
+          type: string
+          format: date-time
+        path:
+          type: string
+          nullable: true
+        url:
+          type: string
+          nullable: true
+        referer:
+          type: string
+          nullable: true
+        engagedSeconds:
+          type: integer
+          minimum: 0
+          nullable: true
+        metricName:
+          type: string
+          nullable: true
+        metricValue:
+          type: number
+          nullable: true
+        utmSource:
+          type: string
+          nullable: true
+        utmMedium:
+          type: string
+          nullable: true
+        utmCampaign:
+          type: string
+          nullable: true
+        utmTerm:
+          type: string
+          nullable: true
+        utmContent:
+          type: string
+          nullable: true
+        gclid:
+          type: string
+          nullable: true
+        fbclid:
+          type: string
+          nullable: true
+        msclkid:
+          type: string
+          nullable: true
+        ttclid:
+          type: string
+          nullable: true
+        raw:
+          description: Optional event-specific browser metadata payload.
+    AnalyticsCollectRequest:
+      type: object
+      additionalProperties: false
+      required: [events]
+      properties:
+        events:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/AnalyticsEvent'
+    AnalyticsCollectResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, sessionId, acceptedEvents, duplicateEvents]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        sessionId:
+          type: string
+        acceptedEvents:
+          type: integer
+          minimum: 0
+        duplicateEvents:
+          type: integer
+          minimum: 0
     ExternalAccount:
       type: object
       additionalProperties: false

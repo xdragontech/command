@@ -39,6 +39,9 @@
       ],
       "@command/core-content": [
         "packages/core-content/src/index.ts"
+      ],
+      "@command/core-website-analytics": [
+        "packages/core-website-analytics/src/index.ts"
       ]
     }
   }
