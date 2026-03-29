@@ -71,15 +71,16 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
       brands={brands}
       active="analytics"
     >
-      <AdminCard
-        title="Analytics"
-        description="High-level lead analytics based on the same lead-event stream used by dashboard and leads."
-        actions={
+      <div style={pageHeaderStyle}>
+        <h1 style={pageTitleStyle}>Analytics</h1>
+        <div style={pageActionsStyle}>
           <button type="button" onClick={load} disabled={loading} style={primaryButtonStyle}>
             {loading ? "Refreshing…" : "Refresh"}
           </button>
-        }
-      >
+        </div>
+      </div>
+
+      <AdminCard>
         <div style={{ display: "grid", gap: "18px" }}>
           {role !== "SUPERADMIN" ? (
             <div style={readOnlyNoticeStyle}>
@@ -220,6 +221,28 @@ const primaryButtonStyle: CSSProperties = {
   fontSize: "0.92rem",
   fontWeight: 700,
   cursor: "pointer",
+};
+
+const pageHeaderStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: "14px",
+  marginBottom: "18px",
+};
+
+const pageTitleStyle: CSSProperties = {
+  margin: 0,
+  fontSize: "1.35rem",
+  lineHeight: 1.15,
+  color: "var(--admin-text-primary)",
+};
+
+const pageActionsStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
 };
 
 const tableHeaderStyle: CSSProperties = {
