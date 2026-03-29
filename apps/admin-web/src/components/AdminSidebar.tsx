@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 
 type AdminSidebarProps = {
-  active: "dashboard" | "accounts" | "library" | "leads" | "analytics" | "settings" | "scheduling";
+  active: "dashboard" | "accounts" | "library" | "leads" | "reports" | "settings" | "scheduling";
   collapsed: boolean;
 };
 
@@ -90,12 +90,23 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
         children: [],
       },
       {
-        id: "analytics",
-        label: "Analytics",
-        href: "/admin/analytics",
+        id: "reports",
+        label: "Reports",
+        href: "/admin/reports/leads",
         icon: "analytics",
-        active: active === "analytics",
-        children: [],
+        active: active === "reports",
+        children: [
+          {
+            label: "Leads",
+            href: "/admin/reports/leads",
+            active: pathname === "/admin/reports/leads" || pathname === "/admin/analytics" || pathname === "/admin/reports",
+          },
+          {
+            label: "Events",
+            href: "/admin/reports/events",
+            active: pathname === "/admin/reports/events",
+          },
+        ],
       },
       {
         id: "scheduling",

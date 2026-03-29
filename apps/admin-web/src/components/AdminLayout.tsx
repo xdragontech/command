@@ -8,7 +8,7 @@ import { AdminSignOutButton } from "./AdminSignOutButton";
 type AdminLayoutProps = {
   title: string;
   sectionLabel: string;
-  active: "dashboard" | "accounts" | "library" | "leads" | "analytics" | "settings" | "scheduling";
+  active: "dashboard" | "accounts" | "library" | "leads" | "reports" | "settings" | "scheduling";
   loggedInAs: string | null;
   role: string;
   brands: string[];
