@@ -11,6 +11,7 @@ export type DashboardIpGroup = {
 
 export type DashboardCountryCount = {
   country: string | null;
+  countryIso2: string | null;
   count: number;
 };
 
@@ -36,7 +37,11 @@ export type DashboardMetrics = {
     leads: number;
     chatLeads: number;
   };
-  signupCountries: DashboardCountryCount[];
+  countryMetrics: {
+    signups: DashboardCountryCount[];
+    clientLogins: DashboardCountryCount[];
+    backofficeLogins: DashboardCountryCount[];
+  };
 };
 
 export type DashboardMetricsScope = {
@@ -179,6 +184,33 @@ function rememberFirstLogin(
   firstGeoByPrincipal.set(principalId, {
     iso2: countryIso2 || null,
     name: countryName || null,
+  });
+}
+
+function normalizeCountryIso2(value: string | null | undefined) {
+  const normalized = String(value || "").trim().toUpperCase();
+  return normalized && normalized !== "XX" ? normalized : null;
+}
+
+function addCountryCount(
+  countryCounts: Map<string, DashboardCountryCount>,
+  countryIso2: string | null | undefined,
+  countryName: string | null | undefined
+) {
+  const iso2 = normalizeCountryIso2(countryIso2);
+  const resolvedCountryName = String(countryName || "").trim() || iso2ToCountryName(iso2) || "Unknown";
+  const key = iso2 || `name:${resolvedCountryName.toLowerCase()}`;
+  const existing = countryCounts.get(key);
+
+  if (existing) {
+    existing.count += 1;
+    return;
+  }
+
+  countryCounts.set(key, {
+    country: resolvedCountryName,
+    countryIso2: iso2,
+    count: 1,
   });
 }
 
@@ -358,6 +390,9 @@ export async function loadDashboardMetrics(params: {
   const streamIpGeo = new Map<DashboardLoginStreamKey, Map<string, { iso2: string | null; name: string | null }>>(
     DASHBOARD_LOGIN_STREAMS.map((stream) => [stream.key, new Map<string, { iso2: string | null; name: string | null }>()])
   );
+  const streamCountryCounts = new Map<DashboardLoginStreamKey, Map<string, DashboardCountryCount>>(
+    DASHBOARD_LOGIN_STREAMS.map((stream) => [stream.key, new Map<string, DashboardCountryCount>()])
+  );
 
   for (const event of events) {
     const idx = bucketIndex(period, start, event.createdAt);
@@ -370,7 +405,8 @@ export async function loadDashboardMetrics(params: {
 
     const counts = streamIpCounts.get(event.streamKey);
     const geo = streamIpGeo.get(event.streamKey);
-    if (!counts || !geo) continue;
+    const countries = streamCountryCounts.get(event.streamKey);
+    if (!counts || !geo || !countries) continue;
 
     counts.set(ip, (counts.get(ip) || 0) + 1);
     if (!geo.has(ip)) {
@@ -379,6 +415,8 @@ export async function loadDashboardMetrics(params: {
         name: event.countryName || null,
       });
     }
+
+    addCountryCount(countries, event.countryIso2, event.countryName);
   }
 
   const loginStreams: DashboardLoginStream[] = DASHBOARD_LOGIN_STREAMS.map((stream) => {
@@ -416,7 +454,7 @@ export async function loadDashboardMetrics(params: {
     chatLeads: leadTotals.chatLeads,
   };
 
-  const signupCountriesMap = new Map<string, number>();
+  const signupCountryCounts = new Map<string, DashboardCountryCount>();
   const legacySignupRows = signupRows.filter((row) => row.kind === "legacy");
   const externalSignupRows = signupRows.filter((row) => row.kind === "external");
   const firstLegacyIpByUser = new Map<string, string>();
@@ -469,13 +507,14 @@ export async function loadDashboardMetrics(params: {
           : null;
 
     const stored = externalStored || legacyStored || { iso2: null, name: null };
-    const country = stored.name || iso2ToCountryName(stored.iso2) || "Unknown";
-    signupCountriesMap.set(country, (signupCountriesMap.get(country) || 0) + 1);
+    addCountryCount(signupCountryCounts, stored.iso2, stored.name);
   }
 
-  const signupCountries: DashboardCountryCount[] = Array.from(signupCountriesMap.entries())
-    .map(([country, count]) => ({ country, count }))
-    .sort((left, right) => right.count - left.count);
+  const signupsCountryMetrics = Array.from(signupCountryCounts.values()).sort((left, right) => right.count - left.count);
+  const clientCountryMetrics =
+    Array.from(streamCountryCounts.get("client")?.values() || []).sort((left, right) => right.count - left.count);
+  const backofficeCountryMetrics =
+    Array.from(streamCountryCounts.get("backoffice")?.values() || []).sort((left, right) => right.count - left.count);
 
   return {
     period,
@@ -485,6 +524,10 @@ export async function loadDashboardMetrics(params: {
     signups,
     loginStreams,
     totals,
-    signupCountries,
+    countryMetrics: {
+      signups: signupsCountryMetrics,
+      clientLogins: clientCountryMetrics,
+      backofficeLogins: backofficeCountryMetrics,
+    },
   };
 }
