@@ -515,7 +515,7 @@ export default function StaffAccountsPage({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search username, email, role, brand, status..."
-                style={inputStyle}
+                style={searchInputStyle}
               />
 
               <div style={subtleTextStyle}>
@@ -937,6 +937,14 @@ const inputStyle: CSSProperties = {
   outline: "none",
   background: "#fff",
   color: "#0f172a",
+};
+
+const searchInputStyle: CSSProperties = {
+  ...inputStyle,
+  boxSizing: "border-box",
+  padding: "6px 10px",
+  fontSize: "0.86rem",
+  lineHeight: 1.2,
 };
 
 const primaryButtonStyle: CSSProperties = {
