@@ -1,8 +1,14 @@
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
+import {
+  errorStyle as sharedErrorStyle,
+  schedulingFilterCardStyle,
+  schedulingFilterControlStyle,
+  schedulingFilterFieldStyle,
+} from "../../components/adminScheduling";
 import { formatAdminDateTime } from "../../lib/adminDates";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
@@ -13,11 +19,13 @@ type AnalyticsPayload = {
     contact: number;
     chat: number;
   };
-  last7d: {
+  timeline: Array<{
+    date: string;
+    label: string;
     total: number;
     contact: number;
     chat: number;
-  };
+  }>;
   brandBreakdown: Array<{
     brandId: string | null;
     brandKey: string | null;
@@ -26,6 +34,15 @@ type AnalyticsPayload = {
     contact: number;
     chat: number;
   }>;
+  brandOptions: Array<{
+    brandId: string;
+    brandKey: string | null;
+    brandName: string | null;
+  }>;
+  range: {
+    from: string;
+    to: string;
+  };
   updatedAt: string;
 };
 
@@ -35,17 +52,39 @@ type AnalyticsProps = {
   brands: string[];
 };
 
+type AnalyticsChartPoint = AnalyticsPayload["timeline"][number];
+type AnalyticsMetricKey = "total" | "contact" | "chat";
+
+const ALL_BRANDS = "ALL";
+
 export default function AnalyticsPage({ principal, role, brands }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const defaultRange = useMemo(createDefaultRange, []);
   const [data, setData] = useState<AnalyticsPayload | null>(null);
+  const [brandFilter, setBrandFilter] = useState(ALL_BRANDS);
+  const [from, setFrom] = useState(defaultRange.from);
+  const [to, setTo] = useState(defaultRange.to);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  async function load(options?: {
+    nextBrandFilter?: string;
+    nextFrom?: string;
+    nextTo?: string;
+  }) {
+    const nextBrandFilter = options?.nextBrandFilter ?? brandFilter;
+    const nextFrom = options?.nextFrom ?? from;
+    const nextTo = options?.nextTo ?? to;
+
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch("/api/admin/analytics");
+      const params = new URLSearchParams();
+      if (nextBrandFilter !== ALL_BRANDS) params.set("brandId", nextBrandFilter);
+      params.set("from", nextFrom);
+      params.set("to", nextTo);
+
+      const response = await fetch(`/api/admin/analytics?${params.toString()}`);
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.ok) {
         throw new Error(payload?.error || "Failed to load analytics");
@@ -59,8 +98,45 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
   }
 
   useEffect(() => {
-    void load();
-  }, []);
+    void load({
+      nextBrandFilter: ALL_BRANDS,
+      nextFrom: defaultRange.from,
+      nextTo: defaultRange.to,
+    });
+  }, [defaultRange.from, defaultRange.to]);
+
+  function handleBrandChange(nextBrandFilter: string) {
+    setBrandFilter(nextBrandFilter);
+    void load({
+      nextBrandFilter,
+      nextFrom: from,
+      nextTo: to,
+    });
+  }
+
+  function handleFromChange(nextFrom: string) {
+    const nextTo = nextFrom > to ? nextFrom : to;
+    setFrom(nextFrom);
+    setTo(nextTo);
+    void load({
+      nextBrandFilter: brandFilter,
+      nextFrom,
+      nextTo,
+    });
+  }
+
+  function handleToChange(nextTo: string) {
+    const nextFrom = nextTo < from ? nextTo : from;
+    setFrom(nextFrom);
+    setTo(nextTo);
+    void load({
+      nextBrandFilter: brandFilter,
+      nextFrom,
+      nextTo,
+    });
+  }
+
+  const chartPoints = data?.timeline || [];
 
   return (
     <AdminLayout
@@ -74,70 +150,55 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
       <div style={pageHeaderStyle}>
         <h1 style={pageTitleStyle}>Analytics</h1>
         <div style={pageActionsStyle}>
-          <button type="button" onClick={load} disabled={loading} style={primaryButtonStyle}>
+          <button type="button" onClick={() => void load()} disabled={loading} style={primaryButtonStyle}>
             {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>
       </div>
 
       <AdminCard>
-        <div style={{ display: "grid", gap: "18px" }}>
-          {role !== "SUPERADMIN" ? (
-            <div style={readOnlyNoticeStyle}>
-              This view is read-only and automatically scoped to the brands assigned to this staff account.
-            </div>
-          ) : null}
+        <div style={analyticsFilterCardStyle}>
+          <label style={schedulingFilterFieldStyle}>
+            <span style={filterLabelStyle}>Brand</span>
+            <select value={brandFilter} onChange={(event) => handleBrandChange(event.target.value)} style={schedulingFilterControlStyle}>
+              <option value={ALL_BRANDS}>All Brands</option>
+              {(data?.brandOptions || []).map((brand) => (
+                <option key={brand.brandId} value={brand.brandId}>
+                  {brand.brandName || brand.brandKey || "Unnamed Brand"}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          {error ? <div style={errorStyle}>{error}</div> : null}
+          <label style={schedulingFilterFieldStyle}>
+            <span style={filterLabelStyle}>From</span>
+            <input type="date" value={from} onChange={(event) => handleFromChange(event.target.value)} style={schedulingFilterControlStyle} />
+          </label>
 
-          <div
-            style={{
-              display: "grid",
-              gap: "14px",
-              gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-            }}
-          >
-            <StatCard
-              label="Total Leads"
-              value={data ? formatCount(data.totals.total) : "—"}
-              hint="Distinct lead contacts across all recorded events in scope."
-            />
-            <StatCard
-              label="Contact Leads"
-              value={data ? formatCount(data.totals.contact) : "—"}
-              hint="Distinct website contact submissions."
-            />
-            <StatCard
-              label="Chat Leads"
-              value={data ? formatCount(data.totals.chat) : "—"}
-              hint="Distinct chat conversations."
-            />
-            <StatCard
-              label="Last 7 Days"
-              value={data ? formatCount(data.last7d.total) : "—"}
-              hint={
-                data
-                  ? `Contact: ${formatCount(data.last7d.contact)} • Chat: ${formatCount(data.last7d.chat)}`
-                  : "Distinct contacts created in the last 7 days."
-              }
-            />
-          </div>
-
-          <div style={notesPanelStyle}>
-            <div style={{ fontWeight: 700, color: "#0f172a" }}>Notes</div>
-            <ul style={notesListStyle}>
-              <li>Counts use deduped lead contacts, not raw event totals.</li>
-              <li>Brand boundaries are part of the dedupe key, so the same email on different brands stays distinct.</li>
-              <li>Last updated: {data ? formatAdminDateTime(data.updatedAt) : "—"}</li>
-            </ul>
-          </div>
+          <label style={schedulingFilterFieldStyle}>
+            <span style={filterLabelStyle}>To</span>
+            <input type="date" value={to} onChange={(event) => handleToChange(event.target.value)} style={schedulingFilterControlStyle} />
+          </label>
         </div>
       </AdminCard>
 
-      <AdminCard
-        title="Brand Breakdown"
-        description="Lead totals grouped by brand using the same deduped contact rules as the headline cards."
-      >
+      {role !== "SUPERADMIN" ? (
+        <div style={readOnlyNoticeStyle}>
+          This view is read-only and automatically scoped to the brands assigned to this staff account.
+        </div>
+      ) : null}
+
+      {error ? <div style={errorStyle}>{error}</div> : null}
+
+      <AdminCard>
+        <div style={{ display: "grid", gap: "18px" }}>
+          <LeadTrendChart points={chartPoints} />
+
+          <div style={lastUpdatedStyle}>Last updated: {data ? formatAdminDateTime(data.updatedAt) : "—"}</div>
+        </div>
+      </AdminCard>
+
+      <AdminCard title="Brand Breakdown">
         <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
           <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
             <thead>
@@ -164,7 +225,7 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
               ) : (
                 <tr>
                   <td colSpan={4} style={{ padding: "28px 18px", textAlign: "center", color: "#64748b" }}>
-                    No analytics data found.
+                    No analytics data found for the selected filters.
                   </td>
                 </tr>
               )}
@@ -191,25 +252,105 @@ export const getServerSideProps: GetServerSideProps<AnalyticsProps> = async (ctx
   };
 };
 
-function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function LeadTrendChart({ points }: { points: AnalyticsChartPoint[] }) {
+  const width = 920;
+  const height = 260;
+  const totalPath = buildLinePath(points, "total", width, height);
+  const contactPath = buildLinePath(points, "contact", width, height);
+  const chatPath = buildLinePath(points, "chat", width, height);
+  const axisLabels = buildAxisLabels(points);
+
+  if (!points.length || points.every((point) => point.total === 0 && point.contact === 0 && point.chat === 0)) {
+    return <div style={emptyStateStyle}>No lead activity was found for the selected filters.</div>;
+  }
+
   return (
-    <div
-      style={{
-        borderRadius: "12px",
-        border: "1px solid rgba(148,163,184,0.24)",
-        background: "rgba(255,255,255,0.95)",
-        padding: "18px",
-      }}
-    >
-      <div style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0f172a" }}>{label}</div>
-      <div style={{ marginTop: "10px", fontSize: "2rem", lineHeight: 1, fontWeight: 800, color: "#0f172a" }}>{value}</div>
-      {hint ? <div style={{ marginTop: "10px", color: "#64748b", fontSize: "0.88rem", lineHeight: 1.55 }}>{hint}</div> : null}
+    <div style={{ display: "grid", gap: "12px" }}>
+      <div style={legendRowStyle}>
+        <Legend label="Total Leads" color="#b91c1c" />
+        <Legend label="Contact Leads" color="var(--admin-text-primary)" />
+        <Legend label="Chat Leads" color="var(--admin-success-text)" />
+      </div>
+
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        style={{
+          width: "100%",
+          height: "260px",
+          borderRadius: "12px",
+          border: "1px solid var(--admin-border-subtle)",
+          background: "linear-gradient(180deg, var(--admin-surface-secondary) 0%, var(--admin-surface-tertiary) 100%)",
+        }}
+      >
+        <path d={contactPath} fill="none" stroke="var(--admin-text-primary)" strokeWidth="3" strokeLinecap="round" />
+        <path d={chatPath} fill="none" stroke="var(--admin-success-text)" strokeWidth="3" strokeLinecap="round" />
+        <path d={totalPath} fill="none" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
+      </svg>
+
+      <div style={axisLabelRowStyle}>
+        {axisLabels.map((point) => (
+          <div key={point.date} style={{ textAlign: "center" }}>
+            {point.label}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
+function Legend({ label, color }: { label: string; color: string }) {
+  return (
+    <span style={legendStyle}>
+      <span style={{ ...legendDotStyle, background: color }} />
+      {label}
+    </span>
+  );
+}
+
+function buildLinePath(points: AnalyticsChartPoint[], key: AnalyticsMetricKey, width: number, height: number, pad = 18) {
+  if (!points.length) return "";
+
+  const maxValue = Math.max(1, ...points.map((point) => point.total), ...points.map((point) => point.contact), ...points.map((point) => point.chat));
+  const innerWidth = width - pad * 2;
+  const innerHeight = height - pad * 2;
+
+  const xFor = (index: number) => pad + (points.length === 1 ? innerWidth / 2 : (innerWidth * index) / Math.max(points.length - 1, 1));
+  const yFor = (value: number) => pad + innerHeight - (innerHeight * value) / maxValue;
+
+  return points
+    .map((point, index) => {
+      const x = xFor(index);
+      const y = yFor(point[key]);
+      return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function buildAxisLabels(points: AnalyticsChartPoint[]) {
+  if (points.length <= 7) return points;
+
+  const lastIndex = points.length - 1;
+  const indexes = new Set<number>();
+  for (let step = 0; step < 7; step += 1) {
+    indexes.add(Math.round((lastIndex * step) / 6));
+  }
+
+  return points.filter((_, index) => indexes.has(index));
+}
+
 function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function createDefaultRange() {
+  const now = new Date();
+  const to = now.toISOString().slice(0, 10);
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  start.setUTCDate(start.getUTCDate() - 29);
+  return {
+    from: start.toISOString().slice(0, 10),
+    to,
+  };
 }
 
 const primaryButtonStyle: CSSProperties = {
@@ -245,6 +386,51 @@ const pageActionsStyle: CSSProperties = {
   gap: "10px",
 };
 
+const analyticsFilterCardStyle: CSSProperties = {
+  ...schedulingFilterCardStyle,
+  gap: "12px",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+};
+
+const filterLabelStyle: CSSProperties = {
+  fontWeight: 700,
+  color: "var(--admin-text-secondary)",
+  fontSize: "0.82rem",
+};
+
+const legendRowStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "14px",
+  color: "var(--admin-text-secondary)",
+  fontSize: "0.9rem",
+};
+
+const legendStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+};
+
+const legendDotStyle: CSSProperties = {
+  width: "10px",
+  height: "10px",
+  borderRadius: "999px",
+};
+
+const axisLabelRowStyle: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+  gap: "8px",
+  color: "var(--admin-text-muted)",
+  fontSize: "0.78rem",
+};
+
+const lastUpdatedStyle: CSSProperties = {
+  color: "var(--admin-text-muted)",
+  fontSize: "0.84rem",
+};
+
 const tableHeaderStyle: CSSProperties = {
   padding: "12px 14px",
   textAlign: "left",
@@ -261,14 +447,7 @@ const tableCellStyle: CSSProperties = {
   verticalAlign: "top",
 };
 
-const errorStyle: CSSProperties = {
-  borderRadius: "12px",
-  border: "1px solid rgba(248,113,113,0.28)",
-  background: "rgba(254,242,242,0.94)",
-  color: "#991b1b",
-  padding: "14px 16px",
-  fontSize: "0.95rem",
-};
+const errorStyle: CSSProperties = sharedErrorStyle;
 
 const readOnlyNoticeStyle: CSSProperties = {
   borderRadius: "12px",
@@ -279,17 +458,12 @@ const readOnlyNoticeStyle: CSSProperties = {
   fontSize: "0.94rem",
 };
 
-const notesPanelStyle: CSSProperties = {
+const emptyStateStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(248,250,252,0.95)",
-  padding: "16px 18px",
-};
-
-const notesListStyle: CSSProperties = {
-  margin: "10px 0 0",
-  paddingLeft: "18px",
-  color: "#475569",
-  lineHeight: 1.7,
-  fontSize: "0.92rem",
+  border: "1px dashed var(--admin-muted-border)",
+  background: "var(--admin-muted-bg)",
+  color: "var(--admin-muted-text)",
+  padding: "24px 18px",
+  fontSize: "0.94rem",
+  textAlign: "center",
 };

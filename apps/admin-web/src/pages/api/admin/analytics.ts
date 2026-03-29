@@ -16,11 +16,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!auth.ok) return json(res, 401, { ok: false, error: auth.reason === "MFA_REQUIRED" ? "MFA required" : "Unauthorized" });
 
   try {
+    const brandId = typeof req.query.brandId === "string" ? req.query.brandId : null;
+    const from = typeof req.query.from === "string" ? req.query.from : null;
+    const to = typeof req.query.to === "string" ? req.query.to : null;
+
     const analytics = await loadLeadAnalytics({
       scope: {
         role: auth.principal.role,
         allowedBrandIds: auth.principal.allowedBrandIds,
       },
+      brandId,
+      from,
+      to,
     });
 
     return json(res, 200, { ok: true, ...analytics });
