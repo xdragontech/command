@@ -955,7 +955,9 @@ export default function SchedulingCalendarPage({
                 const assignment = assignments.find((entry) => entry.id === assignmentId);
                 if (assignment) selectAssignment(assignment);
               }}
-              onDayBandSelect={(nextSeriesId) => setSeriesFilter(nextSeriesId)}
+              onDayBandSelect={(nextSeriesId) =>
+                setSeriesFilter((current) => (current === nextSeriesId ? "ALL" : nextSeriesId))
+              }
             />
 
             <div style={{ ...warningStyle, marginTop: "18px" }}>
