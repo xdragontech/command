@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       publicOrigin: context.brand.publicOrigin,
       email: req.body?.email,
       password: req.body?.password,
-      identity: getExternalRequestIdentity(req),
+      identity: getExternalRequestIdentity(req, { trustForwardedClientHeaders: true }),
     });
 
     return res.status(200).json({

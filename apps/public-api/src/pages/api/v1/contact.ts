@@ -20,6 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     perMinute: 5,
     perHour: 40,
     scopeKey: context.brand.brandKey,
+  }, {
+    trustForwardedClientHeaders: true,
   });
   if (!rateLimitOk) return;
 
@@ -27,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const result = await submitPublicContact({
       brand: context.brand,
       integration: context.integration,
-      identity: getPublicLeadRequestIdentity(req),
+      identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
       payload: req.body || {},
     });
 

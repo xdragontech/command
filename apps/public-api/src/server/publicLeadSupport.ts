@@ -1,4 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import {
+  getClientIp,
+  getCountryIso2,
+  getReferer,
+  getUserAgent,
+  toCountryName,
+  type TrustedClientIdentityOptions,
+} from "./clientIdentity";
 
 export type PublicLeadRequestIdentity = {
   ip: string;
@@ -8,55 +16,16 @@ export type PublicLeadRequestIdentity = {
   countryName: string | null;
 };
 
-function getHeader(req: NextApiRequest, name: string) {
-  const value = req.headers[name.toLowerCase()] ?? req.headers[name];
-  if (Array.isArray(value)) return value[0];
-  return typeof value === "string" ? value : undefined;
-}
-
-export function getClientIp(req: NextApiRequest): string {
-  const cfIp = getHeader(req, "cf-connecting-ip");
-  if (cfIp) return cfIp.trim();
-
-  const forwardedFor = getHeader(req, "x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) return first;
-  }
-
-  const realIp = getHeader(req, "x-real-ip");
-  if (realIp) return realIp.trim();
-
-  const socketIp = req.socket?.remoteAddress;
-  if (typeof socketIp === "string" && socketIp) return socketIp;
-
-  return "unknown";
-}
-
-function getCountryIso2(req: NextApiRequest) {
-  const value = getHeader(req, "cf-ipcountry");
-  if (!value) return null;
-  const normalized = value.trim().toUpperCase();
-  return normalized && normalized !== "XX" ? normalized : null;
-}
-
-function toCountryName(iso2: string | null) {
-  if (!iso2) return null;
-  try {
-    const display = new Intl.DisplayNames(["en"], { type: "region" });
-    return (display.of(iso2) as string) || null;
-  } catch {
-    return null;
-  }
-}
-
-export function getPublicLeadRequestIdentity(req: NextApiRequest): PublicLeadRequestIdentity {
-  const countryIso2 = getCountryIso2(req);
+export function getPublicLeadRequestIdentity(
+  req: NextApiRequest,
+  options?: TrustedClientIdentityOptions
+): PublicLeadRequestIdentity {
+  const countryIso2 = getCountryIso2(req, options);
 
   return {
-    ip: getClientIp(req),
-    userAgent: getHeader(req, "user-agent")?.trim() || null,
-    referer: getHeader(req, "referer")?.trim() || null,
+    ip: getClientIp(req, options),
+    userAgent: getUserAgent(req, options),
+    referer: getReferer(req, options),
     countryIso2,
     countryName: toCountryName(countryIso2),
   };
@@ -137,14 +106,15 @@ export type PublicLeadRateLimitConfig = {
 export async function enforcePublicLeadRateLimit(
   req: NextApiRequest,
   res: NextApiResponse,
-  config: PublicLeadRateLimitConfig
+  config: PublicLeadRateLimitConfig,
+  options?: TrustedClientIdentityOptions
 ) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return true;
 
   try {
-    const ip = getClientIp(req);
+    const ip = getClientIp(req, options);
     const now = Date.now();
     const minuteWindow = Math.floor(now / 60_000);
     const hourWindow = Math.floor(now / 3_600_000);
