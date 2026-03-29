@@ -184,6 +184,10 @@ function maxDate(a: Date, b: Date) {
   return a.getTime() >= b.getTime() ? a : b;
 }
 
+function minDate(a: Date, b: Date) {
+  return a.getTime() <= b.getTime() ? a : b;
+}
+
 function toJson(value: unknown): Prisma.InputJsonValue | undefined {
   return value == null ? undefined : (value as Prisma.InputJsonValue);
 }
@@ -305,6 +309,8 @@ export async function ingestWebsiteAnalytics(
     }
 
     if (acceptedEvents > 0) {
+      const replaceLandingAttribution = earliestEvent.occurredAt < session.startedAt;
+      const nextStartedAt = minDate(session.startedAt, earliestEvent.occurredAt);
       const nextPageViewCount = session.pageViewCount + pageViewDelta;
       const nextEngagedSeconds = session.engagedSeconds + engagedSecondsDelta;
       const nextConversionCount = session.conversionCount;
@@ -313,10 +319,67 @@ export async function ingestWebsiteAnalytics(
       const nextBounced = nextPageViewCount === 1 && !nextEngaged;
       const nextEndedAt =
         latestSessionEndAt && !sawPostEndActivity ? latestSessionEndAt : sawPostEndActivity ? null : session.endedAt;
+      const nextSourceCategory =
+        replaceLandingAttribution || session.sourceCategory === "UNKNOWN"
+          ? earliestEvent.attribution.sourceCategory
+          : session.sourceCategory;
+      const nextSourcePlatform = replaceLandingAttribution
+        ? earliestEvent.attribution.sourcePlatform
+        : session.sourcePlatform ?? earliestEvent.attribution.sourcePlatform;
+      const nextSourceMedium =
+        replaceLandingAttribution || session.sourceMedium === "UNKNOWN"
+          ? earliestEvent.attribution.sourceMedium
+          : session.sourceMedium;
+      const nextReferrerHost = replaceLandingAttribution
+        ? earliestEvent.attribution.referrerHost
+        : session.referrerHost ?? earliestEvent.attribution.referrerHost;
+      const nextReferer = replaceLandingAttribution
+        ? earliestEvent.attribution.referer
+        : session.referer ?? earliestEvent.attribution.referer;
+      const nextLandingUrl = replaceLandingAttribution
+        ? earliestEvent.url
+        : session.landingUrl ?? earliestEvent.url;
+      const nextLandingPath = replaceLandingAttribution
+        ? earliestEvent.path
+        : session.landingPath ?? earliestEvent.path;
+      const nextUtmSource = replaceLandingAttribution
+        ? earliestEvent.attribution.utmSource
+        : session.utmSource ?? earliestEvent.attribution.utmSource;
+      const nextUtmMedium = replaceLandingAttribution
+        ? earliestEvent.attribution.utmMedium
+        : session.utmMedium ?? earliestEvent.attribution.utmMedium;
+      const nextUtmCampaign = replaceLandingAttribution
+        ? earliestEvent.attribution.utmCampaign
+        : session.utmCampaign ?? earliestEvent.attribution.utmCampaign;
+      const nextUtmTerm = replaceLandingAttribution
+        ? earliestEvent.attribution.utmTerm
+        : session.utmTerm ?? earliestEvent.attribution.utmTerm;
+      const nextUtmContent = replaceLandingAttribution
+        ? earliestEvent.attribution.utmContent
+        : session.utmContent ?? earliestEvent.attribution.utmContent;
+      const nextGclid = replaceLandingAttribution
+        ? earliestEvent.attribution.gclid
+        : session.gclid ?? earliestEvent.attribution.gclid;
+      const nextFbclid = replaceLandingAttribution
+        ? earliestEvent.attribution.fbclid
+        : session.fbclid ?? earliestEvent.attribution.fbclid;
+      const nextMsclkid = replaceLandingAttribution
+        ? earliestEvent.attribution.msclkid
+        : session.msclkid ?? earliestEvent.attribution.msclkid;
+      const nextTtclid = replaceLandingAttribution
+        ? earliestEvent.attribution.ttclid
+        : session.ttclid ?? earliestEvent.attribution.ttclid;
+      const sourceEnriched =
+        nextSourceCategory !== session.sourceCategory ||
+        nextSourcePlatform !== session.sourcePlatform ||
+        nextSourceMedium !== session.sourceMedium ||
+        nextReferrerHost !== session.referrerHost ||
+        nextReferer !== session.referer;
 
       session = await tx.websiteSession.update({
         where: { id: session.id },
         data: {
+          startedAt: nextStartedAt,
           lastSeenAt: latestCreatedAt,
           endedAt: nextEndedAt,
           lastPath: latestCreatedPath,
@@ -326,30 +389,43 @@ export async function ingestWebsiteAnalytics(
           bounced: nextBounced,
           converted: nextConversionCount > 0,
           conversionCount: nextConversionCount,
-          landingUrl: session.landingUrl ?? earliestEvent.url,
-          landingPath: session.landingPath ?? earliestEvent.path,
-          sourceCategory:
-            session.sourceCategory === "UNKNOWN"
-              ? earliestEvent.attribution.sourceCategory
-              : session.sourceCategory,
-          sourcePlatform: session.sourcePlatform ?? earliestEvent.attribution.sourcePlatform,
-          sourceMedium:
-            session.sourceMedium === "UNKNOWN"
-              ? earliestEvent.attribution.sourceMedium
-              : session.sourceMedium,
-          referrerHost: session.referrerHost ?? earliestEvent.attribution.referrerHost,
-          referer: session.referer ?? earliestEvent.attribution.referer,
-          utmSource: session.utmSource ?? earliestEvent.attribution.utmSource,
-          utmMedium: session.utmMedium ?? earliestEvent.attribution.utmMedium,
-          utmCampaign: session.utmCampaign ?? earliestEvent.attribution.utmCampaign,
-          utmTerm: session.utmTerm ?? earliestEvent.attribution.utmTerm,
-          utmContent: session.utmContent ?? earliestEvent.attribution.utmContent,
-          gclid: session.gclid ?? earliestEvent.attribution.gclid,
-          fbclid: session.fbclid ?? earliestEvent.attribution.fbclid,
-          msclkid: session.msclkid ?? earliestEvent.attribution.msclkid,
-          ttclid: session.ttclid ?? earliestEvent.attribution.ttclid,
+          landingUrl: nextLandingUrl,
+          landingPath: nextLandingPath,
+          sourceCategory: nextSourceCategory,
+          sourcePlatform: nextSourcePlatform,
+          sourceMedium: nextSourceMedium,
+          referrerHost: nextReferrerHost,
+          referer: nextReferer,
+          utmSource: nextUtmSource,
+          utmMedium: nextUtmMedium,
+          utmCampaign: nextUtmCampaign,
+          utmTerm: nextUtmTerm,
+          utmContent: nextUtmContent,
+          gclid: nextGclid,
+          fbclid: nextFbclid,
+          msclkid: nextMsclkid,
+          ttclid: nextTtclid,
         },
       });
+
+      if (sourceEnriched || replaceLandingAttribution) {
+        await tx.websiteAnalyticsEvent.updateMany({
+          where: {
+            websiteSessionId: session.id,
+            OR: [
+              { sourceCategory: "UNKNOWN" },
+              { eventType: "CONVERSION" },
+            ],
+          },
+          data: {
+            sourceCategory: nextSourceCategory,
+            sourcePlatform: nextSourcePlatform,
+            sourceMedium: nextSourceMedium,
+            referrerHost: nextReferrerHost,
+            referer: nextReferer,
+          },
+        });
+      }
     }
 
     return {

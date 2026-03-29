@@ -27,6 +27,10 @@ export type PublicContactResponse =
 export type PublicContactResult = {
   status: number;
   body: PublicContactResponse;
+  analytics?: {
+    conversionEventId: string;
+    raw: Record<string, unknown>;
+  };
 };
 
 function sourceIpLabel(identity: PublicLeadRequestIdentity) {
@@ -79,6 +83,7 @@ export async function submitPublicContact(params: {
   const phone = cleanString(params.payload.phone, 80);
   const message = cleanString(params.payload.message, 4000);
   let capturedLeadId: string | undefined;
+  let capturedLeadEventId: string | undefined;
 
   if (!name) {
     return { status: 400, body: { ok: false, error: "Name is required" } };
@@ -144,7 +149,7 @@ export async function submitPublicContact(params: {
       leadId = created?.id || null;
     }
 
-    await prisma.leadEvent.create({
+    const leadEvent = await prisma.leadEvent.create({
       data: {
         ...(params.brand.brandId ? { brandId: params.brand.brandId } : {}),
         source: "CONTACT",
@@ -168,6 +173,7 @@ export async function submitPublicContact(params: {
     });
 
     capturedLeadId = leadId || undefined;
+    capturedLeadEventId = leadEvent.id;
   } catch (error) {
     console.error("Public contact lead DB write failed", error);
   }
@@ -203,6 +209,16 @@ export async function submitPublicContact(params: {
     return {
       status: 200,
       body: { ok: true, id, notification: "sent" },
+      analytics: capturedLeadEventId
+        ? {
+            conversionEventId: `contact:${capturedLeadEventId}`,
+            raw: {
+              leadEventId: capturedLeadEventId,
+              leadId: capturedLeadId || null,
+              source: "CONTACT",
+            },
+          }
+        : undefined,
     };
   } catch (error) {
     console.error("Public contact email send failed", error);
@@ -210,6 +226,16 @@ export async function submitPublicContact(params: {
       return {
         status: 202,
         body: { ok: true, id: capturedLeadId, notification: "deferred" },
+        analytics: capturedLeadEventId
+          ? {
+              conversionEventId: `contact:${capturedLeadEventId}`,
+              raw: {
+                leadEventId: capturedLeadEventId,
+                leadId: capturedLeadId,
+                source: "CONTACT",
+              },
+            }
+          : undefined,
       };
     }
 

@@ -56,6 +56,10 @@ export type PublicChatResponse =
 export type PublicChatResult = {
   status: number;
   body: PublicChatResponse;
+  analytics?: {
+    conversionEventId: string;
+    raw: Record<string, unknown>;
+  };
 };
 
 let openaiClient: OpenAI | null | undefined;
@@ -485,12 +489,14 @@ export async function submitPublicChat(params: {
     let emailed = false;
     const alreadyEmailed = Boolean(params.payload.emailed);
 
-    if (!alreadyEmailed && wantsFollowUp) {
-      const validReady =
-        (mergedLead.preferred_contact === "email" && isValidEmail(mergedLead.email)) ||
+    const validReady =
+      wantsFollowUp &&
+      ((mergedLead.preferred_contact === "email" && isValidEmail(mergedLead.email)) ||
         ((mergedLead.preferred_contact === "phone" || mergedLead.preferred_contact === "text") &&
           Boolean(mergedLead.phone)) ||
-        (!mergedLead.preferred_contact && (isValidEmail(mergedLead.email) || Boolean(mergedLead.phone)));
+        (!mergedLead.preferred_contact && (isValidEmail(mergedLead.email) || Boolean(mergedLead.phone))));
+
+    if (!alreadyEmailed && wantsFollowUp) {
 
       if (invalidEmailAttempt && mergedLead.preferred_contact === "email" && !mergedLead.phone) {
         try {
@@ -533,8 +539,9 @@ export async function submitPublicChat(params: {
       Boolean(mergedLead.name);
 
     if (shouldLogLead) {
+      let leadEventId: string | null = null;
       try {
-        await prisma.leadEvent.create({
+        const leadEvent = await prisma.leadEvent.create({
           data: {
             ...(params.brand.brandId ? { brandId: params.brand.brandId } : {}),
             source: "CHAT",
@@ -563,6 +570,7 @@ export async function submitPublicChat(params: {
             },
           },
         });
+        leadEventId = leadEvent.id;
       } catch (error) {
         console.error("Public chat lead DB write failed", error);
       }
@@ -585,6 +593,34 @@ export async function submitPublicChat(params: {
         reply,
         emailed,
       });
+
+      const chatConversionKey = conversationId || leadEventId;
+      const analytics =
+        validReady && chatConversionKey
+          ? {
+              conversionEventId: `chat:${chatConversionKey}`,
+              raw: {
+                source: "CHAT",
+                conversationId: conversationId || null,
+                leadEventId,
+                lead: mergedLead,
+                wants_follow_up: wantsFollowUp,
+                emailed,
+              },
+            }
+          : undefined;
+
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          reply,
+          lead: mergedLead,
+          returnId,
+          emailed,
+        },
+        analytics,
+      };
     }
 
     return {

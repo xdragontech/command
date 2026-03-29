@@ -80,6 +80,28 @@ export type ExternalSessionState = {
   account: ExternalPublicAccount;
 };
 
+export type ExternalLoginResult = ExternalSessionState & {
+  analytics: {
+    loginEventId: string;
+  };
+};
+
+export type ExternalRegisterResult = {
+  ok: true;
+  verificationRequired: true;
+  analytics?: {
+    createdUserId: string;
+  };
+};
+
+export type ExternalVerifyEmailResult = {
+  ok: true;
+  verified: true;
+  analytics: {
+    verifiedUserId: string;
+  };
+};
+
 export class ExternalAuthServiceError extends Error {
   readonly status: number;
 
@@ -386,14 +408,15 @@ function toCountryName(countryIso2: string | null | undefined) {
 async function createExternalSessionState(params: {
   user: ExternalUserWithBrand;
   identity: ExternalRequestIdentity;
-}) {
+}): Promise<ExternalLoginResult> {
   const token = createSessionToken();
   const expires = new Date(Date.now() + getExternalSessionTtlMs());
+  const lastLoginAt = new Date();
 
-  await prisma.$transaction([
+  const [, , loginEvent] = await prisma.$transaction([
     prisma.externalUser.update({
       where: { id: params.user.id },
-      data: { lastLoginAt: new Date() },
+      data: { lastLoginAt },
     }),
     prisma.externalSession.create({
       data: {
@@ -411,6 +434,9 @@ async function createExternalSessionState(params: {
         countryIso2: params.identity.countryIso2 || null,
         countryName: params.identity.countryName || toCountryName(params.identity.countryIso2) || null,
       },
+      select: {
+        id: true,
+      },
     }),
   ]);
 
@@ -421,9 +447,12 @@ async function createExternalSessionState(params: {
     },
     account: toExternalPublicAccount({
       ...params.user,
-      lastLoginAt: new Date(),
+      lastLoginAt,
     }),
-  } satisfies ExternalSessionState;
+    analytics: {
+      loginEventId: loginEvent.id,
+    },
+  };
 }
 
 async function requireAccessibleSession(
@@ -465,7 +494,7 @@ export async function registerExternalUser(params: {
   email: unknown;
   password: unknown;
   name?: unknown;
-}) {
+}): Promise<ExternalRegisterResult> {
   const brand = await requireBrandContext(params.brandKey, params.publicOrigin);
   const email = requireEmail(params.email);
   const password = requirePassword(params.password);
@@ -481,10 +510,12 @@ export async function registerExternalUser(params: {
   const verificationToken = crypto.randomBytes(32).toString("hex");
   const verificationTokenHash = sha256(verificationToken);
   const expires = new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS);
+  let createdUserId: string | null = null;
+  let createdNewUser = false;
 
   await prisma.$transaction(async (tx) => {
     if (existing) {
-      await tx.externalUser.update({
+      const updated = await tx.externalUser.update({
         where: { id: existing.id },
         data: {
           name,
@@ -493,8 +524,9 @@ export async function registerExternalUser(params: {
           emailVerified: null,
         },
       });
+      createdUserId = updated.id;
     } else {
-      await tx.externalUser.create({
+      const created = await tx.externalUser.create({
         data: {
           brandId: brand.brandId,
           email,
@@ -504,6 +536,8 @@ export async function registerExternalUser(params: {
           emailVerified: null,
         },
       });
+      createdUserId = created.id;
+      createdNewUser = true;
     }
 
     await tx.externalEmailVerificationToken.deleteMany({
@@ -533,6 +567,12 @@ export async function registerExternalUser(params: {
   return {
     ok: true as const,
     verificationRequired: true as const,
+    analytics:
+      createdNewUser && createdUserId
+        ? {
+            createdUserId,
+          }
+        : undefined,
   };
 }
 
@@ -542,7 +582,7 @@ export async function loginExternalUser(params: {
   email: unknown;
   password: unknown;
   identity: ExternalRequestIdentity;
-}) {
+}): Promise<ExternalLoginResult> {
   const brand = await requireBrandContext(params.brandKey, params.publicOrigin);
   const email = requireEmail(params.email);
 
@@ -602,7 +642,7 @@ export async function verifyExternalEmail(params: {
   brandKey: string;
   publicOrigin: string;
   token: unknown;
-}) {
+}): Promise<ExternalVerifyEmailResult> {
   const brand = await requireBrandContext(params.brandKey, params.publicOrigin);
   const rawToken = requireToken(params.token, "Token");
   const tokenHash = sha256(rawToken);
@@ -630,12 +670,14 @@ export async function verifyExternalEmail(params: {
     throw new ExternalAuthServiceError(400, "Verification token is invalid");
   }
 
+  const user = await findExternalUserByBrandAndEmail(brand.brandId, email);
+  if (!user) {
+    throw new ExternalAuthServiceError(404, "Verification token not found");
+  }
+
   await prisma.$transaction([
-    prisma.externalUser.updateMany({
-      where: {
-        brandId: brand.brandId,
-        email,
-      },
+    prisma.externalUser.update({
+      where: { id: user.id },
       data: {
         emailVerified: new Date(),
         status: ExternalUserStatus.ACTIVE,
@@ -651,6 +693,9 @@ export async function verifyExternalEmail(params: {
   return {
     ok: true as const,
     verified: true as const,
+    analytics: {
+      verifiedUserId: user.id,
+    },
   };
 }
 

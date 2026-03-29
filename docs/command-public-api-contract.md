@@ -35,6 +35,7 @@ The BFF is responsible for:
 - forwarding that token to `command`
 - fetching the current published analytics consent notice for the brand and rendering the consent banner from that source of truth
 - creating and forwarding the consent-gated website analytics session identifier for first-party analytics batches
+- forwarding that same website analytics session identifier on conversion-relevant auth/service requests so `command` can link conversions server-side
 - shielding the browser from integration credentials and raw `command` session details
 
 **Trust Layers**
@@ -104,6 +105,12 @@ Deferred from this contract:
 - fetch the current published analytics consent notice
 - ingest consented first-party website analytics event batches
 - normalize attribution and session summaries inside `command`
+- link server-owned conversions to forwarded website session IDs on:
+  - register
+  - verify email
+  - login
+  - contact
+  - chat
 
 **Recommended v1 Conventions**
 - path prefix: `/v1`
