@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   accountListBadgeColumnStyle,
-  accountListBottomLeftStyle,
   accountListBottomRightStyle,
   accountListCardHeaderStyle,
   accountListCardIdentityStyle,
@@ -564,14 +563,12 @@ export default function StaffAccountsPage({
                             {user.email || "No email set"}
                           </div>
                         </div>
-                        <div style={accountListBadgeColumnStyle}>
+                        <div style={{ ...accountListBadgeColumnStyle, display: "flex", gap: "6px", alignItems: "center" }}>
                           <RolePill role={user.role} compact />
-                        </div>
-                        <div style={accountListBottomLeftStyle}>
-                          <MfaPill state={user.mfaState} compact />
+                          <StatusPill status={user.status} compact />
                         </div>
                         <div style={accountListBottomRightStyle}>
-                          <StatusPill status={user.status} compact />
+                          <MfaPill state={user.mfaState} compact />
                         </div>
                       </div>
                     </button>
