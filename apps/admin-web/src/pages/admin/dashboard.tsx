@@ -15,12 +15,80 @@ type DashboardProps = {
 };
 
 type MetricsResponse = ({ ok: true } & DashboardMetrics) | { ok: false; error: string };
+type CountryMetricMode = "signups" | "clientLogins" | "backofficeLogins";
 
 const PERIOD_OPTIONS: Array<{ value: MetricsPeriod; label: string }> = [
   { value: "today", label: "Today" },
   { value: "7d", label: "7 Days" },
   { value: "month", label: "Month" },
 ];
+
+const COUNTRY_METRIC_OPTIONS: Array<{ value: CountryMetricMode; label: string }> = [
+  { value: "signups", label: "Signups" },
+  { value: "clientLogins", label: "Client Logins" },
+  { value: "backofficeLogins", label: "Backoffice Logins" },
+];
+
+const COUNTRY_POINT_POSITIONS: Record<string, { x: number; y: number }> = {
+  AR: { x: 302, y: 432 },
+  AT: { x: 551, y: 151 },
+  AU: { x: 836, y: 404 },
+  BE: { x: 510, y: 141 },
+  BR: { x: 318, y: 346 },
+  CA: { x: 184, y: 126 },
+  CH: { x: 525, y: 154 },
+  CL: { x: 262, y: 390 },
+  CN: { x: 782, y: 189 },
+  CO: { x: 277, y: 283 },
+  CZ: { x: 553, y: 142 },
+  DE: { x: 533, y: 133 },
+  DK: { x: 530, y: 114 },
+  DZ: { x: 505, y: 223 },
+  EG: { x: 575, y: 216 },
+  ES: { x: 482, y: 165 },
+  ET: { x: 595, y: 296 },
+  FI: { x: 571, y: 83 },
+  FR: { x: 501, y: 151 },
+  GB: { x: 456, y: 120 },
+  GR: { x: 577, y: 185 },
+  HK: { x: 812, y: 210 },
+  HU: { x: 561, y: 153 },
+  ID: { x: 817, y: 324 },
+  IE: { x: 442, y: 124 },
+  IL: { x: 600, y: 214 },
+  IN: { x: 701, y: 255 },
+  IR: { x: 648, y: 206 },
+  IT: { x: 545, y: 170 },
+  JP: { x: 875, y: 190 },
+  KE: { x: 584, y: 316 },
+  KR: { x: 848, y: 181 },
+  KZ: { x: 697, y: 154 },
+  MA: { x: 467, y: 209 },
+  MX: { x: 150, y: 221 },
+  MY: { x: 776, y: 289 },
+  NG: { x: 510, y: 286 },
+  NL: { x: 514, y: 133 },
+  NO: { x: 530, y: 78 },
+  NZ: { x: 917, y: 450 },
+  PE: { x: 270, y: 332 },
+  PH: { x: 821, y: 246 },
+  PK: { x: 674, y: 231 },
+  PL: { x: 561, y: 130 },
+  PT: { x: 458, y: 164 },
+  QA: { x: 648, y: 240 },
+  RO: { x: 584, y: 160 },
+  RU: { x: 691, y: 96 },
+  SA: { x: 632, y: 240 },
+  SE: { x: 548, y: 86 },
+  SG: { x: 784, y: 300 },
+  TH: { x: 760, y: 255 },
+  TR: { x: 611, y: 180 },
+  TW: { x: 833, y: 214 },
+  UA: { x: 596, y: 136 },
+  US: { x: 192, y: 171 },
+  VN: { x: 791, y: 256 },
+  ZA: { x: 563, y: 422 },
+};
 
 function buildLinePath(values: number[], maxValue: number, width: number, height: number, pad = 18) {
   if (!values.length) return "";
@@ -56,7 +124,11 @@ function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardMetrics {
     signups: [],
     loginStreams: [],
     totals: { signups: 0, clientLogins: 0, backofficeLogins: 0, leads: 0, chatLeads: 0 },
-    signupCountries: [],
+    countryMetrics: {
+      signups: [],
+      clientLogins: [],
+      backofficeLogins: [],
+    },
   };
 }
 
@@ -70,7 +142,10 @@ function isDashboardMetrics(value: unknown): value is DashboardMetrics {
     Array.isArray(input.labels) &&
     Array.isArray(input.signups) &&
     Array.isArray(input.loginStreams) &&
-    Array.isArray(input.signupCountries) &&
+    !!input.countryMetrics &&
+    Array.isArray(input.countryMetrics.signups) &&
+    Array.isArray(input.countryMetrics.clientLogins) &&
+    Array.isArray(input.countryMetrics.backofficeLogins) &&
     !!input.totals &&
     typeof input.totals.signups === "number" &&
     typeof input.totals.clientLogins === "number" &&
@@ -224,42 +299,117 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
   );
 }
 
-function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
-  const rows = metrics.signupCountries.slice(0, 8);
+function CountriesMap({
+  rows,
+  mode,
+}: {
+  rows: DashboardMetrics["countryMetrics"][CountryMetricMode];
+  mode: CountryMetricMode;
+}) {
+  const positionedRows = rows
+    .map((row) => ({
+      ...row,
+      point: row.countryIso2 ? COUNTRY_POINT_POSITIONS[row.countryIso2] : undefined,
+    }))
+    .filter((row): row is (typeof rows)[number] & { point: { x: number; y: number } } => Boolean(row.point));
 
-  if (!rows.length) {
-    return <div style={emptyStateStyle}>No signup country data is available for this period yet.</div>;
-  }
+  const palette =
+    mode === "signups"
+      ? { glow: "rgba(185,28,28,0.26)", dot: "#b91c1c" }
+      : mode === "clientLogins"
+        ? { glow: "rgba(15,23,42,0.22)", dot: "#0f172a" }
+        : { glow: "rgba(37,99,235,0.24)", dot: "#2563eb" };
 
-  const maxValue = Math.max(...rows.map((row) => row.count), 1);
+  const maxCount = Math.max(...positionedRows.map((row) => row.count), 1);
+  const visibleRows = positionedRows.slice(0, 24);
+  const emptyLabel =
+    mode === "signups"
+      ? "No signup country data is available for this period yet."
+      : mode === "clientLogins"
+        ? "No client login country data is available for this period yet."
+        : "No backoffice login country data is available for this period yet.";
 
   return (
     <div style={{ display: "grid", gap: "12px" }}>
-      {rows.map((row) => (
-        <div key={`${row.country || "Unknown"}-${row.count}`} style={{ display: "grid", gap: "6px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "0.92rem" }}>
-            <span style={{ color: "var(--admin-text-primary)", fontWeight: 700 }}>{row.country || "Unknown"}</span>
-            <span style={{ color: "var(--admin-text-secondary)" }}>{formatCount(row.count)}</span>
-          </div>
-          <div
-            style={{
-              borderRadius: "12px",
-              background: "var(--admin-surface-tertiary)",
-              overflow: "hidden",
-              height: "10px",
-            }}
-          >
-            <div
-              style={{
-                width: `${Math.max(8, (row.count / maxValue) * 100)}%`,
-                height: "100%",
-                borderRadius: "12px",
-                background: "linear-gradient(90deg, #2563eb 0%, var(--admin-text-primary) 100%)",
-              }}
-            />
-          </div>
-        </div>
-      ))}
+      <svg
+        viewBox="0 0 960 520"
+        style={{
+          width: "100%",
+          height: "320px",
+          borderRadius: "12px",
+          border: "1px solid var(--admin-border-subtle)",
+          background: "linear-gradient(180deg, var(--admin-surface-secondary) 0%, var(--admin-surface-tertiary) 100%)",
+        }}
+        role="img"
+        aria-label="Country activity heat map"
+      >
+        <defs>
+          <filter id="country-heat-blur">
+            <feGaussianBlur stdDeviation="16" />
+          </filter>
+          <filter id="country-heat-soft">
+            <feGaussianBlur stdDeviation="8" />
+          </filter>
+        </defs>
+
+        <rect x="0" y="0" width="960" height="520" fill="transparent" />
+
+        <g fill="#dbe4ef" stroke="rgba(148,163,184,0.35)" strokeWidth="2">
+          <path d="M94 126 C120 78 190 60 242 91 C267 106 290 132 285 160 C279 194 257 224 220 230 C192 234 166 225 150 210 C132 194 118 188 104 164 C92 144 86 140 94 126 Z" />
+          <path d="M238 246 C263 250 281 268 287 295 C291 322 282 344 269 367 C257 388 247 410 237 438 C227 414 220 392 214 362 C208 334 200 304 205 282 C210 264 221 250 238 246 Z" />
+          <path d="M418 108 C445 88 488 82 520 92 C550 88 575 84 604 90 C650 98 693 118 728 140 C754 157 790 175 822 176 C840 176 858 187 867 205 C854 219 830 226 811 222 C780 217 760 231 740 245 C716 228 690 224 666 215 C638 213 624 226 602 236 C580 244 552 238 530 225 C504 210 480 198 454 190 C430 181 408 160 404 138 C402 126 407 116 418 108 Z" />
+          <path d="M498 228 C526 230 550 246 565 270 C575 290 579 319 569 345 C560 370 545 390 523 408 C507 389 494 370 486 344 C478 320 477 294 481 269 C485 250 490 236 498 228 Z" />
+          <path d="M756 345 C778 338 802 344 818 358 C829 371 829 390 817 403 C800 413 776 416 758 406 C741 396 735 377 742 360 C746 353 750 348 756 345 Z" />
+          <path d="M430 80 C445 67 467 67 482 79 C470 92 448 96 430 80 Z" />
+        </g>
+
+        <g opacity="0.92">
+          {visibleRows.map((row) => {
+            const intensity = row.count / maxCount;
+            const radius = 18 + intensity * 44;
+            return (
+              <g key={`${mode}-${row.countryIso2 || row.country}-${row.count}`}>
+                <circle
+                  cx={row.point.x}
+                  cy={row.point.y}
+                  r={radius}
+                  fill={palette.glow}
+                  filter="url(#country-heat-blur)"
+                />
+                <circle
+                  cx={row.point.x}
+                  cy={row.point.y}
+                  r={Math.max(10, radius * 0.58)}
+                  fill={palette.glow}
+                  filter="url(#country-heat-soft)"
+                />
+                <circle cx={row.point.x} cy={row.point.y} r={Math.max(4, radius * 0.16)} fill={palette.dot} />
+              </g>
+            );
+          })}
+        </g>
+
+        {!visibleRows.length ? (
+          <g>
+            <rect x="300" y="226" width="360" height="68" rx="14" fill="rgba(255,255,255,0.88)" />
+            <text
+              x="480"
+              y="265"
+              textAnchor="middle"
+              fill="#475569"
+              fontSize="21"
+              fontWeight="600"
+              fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+            >
+              No country activity in this range
+            </text>
+          </g>
+        ) : null}
+      </svg>
+
+      {!visibleRows.length ? (
+        <div style={{ color: "var(--admin-text-secondary)", fontSize: "0.88rem" }}>{emptyLabel}</div>
+      ) : null}
     </div>
   );
 }
@@ -304,12 +454,14 @@ export default function DashboardPage({
   const safeInitialMetrics = isDashboardMetrics(initialMetrics) ? initialMetrics : fallbackMetrics();
   const [metrics, setMetrics] = useState<DashboardMetrics>(safeInitialMetrics);
   const [selectedPeriod, setSelectedPeriod] = useState<MetricsPeriod>(safeInitialMetrics.period);
+  const [selectedCountryMetric, setSelectedCountryMetric] = useState<CountryMetricMode>("signups");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     isDashboardMetrics(initialMetrics) ? null : "Dashboard metrics were unavailable. Refresh the page to try again."
   );
   const clientLoginStream = metrics.loginStreams.find((stream) => stream.key === "client");
   const backofficeLoginStream = metrics.loginStreams.find((stream) => stream.key === "backoffice");
+  const selectedCountryRows = metrics.countryMetrics[selectedCountryMetric] || [];
 
   async function loadPeriod(nextPeriod: MetricsPeriod) {
     if (nextPeriod === selectedPeriod && !error) return;
@@ -437,10 +589,37 @@ export default function DashboardPage({
         }}
       >
         <AdminCard
-          title="Signup Countries"
-          description="Country distribution is derived from the earliest stored login geography for each signup in the selected period."
+          title="Countries"
+          actions={
+            <label style={{ display: "grid", gap: "6px", justifyItems: "end" }}>
+              <span style={{ color: "var(--admin-text-muted)", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                Metric
+              </span>
+              <select
+                value={selectedCountryMetric}
+                onChange={(event) => setSelectedCountryMetric(event.target.value as CountryMetricMode)}
+                style={{
+                  minWidth: "188px",
+                  borderRadius: "12px",
+                  border: "1px solid var(--admin-border-strong)",
+                  background: "var(--admin-surface-primary)",
+                  color: "var(--admin-text-primary)",
+                  padding: "9px 12px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  outline: "none",
+                }}
+              >
+                {COUNTRY_METRIC_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
         >
-          <TopCountryList metrics={metrics} />
+          <CountriesMap rows={selectedCountryRows} mode={selectedCountryMetric} />
         </AdminCard>
 
         <AdminCard
