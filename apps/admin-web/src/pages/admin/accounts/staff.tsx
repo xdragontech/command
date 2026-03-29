@@ -2,6 +2,7 @@ import { BackofficeRole, BackofficeUserStatus, BrandStatus } from "@prisma/clien
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { accountListHeaderStackStyle, accountListRowsStyle, createAccountSearchInputStyle } from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import { formatAdminDateTime } from "../../../lib/adminDates";
@@ -510,7 +511,7 @@ export default function StaffAccountsPage({
 
         <div style={splitLayoutStyle}>
           <section style={panelStyle}>
-            <div style={{ display: "grid", gap: "8px" }}>
+            <div style={accountListHeaderStackStyle}>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -523,7 +524,7 @@ export default function StaffAccountsPage({
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: "12px", marginTop: "10px" }}>
+            <div style={accountListRowsStyle}>
               {loading ? (
                 <div style={mutedPanelStyle}>Loading...</div>
               ) : filteredUsers.length === 0 ? (
@@ -940,12 +941,7 @@ const inputStyle: CSSProperties = {
 };
 
 const searchInputStyle: CSSProperties = {
-  ...inputStyle,
-  boxSizing: "border-box",
-  height: "32px",
-  padding: "6px 10px",
-  fontSize: "0.86rem",
-  lineHeight: 1.2,
+  ...createAccountSearchInputStyle(inputStyle),
 };
 
 const primaryButtonStyle: CSSProperties = {
