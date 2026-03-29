@@ -102,6 +102,11 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             active: pathname === "/admin/reports/leads" || pathname === "/admin/analytics" || pathname === "/admin/reports",
           },
           {
+            label: "Traffic",
+            href: "/admin/reports/traffic",
+            active: pathname === "/admin/reports/traffic",
+          },
+          {
             label: "Events",
             href: "/admin/reports/events",
             active: pathname === "/admin/reports/events",
