@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   accountListBadgeColumnStyle,
+  accountListBottomLeftStyle,
+  accountListBottomRightStyle,
   accountListCardHeaderStyle,
   accountListCardIdentityStyle,
   accountListCardStyle,
   accountListDensePillStyle,
-  accountListFooterTextStyle,
   accountListHeaderStackStyle,
   accountListNameStyle,
   accountListPanelStyle,
@@ -504,7 +505,6 @@ export default function StaffAccountsPage({
     >
       <AdminCard
         title="Staff Accounts"
-        description="Create and manage staff and superadmin accounts for the shared backoffice."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData(selectedId)} disabled={loading} style={secondaryButtonStyle}>
@@ -566,16 +566,13 @@ export default function StaffAccountsPage({
                         </div>
                         <div style={accountListBadgeColumnStyle}>
                           <RolePill role={user.role} compact />
-                          <StatusPill status={user.status} compact />
+                        </div>
+                        <div style={accountListBottomLeftStyle}>
                           <MfaPill state={user.mfaState} compact />
                         </div>
-                      </div>
-                      <div style={accountListFooterTextStyle}>
-                        {user.role === BackofficeRole.SUPERADMIN
-                          ? "All brands"
-                          : user.brandKeys.length > 0
-                            ? user.brandKeys.join(", ")
-                            : "No brands assigned"}
+                        <div style={accountListBottomRightStyle}>
+                          <StatusPill status={user.status} compact />
+                        </div>
                       </div>
                     </button>
                   );

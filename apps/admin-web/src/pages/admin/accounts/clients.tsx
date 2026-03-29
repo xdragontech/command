@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   accountListBadgeColumnStyle,
+  accountListBottomRightStyle,
   accountListCardHeaderStyle,
   accountListCardIdentityStyle,
   accountListCardStyle,
@@ -13,7 +14,6 @@ import {
   accountListPanelStyle,
   accountListPillStyle,
   accountListRowsStyle,
-  accountListSecondaryTextStyle,
   accountSplitLayoutStyle,
   createAccountSearchInputStyle,
   selectedAccountListCardStyle,
@@ -421,18 +421,14 @@ export default function ClientAccountsPage({
                       <div style={accountListCardHeaderStyle}>
                         <div style={accountListCardIdentityStyle}>
                           <div style={accountListNameStyle}>{user.name || user.email}</div>
-                          <div style={accountListSecondaryTextStyle}>
-                            {user.email}
-                          </div>
                         </div>
                         <div style={accountListBadgeColumnStyle}>
                           <VerificationPill verified={Boolean(user.emailVerifiedAt)} compact />
+                        </div>
+                        <div style={accountListFooterTextStyle}>{user.email}</div>
+                        <div style={accountListBottomRightStyle}>
                           <StatusPill status={user.status} compact />
                         </div>
-                      </div>
-                      <div style={accountListFooterTextStyle}>
-                        {user.brandName} · {user.brandKey}
-                        {user.providerCount > 0 ? ` · ${user.providerLabels.join(", ")}` : ""}
                       </div>
                     </button>
                   );
