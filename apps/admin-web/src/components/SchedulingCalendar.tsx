@@ -37,7 +37,12 @@ export type SchedulingCalendarSelection = {
 
 export type SchedulingCalendarDayBand = {
   date: string;
-  labels: string[];
+  items: Array<{
+    seriesId: string;
+    label: string;
+    color: string;
+    selected: boolean;
+  }>;
 };
 
 export function SchedulingCalendar({
@@ -47,6 +52,7 @@ export function SchedulingCalendar({
   onRangeChange,
   onSelect,
   onEventOpen,
+  onDayBandSelect,
 }: {
   events: SchedulingCalendarEvent[];
   dayBands: SchedulingCalendarDayBand[];
@@ -54,6 +60,7 @@ export function SchedulingCalendar({
   onRangeChange: (range: SchedulingCalendarRange) => void;
   onSelect: (selection: SchedulingCalendarSelection) => void;
   onEventOpen: (assignmentId: string) => void;
+  onDayBandSelect?: (seriesId: string) => void;
 }) {
   const calendarRef = useRef<FullCalendar | null>(null);
   const [currentView, setCurrentView] = useState<CalendarView>("timeGridWeek");
@@ -122,9 +129,9 @@ export function SchedulingCalendar({
     onEventOpen(assignmentId);
   }
 
-  const dayBandLabelsByDate = useMemo(() => {
-    return dayBands.reduce<Record<string, string[]>>((acc, entry) => {
-      acc[entry.date] = entry.labels;
+  const dayBandItemsByDate = useMemo(() => {
+    return dayBands.reduce<Record<string, SchedulingCalendarDayBand["items"]>>((acc, entry) => {
+      acc[entry.date] = entry.items;
       return acc;
     }, {});
   }, [dayBands]);
@@ -133,17 +140,22 @@ export function SchedulingCalendar({
     if (currentView === "dayGridMonth") return arg.text;
 
     const dateKey = formatUtcDate(arg.date);
-    const labels = dayBandLabelsByDate[dateKey] || [];
+    const items = dayBandItemsByDate[dateKey] || [];
 
     return (
       <div style={{ display: "grid", gap: "6px", padding: "2px 0 6px" }}>
         <div>{arg.text}</div>
-        {labels.length > 0 ? (
+        {items.length > 0 ? (
           <div style={{ display: "grid", gap: "4px" }}>
-            {labels.map((label) => (
-              <div key={`${dateKey}:${label}`} style={dayBandChipStyle}>
-                {label}
-              </div>
+            {items.map((item) => (
+              <button
+                key={`${dateKey}:${item.seriesId}`}
+                type="button"
+                onClick={() => onDayBandSelect?.(item.seriesId)}
+                style={dayBandChipStyle(item.color, item.selected)}
+              >
+                {item.label}
+              </button>
             ))}
           </div>
         ) : (
@@ -255,21 +267,41 @@ export function SchedulingCalendar({
   );
 }
 
-const dayBandChipStyle = {
+const dayBandChipBaseStyle = {
+  appearance: "none" as const,
   display: "block",
   width: "100%",
   boxSizing: "border-box" as const,
   borderRadius: "10px",
-  border: "1px solid rgba(239,68,68,0.18)",
-  background: "#fee2e2",
-  color: "#991b1b",
   padding: "4px 6px",
   fontSize: "0.72rem",
   fontWeight: 700,
   lineHeight: 1.25,
   textAlign: "left" as const,
+  cursor: "pointer",
+  fontFamily: "inherit",
 } as const;
 
 const dayBandSpacerStyle = {
   minHeight: "1px",
 } as const;
+
+function dayBandChipStyle(color: string, selected: boolean) {
+  return {
+    ...dayBandChipBaseStyle,
+    border: `1px solid ${hexToRgba(color, selected ? 0.52 : 0.26)}`,
+    background: hexToRgba(color, selected ? 0.24 : 0.14),
+    color: "var(--admin-text-primary)",
+    boxShadow: selected ? `inset 0 0 0 1px ${hexToRgba(color, 0.36)}` : "none",
+  };
+}
+
+function hexToRgba(hex: string, alpha: number) {
+  const match = String(hex || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  if (!match) return `rgba(239,68,68,${alpha})`;
+  const value = match[1];
+  const red = parseInt(value.slice(0, 2), 16);
+  const green = parseInt(value.slice(2, 4), 16);
+  const blue = parseInt(value.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}

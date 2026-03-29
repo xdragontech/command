@@ -283,6 +283,7 @@ model ScheduleEventSeries {
   brandId                    String
   name                       String
   slug                       String
+  color                      String                    @default("#ef4444")
   description                String?
   timezone                   String
   status                     ScheduleEventSeriesStatus @default(DRAFT)

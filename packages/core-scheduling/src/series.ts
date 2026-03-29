@@ -1,11 +1,13 @@
 import { Prisma, ScheduleRecurrencePattern, type ScheduleWeekday } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
+  DEFAULT_SCHEDULE_EVENT_COLOR,
   addDays,
   ensureBrand,
   normalizeNullableId,
   normalizeNullableText,
   normalizeText,
+  parseScheduleEventColor,
   normalizeWeekdays,
   parseIsoDateOnly,
   parseMinuteOfDay,
@@ -52,6 +54,7 @@ function toSeriesRecord(series: SeriesWithBrand): ScheduleEventSeriesRecord {
     brandName: series.brand.name,
     name: series.name,
     slug: series.slug,
+    color: series.color,
     description: series.description || null,
     timezone: series.timezone,
     status: series.status,
@@ -176,6 +179,7 @@ export async function createScheduleEventSeries(params: {
   const name = normalizeText(params.input.name);
   if (!name) throw new Error("Series name is required");
 
+  const color = parseScheduleEventColor(params.input.color, DEFAULT_SCHEDULE_EVENT_COLOR);
   const description = normalizeNullableText(params.input.description);
   const timezone = validateTimezone(params.input.timezone);
   const status = parseSeriesStatus(params.input.status);
@@ -218,6 +222,7 @@ export async function createScheduleEventSeries(params: {
         brandId,
         name,
         slug,
+        color,
         description,
         timezone,
         status,
@@ -309,6 +314,7 @@ export async function updateScheduleEventSeries(params: {
   const name = normalizeText(params.input.name ?? existing.name);
   if (!name) throw new Error("Series name is required");
 
+  const color = params.input.color === undefined ? existing.color : parseScheduleEventColor(params.input.color, existing.color);
   const description = params.input.description === undefined ? existing.description : normalizeNullableText(params.input.description);
   const timezone = params.input.timezone === undefined ? existing.timezone : validateTimezone(params.input.timezone);
   const status = params.input.status === undefined ? existing.status : parseSeriesStatus(params.input.status);
@@ -395,6 +401,7 @@ export async function updateScheduleEventSeries(params: {
       data: {
         name,
         slug,
+        color,
         description,
         timezone,
         status,

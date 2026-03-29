@@ -72,6 +72,7 @@ type CalendarSeriesOption = {
   id: string;
   brandId: string;
   name: string;
+  color: string;
 };
 
 type AssignmentForm = {
@@ -351,25 +352,34 @@ export default function SchedulingCalendarPage({
   }, [filteredAssignments, participantFilter, resourceFilter]);
 
   const calendarDayBands = useMemo(() => {
-    const labelsByDate = new Map<string, string[]>();
+    const seriesById = new Map(seriesOptions.map((series) => [series.id, series]));
+    const itemsByDate = new Map<string, SchedulingCalendarDayBand["items"]>();
 
     for (const occurrence of occurrences) {
       if (visibleOccurrenceIdsForEventBands && !visibleOccurrenceIdsForEventBands.has(occurrence.id)) continue;
-      const label = String(occurrence.name || occurrence.seriesName || "").trim();
+      const label = String(occurrence.seriesName || "").trim();
       if (!label) continue;
-      const current = labelsByDate.get(occurrence.occursOn) || [];
-      if (!current.includes(label)) current.push(label);
-      labelsByDate.set(occurrence.occursOn, current);
+      const current = itemsByDate.get(occurrence.occursOn) || [];
+      if (!current.some((item) => item.seriesId === occurrence.seriesId)) {
+        const series = seriesById.get(occurrence.seriesId);
+        current.push({
+          seriesId: occurrence.seriesId,
+          label,
+          color: series?.color || "#ef4444",
+          selected: seriesFilter !== "ALL" && seriesFilter === occurrence.seriesId,
+        });
+      }
+      itemsByDate.set(occurrence.occursOn, current);
     }
 
-    return Array.from(labelsByDate.entries()).map(
-      ([date, labels]) =>
+    return Array.from(itemsByDate.entries()).map(
+      ([date, items]) =>
         ({
           date,
-          labels,
+          items: [...items].sort((left, right) => left.label.localeCompare(right.label)),
         }) satisfies SchedulingCalendarDayBand
     );
-  }, [occurrences, visibleOccurrenceIdsForEventBands]);
+  }, [occurrences, seriesFilter, seriesOptions, visibleOccurrenceIdsForEventBands]);
 
   const calendarEvents = useMemo(() => {
     return filteredAssignments.map((assignment) => {
@@ -426,10 +436,10 @@ export default function SchedulingCalendarPage({
   }) {
     if (!visibleRange) return;
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
-      const resolvedSeriesFilter = options?.nextSeriesFilter ?? seriesFilter;
+    const resolvedSeriesFilter = options?.nextSeriesFilter ?? seriesFilter;
 
-      setLoading(true);
-      setError("");
+    setLoading(true);
+    setError("");
 
     try {
       const optionParams = new URLSearchParams();
@@ -945,6 +955,7 @@ export default function SchedulingCalendarPage({
                 const assignment = assignments.find((entry) => entry.id === assignmentId);
                 if (assignment) selectAssignment(assignment);
               }}
+              onDayBandSelect={(nextSeriesId) => setSeriesFilter(nextSeriesId)}
             />
 
             <div style={{ ...warningStyle, marginTop: "18px" }}>

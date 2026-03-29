@@ -23,6 +23,7 @@ export type ScheduleEventSeriesRecord = {
   brandName: string;
   name: string;
   slug: string;
+  color: string;
   description: string | null;
   timezone: string;
   status: ScheduleEventSeriesStatus;
@@ -164,6 +165,7 @@ export type CreateScheduleEventSeriesInput = {
   brandId?: string | null;
   name: string;
   slug?: string;
+  color?: string;
   description?: string | null;
   timezone: string;
   status?: ScheduleEventSeriesStatus;
@@ -180,6 +182,7 @@ export type CreateScheduleEventSeriesInput = {
 export type UpdateScheduleEventSeriesInput = {
   name?: string;
   slug?: string;
+  color?: string;
   description?: string | null;
   timezone?: string;
   status?: ScheduleEventSeriesStatus;

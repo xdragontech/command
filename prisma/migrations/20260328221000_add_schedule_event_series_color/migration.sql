@@ -1,0 +1,2 @@
+ALTER TABLE "ScheduleEventSeries"
+ADD COLUMN "color" TEXT NOT NULL DEFAULT '#ef4444';
