@@ -99,7 +99,8 @@ Initial v1 conversions:
 - contact submit
 - chat lead submit
 - client login success
-- client signup success
+- client signup created
+- client signup verified
 
 Deferred conversions:
 - vendor login success
@@ -120,6 +121,11 @@ Deferred conversions:
 - plus readiness signals stored in `command`
 
 LLMO is treated as an optimization/reporting program, not a single raw metric.
+
+**Important consent boundary**
+- operational system events such as `LeadEvent`, `ExternalLoginEvent`, and `BackofficeLoginEvent` may still exist outside the website analytics session model
+- website analytics attribution, bounce, engagement, and rate calculations must be treated as consent-gated analytics data
+- reporting must not silently present consented-session analytics as total traffic truth
 
 ## Source Taxonomy
 Every session and qualifying event should be normalized into:
@@ -170,6 +176,14 @@ Classification precedence:
 3. no referrer -> `DIRECT`
 4. everything else -> `UNKNOWN`
 
+AI taxonomy rule:
+- raw storage stays normalized under `AI_REFERRAL`
+- `AEO`, `GEO`, and `LLMO` are reporting facets layered on top of:
+  - `sourcePlatform`
+  - landing page
+  - conversion outcomes
+  - optional readiness data
+
 ## Architecture
 ### 1. Browser
 The browser collects:
@@ -206,6 +220,24 @@ The browser sends these only to `xdragon-site`.
 - dashboards and filters
 - operator-facing analytics surfaces
 
+## Consent Model
+Analytics collection for deployed brands is consent-gated.
+
+That means:
+- no website analytics session should be created before consent
+- no pageview, engagement, attribution, or web-vitals events should be written before consent
+- analytics cookie/session state must be cleared if consent is revoked
+- reports derived from website analytics must be explicitly treated as consented-session analytics
+
+Operational events remain separate:
+- contact/chat leads may still be created as system-of-record events
+- client login and signup events may still be created as system-of-record events
+- those events should not be silently mixed into consent-gated website session denominators
+
+Recommended reporting treatment:
+- keep operational counts available
+- clearly label website analytics rates and attribution views as consented-session analytics
+
 ## Proposed Browser Session Model
 Session storage:
 - first-party cookie, e.g. `cmd_web_sid`
@@ -214,10 +246,38 @@ Session storage:
 - `SameSite=Lax`
 - site-scoped
 
+Option A: JS-readable analytics cookie
+- pros:
+  - simplest for SPA route tracking and `sendBeacon`
+  - no extra bootstrap contract on every page render
+  - survives route transitions and refreshes naturally
+  - easiest implementation for multi-page and client-routed flows
+- cons:
+  - readable by browser JS
+  - can be modified client-side
+  - must never be treated as an auth or trust artifact
+
+Option B: session ID exposed through bootstrap payload
+- pros:
+  - avoids a JS-readable cookie as the primary client source
+  - tighter initial server control over what the browser sees
+  - can pair with stricter cookie handling on the server side
+- cons:
+  - more implementation complexity
+  - must be injected consistently on every HTML entry point
+  - more brittle across client-side transitions and partial hydration paths
+  - still requires client persistence strategy after bootstrap
+
 Recommendation:
-- generate the session ID server-side in `xdragon-site`
-- also mirror it in response payload or readable cookie for browser beacons
+- use a JS-readable analytics-only cookie for v1
+- generate it server-side in `xdragon-site`
+- create it only after consent is granted
+- treat it as an opaque analytics identifier only, never as auth state
 - do not use localStorage as the primary session authority
+
+Reason:
+- this is the simplest resilient implementation for pageviews, engagement pings, and SPA route tracking
+- the security tradeoff is acceptable because the cookie is not an auth secret and the server remains authoritative
 
 Session timeout:
 - 30 minutes of inactivity
@@ -337,9 +397,16 @@ Examples:
 - contact form submit -> `LeadEvent` linked to website session
 - chat lead submit -> `LeadEvent` linked to website session
 - client login success -> `ExternalLoginEvent` linked to website session
-- client signup success -> signup conversion linked to website session
+- client signup created -> creation conversion linked to website session
+- client signup verified -> verification conversion linked to website session
 
 This avoids duplicated or inflated conversion counts.
+
+Consent caveat:
+- if consent is not granted, these operational events may still exist without website-session linkage
+- reports must distinguish:
+  - total operational conversions
+  - consent-attributed conversions
 
 ## Proposed Request Contract
 ### Browser -> `xdragon-site`
@@ -526,6 +593,7 @@ Deliverables:
 - browser tracker
 - `POST /api/analytics/collect`
 - session cookie
+- consent gate integration
 - landing attribution capture
 - pageview + engagement beacons
 - forward website session header on contact/chat/login/signup flows
@@ -588,22 +656,21 @@ This order is intentional:
   - AI referrer
 - brand-scoped traffic does not leak across brands
 - backoffice reporting remains separate from public-site analytics
+- no analytics session is created before consent
+- consent revocation stops analytics writes and clears analytics session state
+- signup creation and signup verification are reported as distinct metrics
 
-## Open Decisions
-These need explicit answers before implementation:
-1. whether analytics collection requires consent gating for any deployed brands
-2. whether the session cookie should be JS-readable or whether session ID should be exposed via bootstrap payload instead
-3. whether signup success is counted at account creation or email verification
-4. whether AI platforms should be split into:
-   - `AEO`
-   - `GEO`
-   - `LLMO`
-   or normalized internally under `AI_REFERRAL` with reporting facets layered on top
+## Resolved Decisions
+1. analytics collection requires consent gating for deployed brands
+2. signup creation and signup verification are distinct metrics and must both be tracked
+3. raw AI traffic is normalized under `AI_REFERRAL`
+4. `AEO`, `GEO`, and `LLMO` are reporting/search facets above normalized AI-referral storage
 
-**Recommendation**
-- keep raw storage normalized under `AI_REFERRAL`
-- derive `AEO`, `GEO`, and `LLMO` reporting facets above that
-- reason: fewer schema pivots and less taxonomy drift
+## Remaining Approval
+Session transport recommendation for v1:
+- use a JS-readable analytics-only cookie generated server-side after consent
+
+If that recommendation is approved, the implementation can proceed without another architecture pass on session transport.
 
 ## Recommendation
 Start with a first-party website analytics pipeline that is honest about what it can and cannot measure.
