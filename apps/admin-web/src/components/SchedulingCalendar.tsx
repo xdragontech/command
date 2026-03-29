@@ -2,7 +2,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import type { DatesSetArg, EventClickArg } from "@fullcalendar/core";
+import type { DatesSetArg, DayHeaderContentArg, EventClickArg } from "@fullcalendar/core";
 import { useMemo, useRef, useState } from "react";
 import { actionRowStyle, primaryButtonStyle, secondaryButtonStyle, subtleTextStyle } from "./adminScheduling";
 
@@ -35,14 +35,21 @@ export type SchedulingCalendarSelection = {
   allDay: boolean;
 };
 
+export type SchedulingCalendarDayBand = {
+  date: string;
+  labels: string[];
+};
+
 export function SchedulingCalendar({
   events,
+  dayBands,
   loading,
   onRangeChange,
   onSelect,
   onEventOpen,
 }: {
   events: SchedulingCalendarEvent[];
+  dayBands: SchedulingCalendarDayBand[];
   loading: boolean;
   onRangeChange: (range: SchedulingCalendarRange) => void;
   onSelect: (selection: SchedulingCalendarSelection) => void;
@@ -87,14 +94,15 @@ export function SchedulingCalendar({
   function handleDatesSet(arg: DatesSetArg) {
     const inclusiveEnd = new Date(arg.end.getTime() - 86400000);
     const nextView = arg.view.type as CalendarView;
-    setCurrentView(nextView);
-    setTitle(arg.view.title);
-    onRangeChange({
+    const nextRange = {
       from: formatUtcDate(arg.start),
       to: formatUtcDate(inclusiveEnd),
       title: arg.view.title,
       view: nextView,
-    });
+    } satisfies SchedulingCalendarRange;
+    setCurrentView(nextView);
+    setTitle(arg.view.title);
+    onRangeChange(nextRange);
   }
 
   function handleSelect(selection: any) {
@@ -112,6 +120,37 @@ export function SchedulingCalendar({
     const assignmentId = String(arg.event.extendedProps.assignmentId || arg.event.id || "");
     if (!assignmentId) return;
     onEventOpen(assignmentId);
+  }
+
+  const dayBandLabelsByDate = useMemo(() => {
+    return dayBands.reduce<Record<string, string[]>>((acc, entry) => {
+      acc[entry.date] = entry.labels;
+      return acc;
+    }, {});
+  }, [dayBands]);
+
+  function renderDayHeader(arg: DayHeaderContentArg) {
+    if (currentView === "dayGridMonth") return arg.text;
+
+    const dateKey = formatUtcDate(arg.date);
+    const labels = dayBandLabelsByDate[dateKey] || [];
+
+    return (
+      <div style={{ display: "grid", gap: "6px", padding: "2px 0 6px" }}>
+        <div>{arg.text}</div>
+        {labels.length > 0 ? (
+          <div style={{ display: "grid", gap: "4px" }}>
+            {labels.map((label) => (
+              <div key={`${dateKey}:${label}`} style={dayBandChipStyle}>
+                {label}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={dayBandSpacerStyle} />
+        )}
+      </div>
+    );
   }
 
   return (
@@ -196,6 +235,7 @@ export function SchedulingCalendar({
             datesSet={handleDatesSet}
             select={handleSelect}
             eventClick={handleEventClick}
+            dayHeaderContent={renderDayHeader}
             nowIndicator
             slotMinTime="06:00:00"
             slotMaxTime="24:00:00"
@@ -214,3 +254,22 @@ export function SchedulingCalendar({
     </div>
   );
 }
+
+const dayBandChipStyle = {
+  display: "block",
+  width: "100%",
+  boxSizing: "border-box" as const,
+  borderRadius: "10px",
+  border: "1px solid rgba(239,68,68,0.18)",
+  background: "#fee2e2",
+  color: "#991b1b",
+  padding: "4px 6px",
+  fontSize: "0.72rem",
+  fontWeight: 700,
+  lineHeight: 1.25,
+  textAlign: "left" as const,
+} as const;
+
+const dayBandSpacerStyle = {
+  minHeight: "1px",
+} as const;

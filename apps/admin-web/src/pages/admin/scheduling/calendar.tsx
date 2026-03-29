@@ -8,7 +8,6 @@ import type {
   ScheduleAssignmentRecord,
   ScheduleConflictRecord,
   ScheduleEventOccurrenceRecord,
-  ScheduleEventSeriesRecord,
   ScheduleParticipantRecord,
   ScheduleResourceRecord,
 } from "@command/core-scheduling";
@@ -20,6 +19,7 @@ import { AdminLayout } from "../../../components/AdminLayout";
 import {
   type SchedulingCalendarRange,
   type SchedulingCalendarSelection,
+  type SchedulingCalendarDayBand,
   type SchedulingCalendarEvent,
 } from "../../../components/SchedulingCalendar";
 import {
@@ -66,6 +66,12 @@ type BrandOption = {
   brandKey: string;
   name: string;
   status: string;
+};
+
+type CalendarSeriesOption = {
+  id: string;
+  brandId: string;
+  name: string;
 };
 
 type AssignmentForm = {
@@ -263,7 +269,7 @@ export default function SchedulingCalendarPage({
   principalBrands,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
-  const [series, setSeries] = useState<ScheduleEventSeriesRecord[]>([]);
+  const [seriesOptions, setSeriesOptions] = useState<CalendarSeriesOption[]>([]);
   const [resources, setResources] = useState<ScheduleResourceRecord[]>([]);
   const [participants, setParticipants] = useState<ScheduleParticipantRecord[]>([]);
   const [occurrences, setOccurrences] = useState<ScheduleEventOccurrenceRecord[]>([]);
@@ -302,8 +308,8 @@ export default function SchedulingCalendarPage({
     (brandFilter !== "ALL" ? brandFilter : brands[0]?.id || "");
 
   const visibleSeries = useMemo(() => {
-    return series.filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter));
-  }, [brandFilter, series]);
+    return seriesOptions.filter((entry) => (brandFilter === "ALL" ? true : entry.brandId === brandFilter));
+  }, [brandFilter, seriesOptions]);
 
   const compatibleResources = useMemo(() => {
     return resources.filter((resource) => {
@@ -338,6 +344,32 @@ export default function SchedulingCalendarPage({
       return true;
     });
   }, [conflicts, participantFilter, resourceFilter]);
+
+  const visibleOccurrenceIdsForEventBands = useMemo(() => {
+    if (resourceFilter === "ALL" && participantFilter === "ALL") return null;
+    return new Set(filteredAssignments.map((assignment) => assignment.occurrenceId));
+  }, [filteredAssignments, participantFilter, resourceFilter]);
+
+  const calendarDayBands = useMemo(() => {
+    const labelsByDate = new Map<string, string[]>();
+
+    for (const occurrence of occurrences) {
+      if (visibleOccurrenceIdsForEventBands && !visibleOccurrenceIdsForEventBands.has(occurrence.id)) continue;
+      const label = String(occurrence.name || occurrence.seriesName || "").trim();
+      if (!label) continue;
+      const current = labelsByDate.get(occurrence.occursOn) || [];
+      if (!current.includes(label)) current.push(label);
+      labelsByDate.set(occurrence.occursOn, current);
+    }
+
+    return Array.from(labelsByDate.entries()).map(
+      ([date, labels]) =>
+        ({
+          date,
+          labels,
+        }) satisfies SchedulingCalendarDayBand
+    );
+  }, [occurrences, visibleOccurrenceIdsForEventBands]);
 
   const calendarEvents = useMemo(() => {
     return filteredAssignments.map((assignment) => {
@@ -394,10 +426,10 @@ export default function SchedulingCalendarPage({
   }) {
     if (!visibleRange) return;
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
-    const resolvedSeriesFilter = options?.nextSeriesFilter ?? seriesFilter;
+      const resolvedSeriesFilter = options?.nextSeriesFilter ?? seriesFilter;
 
-    setLoading(true);
-    setError("");
+      setLoading(true);
+      setError("");
 
     try {
       const optionParams = new URLSearchParams();
@@ -409,23 +441,30 @@ export default function SchedulingCalendarPage({
       scheduleParams.set("from", visibleRange.from);
       scheduleParams.set("to", visibleRange.to);
 
-      const [brandsRes, seriesRes, resourcesRes, participantsRes, occurrencesRes, assignmentsRes, conflictsRes] =
+      const optionOccurrenceParams = new URLSearchParams();
+      if (resolvedBrandFilter !== "ALL") optionOccurrenceParams.set("brandId", resolvedBrandFilter);
+      optionOccurrenceParams.set("from", visibleRange.from);
+      optionOccurrenceParams.set("to", visibleRange.to);
+
+      const [brandsRes, seriesRes, resourcesRes, participantsRes, optionOccurrencesRes, occurrencesRes, assignmentsRes, conflictsRes] =
         await Promise.all([
           fetch("/api/admin/brands"),
           fetch(`/api/admin/scheduling/series?${optionParams.toString()}`),
           fetch(`/api/admin/scheduling/resources?${optionParams.toString()}`),
           fetch(`/api/admin/scheduling/participants?${optionParams.toString()}`),
+          fetch(`/api/admin/scheduling/occurrences?${optionOccurrenceParams.toString()}`),
           fetch(`/api/admin/scheduling/occurrences?${scheduleParams.toString()}`),
           fetch(`/api/admin/scheduling/assignments?${scheduleParams.toString()}`),
           fetch(`/api/admin/scheduling/conflicts?${scheduleParams.toString()}`),
         ]);
 
-      const [brandsPayload, seriesPayload, resourcesPayload, participantsPayload, occurrencesPayload, assignmentsPayload, conflictsPayload] =
+      const [brandsPayload, seriesPayload, resourcesPayload, participantsPayload, optionOccurrencesPayload, occurrencesPayload, assignmentsPayload, conflictsPayload] =
         await Promise.all([
           brandsRes.json().catch(() => null),
           seriesRes.json().catch(() => null),
           resourcesRes.json().catch(() => null),
           participantsRes.json().catch(() => null),
+          optionOccurrencesRes.json().catch(() => null),
           occurrencesRes.json().catch(() => null),
           assignmentsRes.json().catch(() => null),
           conflictsRes.json().catch(() => null),
@@ -435,12 +474,16 @@ export default function SchedulingCalendarPage({
       if (!seriesRes.ok || !seriesPayload?.ok) throw new Error(seriesPayload?.error || "Failed to load series");
       if (!resourcesRes.ok || !resourcesPayload?.ok) throw new Error(resourcesPayload?.error || "Failed to load resources");
       if (!participantsRes.ok || !participantsPayload?.ok) throw new Error(participantsPayload?.error || "Failed to load participants");
+      if (!optionOccurrencesRes.ok || !optionOccurrencesPayload?.ok) throw new Error(optionOccurrencesPayload?.error || "Failed to load calendar event options");
       if (!occurrencesRes.ok || !occurrencesPayload?.ok) throw new Error(occurrencesPayload?.error || "Failed to load occurrences");
       if (!assignmentsRes.ok || !assignmentsPayload?.ok) throw new Error(assignmentsPayload?.error || "Failed to load assignments");
       if (!conflictsRes.ok || !conflictsPayload?.ok) throw new Error(conflictsPayload?.error || "Failed to load conflicts");
 
       const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
-      const nextSeries = Array.isArray(seriesPayload.series) ? (seriesPayload.series as ScheduleEventSeriesRecord[]) : [];
+      const nextSeries = Array.isArray(seriesPayload.serieses) ? (seriesPayload.serieses as CalendarSeriesOption[]) : [];
+      const nextOptionOccurrences = Array.isArray(optionOccurrencesPayload.occurrences)
+        ? (optionOccurrencesPayload.occurrences as ScheduleEventOccurrenceRecord[])
+        : [];
       const nextResources = Array.isArray(resourcesPayload.resources) ? (resourcesPayload.resources as ScheduleResourceRecord[]) : [];
       const nextParticipants = Array.isArray(participantsPayload.participants)
         ? (participantsPayload.participants as ScheduleParticipantRecord[])
@@ -454,9 +497,13 @@ export default function SchedulingCalendarPage({
       const nextConflicts = Array.isArray(conflictsPayload.conflicts)
         ? (conflictsPayload.conflicts as ScheduleConflictRecord[])
         : [];
+      const seriesIdsInVisibleRange = new Set(nextOptionOccurrences.map((occurrence) => occurrence.seriesId));
+      const nextSeriesOptions = nextSeries
+        .filter((entry) => seriesIdsInVisibleRange.has(entry.id))
+        .sort((left, right) => left.name.localeCompare(right.name));
 
       setBrands(nextBrands);
-      setSeries(nextSeries);
+      setSeriesOptions(nextSeriesOptions);
       setResources(nextResources);
       setParticipants(nextParticipants);
       setOccurrences(nextOccurrences);
@@ -890,6 +937,7 @@ export default function SchedulingCalendarPage({
           <section style={panelStyle}>
             <SchedulingCalendar
               events={calendarEvents}
+              dayBands={calendarDayBands}
               loading={loading}
               onRangeChange={handleCalendarRangeChange}
               onSelect={beginAssignmentFromSelection}
