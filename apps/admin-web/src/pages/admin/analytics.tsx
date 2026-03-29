@@ -148,16 +148,16 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
       brands={brands}
       active="analytics"
     >
-      <div style={pageHeaderStyle}>
-        <h1 style={pageTitleStyle}>Analytics</h1>
-        <div style={pageActionsStyle}>
-          <button type="button" onClick={() => void load()} disabled={loading} style={primaryButtonStyle}>
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
-      </div>
-
-      <AdminCard>
+      <AdminCard
+        title="Analytics"
+        actions={
+          <div style={cardActionsStyle}>
+            <button type="button" onClick={() => void load()} disabled={loading} style={primaryButtonStyle}>
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+        }
+      >
         <div style={{ display: "grid", gap: "18px" }}>
           <div style={analyticsFilterCardStyle}>
             <label style={schedulingFilterFieldStyle}>
@@ -367,23 +367,7 @@ const primaryButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
-const pageHeaderStyle: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "14px",
-  marginBottom: "18px",
-};
-
-const pageTitleStyle: CSSProperties = {
-  margin: 0,
-  fontSize: "1.35rem",
-  lineHeight: 1.15,
-  color: "var(--admin-text-primary)",
-};
-
-const pageActionsStyle: CSSProperties = {
+const cardActionsStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "10px",
