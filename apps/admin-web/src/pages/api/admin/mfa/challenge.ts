@@ -1,10 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { verifyBackofficeMfaChallenge } from "@command/core-auth-backoffice";
-import { requireBackofficeApi } from "../../../../server/backofficeAuth";
+import {
+  recordSuccessfulBackofficeLogin,
+  verifyBackofficeMfaChallenge,
+} from "@command/core-auth-backoffice";
+import {
+  hasVerifiedBackofficeMfaForRequest,
+  requireBackofficeApi,
+} from "../../../../server/backofficeAuth";
 import {
   clearBackofficeMfaChallengeCookie,
   setBackofficeMfaChallengeCookie,
 } from "../../../../server/backofficeMfaChallenge";
+import { getBackofficeRequestIdentity } from "../../../../server/backofficeRequestIdentity";
 
 function json(res: NextApiResponse, status: number, payload: any) {
   return res.status(status).json(payload);
@@ -22,10 +29,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return json(res, 400, { ok: false, error: "Authenticator MFA is not enabled on this account" });
   }
 
+  if (hasVerifiedBackofficeMfaForRequest(req, auth.session)) {
+    return json(res, 200, { ok: true, result: { usedRecoveryCode: false, alreadyVerified: true } });
+  }
+
   try {
     if (req.method === "POST") {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const result = await verifyBackofficeMfaChallenge(auth.principal.id, String(body.code || ""));
+      try {
+        await recordSuccessfulBackofficeLogin({
+          backofficeUserId: auth.principal.id,
+          identity: getBackofficeRequestIdentity(req),
+        });
+      } catch (error) {
+        console.error("Backoffice MFA login telemetry write failed", error);
+      }
       setBackofficeMfaChallengeCookie(res, auth.session);
       return json(res, 200, { ok: true, result });
     }

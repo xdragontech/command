@@ -208,11 +208,6 @@ export async function authorizeBackofficeCredentials(
   if (user.status === BackofficeUserStatus.BLOCKED) return null;
   if (!(await bcrypt.compare(password, user.passwordHash))) return null;
 
-  await prisma.backofficeUser.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
-  });
-
   const state = toBackofficeIdentityState(user);
   if (state.role !== BackofficeRole.SUPERADMIN && state.allowedBrandIds.length === 0) {
     return null;

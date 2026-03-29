@@ -14,15 +14,28 @@ export type DashboardCountryCount = {
   count: number;
 };
 
+export type DashboardLoginStream = {
+  key: string;
+  label: string;
+  total: number;
+  series: number[];
+  ipGroups: DashboardIpGroup[];
+};
+
 export type DashboardMetrics = {
   period: MetricsPeriod;
   from: string;
   to: string;
   labels: string[];
   signups: number[];
-  logins: number[];
-  totals: { signups: number; logins: number; leads: number; chatLeads: number };
-  ipGroups: DashboardIpGroup[];
+  loginStreams: DashboardLoginStream[];
+  totals: {
+    signups: number;
+    clientLogins: number;
+    backofficeLogins: number;
+    leads: number;
+    chatLeads: number;
+  };
   signupCountries: DashboardCountryCount[];
 };
 
@@ -39,12 +52,20 @@ type SignupRow = {
 };
 
 type LoginMetricEvent = {
+  streamKey: DashboardLoginStreamKey;
   principalId: string;
   createdAt: Date;
   ip: string;
   countryIso2: string | null;
   countryName: string | null;
 };
+
+const DASHBOARD_LOGIN_STREAMS = [
+  { key: "client", label: "Client" },
+  { key: "backoffice", label: "Backoffice" },
+] as const;
+
+type DashboardLoginStreamKey = (typeof DASHBOARD_LOGIN_STREAMS)[number]["key"];
 
 function isPrivateIp(ip: string) {
   return (
@@ -169,7 +190,6 @@ export async function loadDashboardMetrics(params: {
   const { start, end } = periodBounds(period);
   const labels = buildLabels(period, start, end);
   const signups = Array(labels.length).fill(0) as number[];
-  const logins = Array(labels.length).fill(0) as number[];
   const isSuperadmin = scope.role === "SUPERADMIN";
   const leadWhere = isSuperadmin
     ? { createdAt: { gte: start, lte: end } }
@@ -183,7 +203,8 @@ export async function loadDashboardMetrics(params: {
   let leadTotals = { leads: 0, chatLeads: 0 };
 
   if (isSuperadmin) {
-    const [legacyUsers, externalUsers, legacyEvents, externalEvents, totalLeadCount, chatLeadCount] = await Promise.all([
+    const [legacyUsers, externalUsers, legacyEvents, externalEvents, backofficeEvents, totalLeadCount, chatLeadCount] =
+      await Promise.all([
       prisma.user.findMany({
         where: { createdAt: { gte: start, lte: end } },
         select: { id: true, createdAt: true },
@@ -200,6 +221,11 @@ export async function loadDashboardMetrics(params: {
       prisma.externalLoginEvent.findMany({
         where: { createdAt: { gte: start, lte: end } },
         select: { externalUserId: true, createdAt: true, ip: true, countryIso2: true, countryName: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.backofficeLoginEvent.findMany({
+        where: { createdAt: { gte: start, lte: end } },
+        select: { backofficeUserId: true, createdAt: true, ip: true, countryIso2: true, countryName: true },
         orderBy: { createdAt: "desc" },
       }),
       prisma.leadEvent.count({
@@ -237,6 +263,7 @@ export async function loadDashboardMetrics(params: {
 
     events = [
       ...legacyEvents.map((event) => ({
+        streamKey: "client" as const,
         principalId: event.userId,
         createdAt: event.createdAt,
         ip: event.ip,
@@ -244,7 +271,16 @@ export async function loadDashboardMetrics(params: {
         countryName: event.countryName || null,
       })),
       ...externalEvents.map((event) => ({
+        streamKey: "client" as const,
         principalId: event.externalUserId,
+        createdAt: event.createdAt,
+        ip: event.ip,
+        countryIso2: event.countryIso2 || null,
+        countryName: event.countryName || null,
+      })),
+      ...backofficeEvents.map((event) => ({
+        streamKey: "backoffice" as const,
+        principalId: event.backofficeUserId,
         createdAt: event.createdAt,
         ip: event.ip,
         countryIso2: event.countryIso2 || null,
@@ -293,6 +329,7 @@ export async function loadDashboardMetrics(params: {
 
     events = externalEvents
       .map((event) => ({
+        streamKey: "client" as const,
         principalId: event.externalUserId,
         createdAt: event.createdAt,
         ip: event.ip,
@@ -312,45 +349,72 @@ export async function loadDashboardMetrics(params: {
     if (idx >= 0 && idx < signups.length) signups[idx] += 1;
   }
 
-  const ipCounts = new Map<string, number>();
-  const ipGeo = new Map<string, { iso2: string | null; name: string | null }>();
+  const streamSeries = new Map<DashboardLoginStreamKey, number[]>(
+    DASHBOARD_LOGIN_STREAMS.map((stream) => [stream.key, Array(labels.length).fill(0) as number[]])
+  );
+  const streamIpCounts = new Map<DashboardLoginStreamKey, Map<string, number>>(
+    DASHBOARD_LOGIN_STREAMS.map((stream) => [stream.key, new Map<string, number>()])
+  );
+  const streamIpGeo = new Map<DashboardLoginStreamKey, Map<string, { iso2: string | null; name: string | null }>>(
+    DASHBOARD_LOGIN_STREAMS.map((stream) => [stream.key, new Map<string, { iso2: string | null; name: string | null }>()])
+  );
 
   for (const event of events) {
     const idx = bucketIndex(period, start, event.createdAt);
-    if (idx >= 0 && idx < logins.length) logins[idx] += 1;
+    const series = streamSeries.get(event.streamKey);
+    if (series && idx >= 0 && idx < series.length) series[idx] += 1;
 
     const rawIp = (event.ip || "").trim();
     const ip = normalizeIp(rawIp);
     if (!ip) continue;
 
-    ipCounts.set(ip, (ipCounts.get(ip) || 0) + 1);
-    if (!ipGeo.has(ip)) {
-      ipGeo.set(ip, {
+    const counts = streamIpCounts.get(event.streamKey);
+    const geo = streamIpGeo.get(event.streamKey);
+    if (!counts || !geo) continue;
+
+    counts.set(ip, (counts.get(ip) || 0) + 1);
+    if (!geo.has(ip)) {
+      geo.set(ip, {
         iso2: event.countryIso2 || null,
         name: event.countryName || null,
       });
     }
   }
 
+  const loginStreams: DashboardLoginStream[] = DASHBOARD_LOGIN_STREAMS.map((stream) => {
+    const series = streamSeries.get(stream.key) || [];
+    const counts = streamIpCounts.get(stream.key) || new Map<string, number>();
+    const geo = streamIpGeo.get(stream.key) || new Map<string, { iso2: string | null; name: string | null }>();
+
+    const ipGroups: DashboardIpGroup[] = Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 50)
+      .map(([ip, count]) => {
+        const stored = geo.get(ip) || { iso2: null, name: null };
+        return {
+          ip,
+          count,
+          countryIso2: stored.iso2,
+          country: stored.name || iso2ToCountryName(stored.iso2),
+        };
+      });
+
+    return {
+      key: stream.key,
+      label: stream.label,
+      total: series.reduce((sum, value) => sum + value, 0),
+      series,
+      ipGroups,
+    };
+  });
+
   const totals = {
     signups: signupRows.length,
-    logins: events.length,
+    clientLogins: loginStreams.find((stream) => stream.key === "client")?.total || 0,
+    backofficeLogins: loginStreams.find((stream) => stream.key === "backoffice")?.total || 0,
     leads: leadTotals.leads,
     chatLeads: leadTotals.chatLeads,
   };
-
-  const ipGroups: DashboardIpGroup[] = Array.from(ipCounts.entries())
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 50)
-    .map(([ip, count]) => {
-      const stored = ipGeo.get(ip) || { iso2: null, name: null };
-      return {
-        ip,
-        count,
-        countryIso2: stored.iso2,
-        country: stored.name || iso2ToCountryName(stored.iso2),
-      };
-    });
 
   const signupCountriesMap = new Map<string, number>();
   const legacySignupRows = signupRows.filter((row) => row.kind === "legacy");
@@ -419,9 +483,8 @@ export async function loadDashboardMetrics(params: {
     to: end.toISOString(),
     labels,
     signups,
-    logins,
+    loginStreams,
     totals,
-    ipGroups,
     signupCountries,
   };
 }
