@@ -7,9 +7,11 @@ import {
   BACKOFFICE_AUTH_SCOPE,
   BACKOFFICE_CREDENTIALS_PROVIDER_ID,
   authorizeBackofficeCredentials,
+  recordSuccessfulBackofficeLogin,
   refreshBackofficeIdentity,
 } from "@command/core-auth-backoffice";
 import { isInstallInitialized } from "./installState";
+import { getBackofficeRequestIdentity } from "./backofficeRequestIdentity";
 
 const IS_PREVIEW = process.env.VERCEL_ENV === "preview";
 const IS_SECURE_COOKIE_ENV = process.env.NODE_ENV === "production";
@@ -62,11 +64,22 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Username or email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!(await isInstallInitialized())) {
           return null;
         }
-        return authorizeBackofficeCredentials(credentials);
+        const user = await authorizeBackofficeCredentials(credentials);
+        if (user && user.mfaState !== "ENABLED") {
+          try {
+            await recordSuccessfulBackofficeLogin({
+              backofficeUserId: user.id,
+              identity: getBackofficeRequestIdentity(req as any),
+            });
+          } catch (error) {
+            console.error("Backoffice login telemetry write failed", error);
+          }
+        }
+        return user;
       },
     }),
   ],

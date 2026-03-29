@@ -16,41 +16,26 @@ type DashboardProps = {
 
 type MetricsResponse = ({ ok: true } & DashboardMetrics) | { ok: false; error: string };
 
-type MetricPoint = {
-  label: string;
-  signups: number;
-  logins: number;
-};
-
 const PERIOD_OPTIONS: Array<{ value: MetricsPeriod; label: string }> = [
   { value: "today", label: "Today" },
   { value: "7d", label: "7 Days" },
   { value: "month", label: "Month" },
 ];
 
-function buildMetricPoints(metrics: DashboardMetrics): MetricPoint[] {
-  return metrics.labels.map((label, index) => ({
-    label,
-    signups: Number(metrics.signups[index] || 0),
-    logins: Number(metrics.logins[index] || 0),
-  }));
-}
+function buildLinePath(values: number[], maxValue: number, width: number, height: number, pad = 18) {
+  if (!values.length) return "";
 
-function buildLinePath(points: MetricPoint[], key: "signups" | "logins", width: number, height: number, pad = 18) {
-  if (!points.length) return "";
-
-  const maxValue = Math.max(1, ...points.map((point) => point.signups), ...points.map((point) => point.logins));
   const innerWidth = width - pad * 2;
   const innerHeight = height - pad * 2;
 
   const xFor = (index: number) =>
-    pad + (points.length === 1 ? innerWidth / 2 : (innerWidth * index) / Math.max(points.length - 1, 1));
+    pad + (values.length === 1 ? innerWidth / 2 : (innerWidth * index) / Math.max(values.length - 1, 1));
   const yFor = (value: number) => pad + innerHeight - (innerHeight * value) / maxValue;
 
-  return points
-    .map((point, index) => {
+  return values
+    .map((value, index) => {
       const x = xFor(index);
-      const y = yFor(point[key]);
+      const y = yFor(value);
       return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
@@ -69,9 +54,8 @@ function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardMetrics {
     to: iso,
     labels: [],
     signups: [],
-    logins: [],
-    totals: { signups: 0, logins: 0, leads: 0, chatLeads: 0 },
-    ipGroups: [],
+    loginStreams: [],
+    totals: { signups: 0, clientLogins: 0, backofficeLogins: 0, leads: 0, chatLeads: 0 },
     signupCountries: [],
   };
 }
@@ -85,12 +69,12 @@ function isDashboardMetrics(value: unknown): value is DashboardMetrics {
     typeof input.to === "string" &&
     Array.isArray(input.labels) &&
     Array.isArray(input.signups) &&
-    Array.isArray(input.logins) &&
-    Array.isArray(input.ipGroups) &&
+    Array.isArray(input.loginStreams) &&
     Array.isArray(input.signupCountries) &&
     !!input.totals &&
     typeof input.totals.signups === "number" &&
-    typeof input.totals.logins === "number" &&
+    typeof input.totals.clientLogins === "number" &&
+    typeof input.totals.backofficeLogins === "number" &&
     typeof input.totals.leads === "number" &&
     typeof input.totals.chatLeads === "number"
   );
@@ -154,11 +138,25 @@ function SummaryCard({ label, value, tone }: { label: string; value: string; ton
 }
 
 function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
-  const points = buildMetricPoints(metrics);
+  const points = metrics.labels;
   const width = 860;
   const height = 240;
-  const signupsPath = buildLinePath(points, "signups", width, height);
-  const loginsPath = buildLinePath(points, "logins", width, height);
+  const streamColors: Record<string, string> = {
+    client: "var(--admin-text-primary)",
+    backoffice: "#2563eb",
+  };
+  const maxValue = Math.max(
+    1,
+    ...metrics.signups,
+    ...metrics.loginStreams.flatMap((stream) => stream.series)
+  );
+  const signupsPath = buildLinePath(metrics.signups, maxValue, width, height);
+  const loginPaths = metrics.loginStreams.map((stream) => ({
+    key: stream.key,
+    label: stream.label,
+    color: streamColors[stream.key] || "#475569",
+    path: buildLinePath(stream.series, maxValue, width, height),
+  }));
 
   if (!points.length) {
     return (
@@ -175,10 +173,12 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
           <span style={{ ...legendDotStyle, background: "#b91c1c" }} />
           Signups
         </span>
-        <span style={legendStyle}>
-          <span style={{ ...legendDotStyle, background: "var(--admin-text-primary)" }} />
-          Logins
-        </span>
+        {loginPaths.map((stream) => (
+          <span key={stream.key} style={legendStyle}>
+            <span style={{ ...legendDotStyle, background: stream.color }} />
+            {stream.label} Logins
+          </span>
+        ))}
       </div>
 
       <svg
@@ -192,7 +192,16 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
               "linear-gradient(180deg, var(--admin-surface-secondary) 0%, var(--admin-surface-tertiary) 100%)",
           }}
       >
-        <path d={loginsPath} fill="none" stroke="var(--admin-text-primary)" strokeWidth="3.5" strokeLinecap="round" />
+        {loginPaths.map((stream) => (
+          <path
+            key={stream.key}
+            d={stream.path}
+            fill="none"
+            stroke={stream.color}
+            strokeWidth="3.5"
+            strokeLinecap="round"
+          />
+        ))}
         <path d={signupsPath} fill="none" stroke="#b91c1c" strokeWidth="3.5" strokeLinecap="round" />
       </svg>
 
@@ -205,11 +214,11 @@ function MetricChart({ metrics }: { metrics: DashboardMetrics }) {
           fontSize: "0.78rem",
         }}
       >
-        {points.slice(Math.max(points.length - 7, 0)).map((point) => (
-          <div key={point.label} style={{ textAlign: "center" }}>
-            {point.label}
-          </div>
-        ))}
+          {points.slice(Math.max(points.length - 7, 0)).map((label) => (
+            <div key={label} style={{ textAlign: "center" }}>
+              {label}
+            </div>
+          ))}
       </div>
     </div>
   );
@@ -255,11 +264,11 @@ function TopCountryList({ metrics }: { metrics: DashboardMetrics }) {
   );
 }
 
-function LoginIpTable({ metrics }: { metrics: DashboardMetrics }) {
-  const rows = metrics.ipGroups.slice(0, 12);
+function LoginIpTable({ rows, emptyLabel }: { rows: DashboardMetrics["loginStreams"][number]["ipGroups"]; emptyLabel: string }) {
+  const visibleRows = rows.slice(0, 12);
 
-  if (!rows.length) {
-    return <div style={emptyStateStyle}>No login IP data is available for this period yet.</div>;
+  if (!visibleRows.length) {
+    return <div style={emptyStateStyle}>{emptyLabel}</div>;
   }
 
   return (
@@ -273,7 +282,7 @@ function LoginIpTable({ metrics }: { metrics: DashboardMetrics }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <tr key={row.ip} style={{ borderTop: "1px solid var(--admin-border-subtle)" }}>
               <td style={{ ...tableCellStyle, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>{row.ip}</td>
               <td style={tableCellStyle}>{row.country || row.countryIso2 || "Unknown"}</td>
@@ -299,6 +308,8 @@ export default function DashboardPage({
   const [error, setError] = useState<string | null>(
     isDashboardMetrics(initialMetrics) ? null : "Dashboard metrics were unavailable. Refresh the page to try again."
   );
+  const clientLoginStream = metrics.loginStreams.find((stream) => stream.key === "client");
+  const backofficeLoginStream = metrics.loginStreams.find((stream) => stream.key === "backoffice");
 
   async function loadPeriod(nextPeriod: MetricsPeriod) {
     if (nextPeriod === selectedPeriod && !error) return;
@@ -408,10 +419,10 @@ export default function DashboardPage({
             }}
           >
             <SummaryCard label="Signups" value={formatCount(metrics.totals.signups)} tone="red" />
-            <SummaryCard label="Logins" value={formatCount(metrics.totals.logins)} tone="slate" />
+            <SummaryCard label="Client Logins" value={formatCount(metrics.totals.clientLogins)} tone="slate" />
+            <SummaryCard label="Backoffice Logins" value={formatCount(metrics.totals.backofficeLogins)} tone="slate" />
             <SummaryCard label="Leads" value={formatCount(metrics.totals.leads)} tone="amber" />
             <SummaryCard label="Chat Leads" value={formatCount(metrics.totals.chatLeads)} tone="amber" />
-            <SummaryCard label="Tracked Login IPs" value={formatCount(metrics.ipGroups.length)} tone="amber" />
           </div>
 
           <MetricChart metrics={metrics} />
@@ -433,10 +444,23 @@ export default function DashboardPage({
         </AdminCard>
 
         <AdminCard
-          title="Top Login IPs"
-          description="Login IP aggregation uses stored event data only. Private/local addresses are excluded from the summary."
+          title="Client Login IPs"
+          description="Client login IP aggregation uses stored event data only. Private/local addresses are excluded from the summary."
         >
-          <LoginIpTable metrics={metrics} />
+          <LoginIpTable
+            rows={clientLoginStream?.ipGroups || []}
+            emptyLabel="No client login IP data is available for this period yet."
+          />
+        </AdminCard>
+
+        <AdminCard
+          title="Backoffice Login IPs"
+          description="Backoffice login IP aggregation is tracked separately from client/public login activity."
+        >
+          <LoginIpTable
+            rows={backofficeLoginStream?.ipGroups || []}
+            emptyLabel="No backoffice login IP data is available for this period yet."
+          />
         </AdminCard>
       </div>
     </AdminLayout>

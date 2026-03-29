@@ -444,8 +444,24 @@ model BackofficeUser {
   brandAccesses BackofficeUserBrandAccess[]
   accounts      BackofficeAccount[]
   sessions      BackofficeSession[]
+  loginEvents   BackofficeLoginEvent[]
 
   @@index([email])
+}
+
+model BackofficeLoginEvent {
+  id               String   @id @default(cuid())
+  backofficeUserId String
+  ip               String
+  countryIso2      String?
+  countryName      String?
+  userAgent        String?
+  createdAt        DateTime @default(now())
+
+  user BackofficeUser @relation(fields: [backofficeUserId], references: [id], onDelete: Cascade)
+
+  @@index([backofficeUserId])
+  @@index([createdAt])
 }
 
 model BackofficeUserBrandAccess {
