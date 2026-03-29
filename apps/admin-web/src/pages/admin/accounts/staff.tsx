@@ -563,7 +563,15 @@ export default function StaffAccountsPage({
                             {user.email || "No email set"}
                           </div>
                         </div>
-                        <div style={{ ...accountListBadgeColumnStyle, display: "flex", gap: "6px", alignItems: "center" }}>
+                        <div
+                          style={{
+                            ...accountListBadgeColumnStyle,
+                            display: "flex",
+                            gap: "6px",
+                            alignItems: "flex-start",
+                            justifyContent: "flex-end",
+                          }}
+                        >
                           <RolePill role={user.role} compact />
                           <StatusPill status={user.status} compact />
                         </div>
