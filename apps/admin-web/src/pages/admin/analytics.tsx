@@ -5,6 +5,7 @@ import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
 import {
   errorStyle as sharedErrorStyle,
+  panelStyle,
   schedulingFilterCardStyle,
   schedulingFilterControlStyle,
   schedulingFilterFieldStyle,
@@ -157,80 +158,82 @@ export default function AnalyticsPage({ principal, role, brands }: InferGetServe
       </div>
 
       <AdminCard>
-        <div style={analyticsFilterCardStyle}>
-          <label style={schedulingFilterFieldStyle}>
-            <span style={filterLabelStyle}>Brand</span>
-            <select value={brandFilter} onChange={(event) => handleBrandChange(event.target.value)} style={schedulingFilterControlStyle}>
-              <option value={ALL_BRANDS}>All Brands</option>
-              {(data?.brandOptions || []).map((brand) => (
-                <option key={brand.brandId} value={brand.brandId}>
-                  {brand.brandName || brand.brandKey || "Unnamed Brand"}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label style={schedulingFilterFieldStyle}>
-            <span style={filterLabelStyle}>From</span>
-            <input type="date" value={from} onChange={(event) => handleFromChange(event.target.value)} style={schedulingFilterControlStyle} />
-          </label>
-
-          <label style={schedulingFilterFieldStyle}>
-            <span style={filterLabelStyle}>To</span>
-            <input type="date" value={to} onChange={(event) => handleToChange(event.target.value)} style={schedulingFilterControlStyle} />
-          </label>
-        </div>
-      </AdminCard>
-
-      {role !== "SUPERADMIN" ? (
-        <div style={readOnlyNoticeStyle}>
-          This view is read-only and automatically scoped to the brands assigned to this staff account.
-        </div>
-      ) : null}
-
-      {error ? <div style={errorStyle}>{error}</div> : null}
-
-      <AdminCard>
         <div style={{ display: "grid", gap: "18px" }}>
-          <LeadTrendChart points={chartPoints} />
+          <div style={analyticsFilterCardStyle}>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={filterLabelStyle}>Brand</span>
+              <select value={brandFilter} onChange={(event) => handleBrandChange(event.target.value)} style={schedulingFilterControlStyle}>
+                <option value={ALL_BRANDS}>All Brands</option>
+                {(data?.brandOptions || []).map((brand) => (
+                  <option key={brand.brandId} value={brand.brandId}>
+                    {brand.brandName || brand.brandKey || "Unnamed Brand"}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div style={lastUpdatedStyle}>Last updated: {data ? formatAdminDateTime(data.updatedAt) : "—"}</div>
-        </div>
-      </AdminCard>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={filterLabelStyle}>From</span>
+              <input type="date" value={from} onChange={(event) => handleFromChange(event.target.value)} style={schedulingFilterControlStyle} />
+            </label>
 
-      <AdminCard title="Brand Breakdown">
-        <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
-          <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
-                <th style={tableHeaderStyle}>Brand</th>
-                <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
-                <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
-                <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Chat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.brandBreakdown?.length ? (
-                data.brandBreakdown.map((row) => (
-                  <tr key={row.brandId || row.brandKey || "unscoped"} style={{ borderTop: "1px solid rgba(226,232,240,0.95)" }}>
-                    <td style={tableCellStyle}>
-                      <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.brandName || "Unscoped"}</div>
-                      <div style={{ color: "#64748b", fontSize: "0.82rem" }}>{row.brandKey || "No brand key"}</div>
-                    </td>
-                    <td style={{ ...tableCellStyle, textAlign: "right", fontWeight: 700 }}>{formatCount(row.total)}</td>
-                    <td style={{ ...tableCellStyle, textAlign: "right" }}>{formatCount(row.contact)}</td>
-                    <td style={{ ...tableCellStyle, textAlign: "right" }}>{formatCount(row.chat)}</td>
+            <label style={schedulingFilterFieldStyle}>
+              <span style={filterLabelStyle}>To</span>
+              <input type="date" value={to} onChange={(event) => handleToChange(event.target.value)} style={schedulingFilterControlStyle} />
+            </label>
+          </div>
+
+          {role !== "SUPERADMIN" ? (
+            <div style={readOnlyNoticeStyle}>
+              This view is read-only and automatically scoped to the brands assigned to this staff account.
+            </div>
+          ) : null}
+
+          {error ? <div style={errorStyle}>{error}</div> : null}
+
+          <section style={panelStyle}>
+            <div style={{ display: "grid", gap: "18px" }}>
+              <LeadTrendChart points={chartPoints} />
+              <div style={lastUpdatedStyle}>Last updated: {data ? formatAdminDateTime(data.updatedAt) : "—"}</div>
+            </div>
+          </section>
+
+          <section style={panelStyle}>
+            <div style={sectionTitleStyle}>Brand Breakdown</div>
+            <div style={{ overflowX: "auto", marginTop: "14px", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
+              <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                    <th style={tableHeaderStyle}>Brand</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Chat</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} style={{ padding: "28px 18px", textAlign: "center", color: "#64748b" }}>
-                    No analytics data found for the selected filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {data?.brandBreakdown?.length ? (
+                    data.brandBreakdown.map((row) => (
+                      <tr key={row.brandId || row.brandKey || "unscoped"} style={{ borderTop: "1px solid rgba(226,232,240,0.95)" }}>
+                        <td style={tableCellStyle}>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.brandName || "Unscoped"}</div>
+                          <div style={{ color: "#64748b", fontSize: "0.82rem" }}>{row.brandKey || "No brand key"}</div>
+                        </td>
+                        <td style={{ ...tableCellStyle, textAlign: "right", fontWeight: 700 }}>{formatCount(row.total)}</td>
+                        <td style={{ ...tableCellStyle, textAlign: "right" }}>{formatCount(row.contact)}</td>
+                        <td style={{ ...tableCellStyle, textAlign: "right" }}>{formatCount(row.chat)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} style={{ padding: "28px 18px", textAlign: "center", color: "#64748b" }}>
+                        No analytics data found for the selected filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </AdminCard>
     </AdminLayout>
@@ -429,6 +432,12 @@ const axisLabelRowStyle: CSSProperties = {
 const lastUpdatedStyle: CSSProperties = {
   color: "var(--admin-text-muted)",
   fontSize: "0.84rem",
+};
+
+const sectionTitleStyle: CSSProperties = {
+  fontSize: "1rem",
+  fontWeight: 800,
+  color: "var(--admin-text-primary)",
 };
 
 const tableHeaderStyle: CSSProperties = {
