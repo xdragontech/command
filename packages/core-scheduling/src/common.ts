@@ -19,6 +19,7 @@ export const SCHEDULING_PARTICIPANT_STATUSES = Object.values(ScheduleParticipant
 export const SCHEDULING_RECURRENCE_PATTERNS = Object.values(ScheduleRecurrencePattern);
 export const SCHEDULING_RESOURCE_TYPES = Object.values(ScheduleResourceType);
 export const SCHEDULING_WEEKDAYS = Object.values(ScheduleWeekday);
+export const DEFAULT_SCHEDULE_EVENT_COLOR = "#ef4444";
 
 export function normalizeText(value: unknown) {
   return String(value || "").trim();
@@ -28,6 +29,15 @@ export function normalizeNullableText(value: unknown) {
   if (value === null) return null;
   const normalized = normalizeText(value);
   return normalized || null;
+}
+
+export function parseScheduleEventColor(value: unknown, fallback = DEFAULT_SCHEDULE_EVENT_COLOR) {
+  const normalized = normalizeText(value).toLowerCase();
+  if (!normalized) return fallback;
+  if (!/^#[0-9a-f]{6}$/.test(normalized)) {
+    throw new Error("Event color must use #RRGGBB format");
+  }
+  return normalized;
 }
 
 export function normalizeNullableId(value: unknown) {

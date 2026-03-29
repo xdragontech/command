@@ -53,6 +53,7 @@ type SeriesRecord = {
   brandName: string;
   name: string;
   slug: string;
+  color: string;
   description: string | null;
   timezone: string;
   status: ScheduleEventSeriesStatus;
@@ -72,6 +73,7 @@ type SeriesForm = {
   brandId: string;
   name: string;
   slug: string;
+  color: string;
   description: string;
   timezone: string;
   status: ScheduleEventSeriesStatus;
@@ -107,6 +109,7 @@ function blankSeriesForm(brands: BrandOption[], brandFilter: string): SeriesForm
     brandId: defaultBrandId,
     name: "",
     slug: "",
+    color: "#ef4444",
     description: "",
     timezone: "America/Vancouver",
     status: ScheduleEventSeriesStatus.DRAFT,
@@ -125,6 +128,7 @@ function seriesFormFromRecord(series: SeriesRecord): SeriesForm {
     brandId: series.brandId,
     name: series.name,
     slug: series.slug,
+    color: series.color,
     description: series.description || "",
     timezone: series.timezone,
     status: series.status,
@@ -143,6 +147,7 @@ function normalizeSeriesForm(form: SeriesForm) {
     brandId: form.brandId,
     name: form.name.trim(),
     slug: form.slug.trim(),
+    color: form.color,
     description: form.description.trim(),
     timezone: form.timezone.trim(),
     status: form.status,
@@ -314,6 +319,7 @@ export default function SchedulingSeriesPage({
         brandId: form.brandId,
         name: form.name,
         slug: form.slug,
+        color: form.color,
         description: form.description,
         timezone: form.timezone,
         status: form.status,
@@ -573,6 +579,54 @@ export default function SchedulingSeriesPage({
                     </select>
                   </label>
                 </div>
+
+                <label style={fieldStyle}>
+                  <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Event Color</span>
+                  <div
+                    style={{
+                      ...inputStyle,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      padding: "8px 10px",
+                    }}
+                  >
+                    <input
+                      type="color"
+                      value={form.color}
+                      onChange={(event) => updateField("color", event.target.value.toLowerCase())}
+                      style={{
+                        width: "42px",
+                        height: "34px",
+                        padding: 0,
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span
+                      style={{
+                        minWidth: "88px",
+                        fontSize: "0.84rem",
+                        fontWeight: 700,
+                        color: "var(--admin-text-primary)",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {form.color}
+                    </span>
+                    <div
+                      aria-hidden
+                      style={{
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "999px",
+                        border: "1px solid rgba(15,23,42,0.12)",
+                        background: form.color,
+                      }}
+                    />
+                  </div>
+                </label>
 
                 <label style={fieldStyle}>
                   <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Description</span>
