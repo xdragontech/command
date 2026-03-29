@@ -3,11 +3,20 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
+  accountListBadgeColumnStyle,
+  accountListCardHeaderStyle,
+  accountListCardIdentityStyle,
+  accountListCardStyle,
+  accountListDensePillStyle,
+  accountListFooterTextStyle,
   accountListHeaderStackStyle,
+  accountListNameStyle,
   accountListPanelStyle,
   accountListRowsStyle,
+  accountListSecondaryTextStyle,
   accountSplitLayoutStyle,
   createAccountSearchInputStyle,
+  selectedAccountListCardStyle,
 } from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -103,25 +112,25 @@ function formatDate(value: string | null) {
   return formatAdminDateTime(value);
 }
 
-function StatusPill({ status }: { status: BackofficeUserStatus }) {
+function StatusPill({ status, compact = false }: { status: BackofficeUserStatus; compact?: boolean }) {
   const style =
     status === BackofficeUserStatus.ACTIVE
       ? pillToneStyles.success
       : pillToneStyles.danger;
 
-  return <span style={{ ...pillStyle, ...style }}>{status}</span>;
+  return <span style={{ ...(compact ? accountListDensePillStyle : pillStyle), ...style }}>{status}</span>;
 }
 
-function RolePill({ role }: { role: BackofficeRole }) {
+function RolePill({ role, compact = false }: { role: BackofficeRole; compact?: boolean }) {
   const style =
     role === BackofficeRole.SUPERADMIN
       ? pillToneStyles.neutral
       : pillToneStyles.info;
 
-  return <span style={{ ...pillStyle, ...style }}>{role}</span>;
+  return <span style={{ ...(compact ? accountListDensePillStyle : pillStyle), ...style }}>{role}</span>;
 }
 
-function MfaPill({ state }: { state: StaffAccountRecord["mfaState"] }) {
+function MfaPill({ state, compact = false }: { state: StaffAccountRecord["mfaState"]; compact?: boolean }) {
   const style =
     state === "ENABLED"
       ? pillToneStyles.success
@@ -129,7 +138,7 @@ function MfaPill({ state }: { state: StaffAccountRecord["mfaState"] }) {
         ? pillToneStyles.warning
         : pillToneStyles.subtle;
 
-  return <span style={{ ...pillStyle, ...style }}>{`MFA ${state}`}</span>;
+  return <span style={{ ...(compact ? accountListDensePillStyle : pillStyle), ...style }}>{`MFA ${state}`}</span>;
 }
 
 export default function StaffAccountsPage({
@@ -544,24 +553,24 @@ export default function StaffAccountsPage({
                       type="button"
                       onClick={() => selectUser(user)}
                       style={{
-                        ...userCardStyle,
-                        ...(selected ? selectedUserCardStyle : {}),
+                        ...accountListCardStyle,
+                        ...(selected ? selectedAccountListCardStyle : {}),
                       }}
                     >
-                      <div style={userCardHeaderStyle}>
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{user.username}</div>
-                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#64748b" }}>
+                      <div style={accountListCardHeaderStyle}>
+                        <div style={accountListCardIdentityStyle}>
+                          <div style={accountListNameStyle}>{user.username}</div>
+                          <div style={accountListSecondaryTextStyle}>
                             {user.email || "No email set"}
                           </div>
                         </div>
-                        <div style={{ display: "grid", gap: "8px", justifyItems: "end" }}>
-                          <RolePill role={user.role} />
-                          <StatusPill status={user.status} />
-                          <MfaPill state={user.mfaState} />
+                        <div style={accountListBadgeColumnStyle}>
+                          <RolePill role={user.role} compact />
+                          <StatusPill status={user.status} compact />
+                          <MfaPill state={user.mfaState} compact />
                         </div>
                       </div>
-                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: "#64748b" }}>
+                      <div style={accountListFooterTextStyle}>
                         {user.role === BackofficeRole.SUPERADMIN
                           ? "All brands"
                           : user.brandKeys.length > 0
@@ -872,29 +881,6 @@ const panelStyle: CSSProperties = {
   padding: "20px",
   display: "grid",
   gap: "18px",
-};
-
-const userCardStyle: CSSProperties = {
-  width: "100%",
-  textAlign: "left",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "#fff",
-  color: "#0f172a",
-  padding: "16px",
-  cursor: "pointer",
-};
-
-const selectedUserCardStyle: CSSProperties = {
-  background: "#fee2e2",
-  border: "1px solid rgba(239,68,68,0.34)",
-};
-
-const userCardHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "16px",
 };
 
 const detailHeaderStyle: CSSProperties = {

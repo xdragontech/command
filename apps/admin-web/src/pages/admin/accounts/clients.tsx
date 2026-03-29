@@ -3,11 +3,20 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
+  accountListBadgeColumnStyle,
+  accountListCardHeaderStyle,
+  accountListCardIdentityStyle,
+  accountListCardStyle,
+  accountListFooterTextStyle,
   accountListHeaderStackStyle,
+  accountListNameStyle,
   accountListPanelStyle,
+  accountListPillStyle,
   accountListRowsStyle,
+  accountListSecondaryTextStyle,
   accountSplitLayoutStyle,
   createAccountSearchInputStyle,
+  selectedAccountListCardStyle,
 } from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -96,18 +105,18 @@ function formatDate(value: string | null) {
   return formatAdminDateTime(value);
 }
 
-function StatusPill({ status }: { status: ExternalUserStatus }) {
+function StatusPill({ status, compact = false }: { status: ExternalUserStatus; compact?: boolean }) {
   const style =
     status === ExternalUserStatus.ACTIVE
       ? pillToneStyles.success
       : pillToneStyles.danger;
 
-  return <span style={{ ...pillStyle, ...style }}>{status}</span>;
+  return <span style={{ ...(compact ? accountListPillStyle : pillStyle), ...style }}>{status}</span>;
 }
 
-function VerificationPill({ verified }: { verified: boolean }) {
+function VerificationPill({ verified, compact = false }: { verified: boolean; compact?: boolean }) {
   const style = verified ? pillToneStyles.success : pillToneStyles.warning;
-  return <span style={{ ...pillStyle, ...style }}>{verified ? "Verified" : "Unverified"}</span>;
+  return <span style={{ ...(compact ? accountListPillStyle : pillStyle), ...style }}>{verified ? "Verified" : "Unverified"}</span>;
 }
 
 export default function ClientAccountsPage({
@@ -405,23 +414,23 @@ export default function ClientAccountsPage({
                       type="button"
                       onClick={() => selectUser(user)}
                       style={{
-                        ...userCardStyle,
-                        ...(selected ? selectedUserCardStyle : {}),
+                        ...accountListCardStyle,
+                        ...(selected ? selectedAccountListCardStyle : {}),
                       }}
                     >
-                      <div style={userCardHeaderStyle}>
-                        <div>
-                          <div style={{ fontWeight: 700 }}>{user.name || user.email}</div>
-                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#64748b" }}>
+                      <div style={accountListCardHeaderStyle}>
+                        <div style={accountListCardIdentityStyle}>
+                          <div style={accountListNameStyle}>{user.name || user.email}</div>
+                          <div style={accountListSecondaryTextStyle}>
                             {user.email}
                           </div>
                         </div>
-                        <div style={{ display: "grid", gap: "8px", justifyItems: "end" }}>
-                          <VerificationPill verified={Boolean(user.emailVerifiedAt)} />
-                          <StatusPill status={user.status} />
+                        <div style={accountListBadgeColumnStyle}>
+                          <VerificationPill verified={Boolean(user.emailVerifiedAt)} compact />
+                          <StatusPill status={user.status} compact />
                         </div>
                       </div>
-                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: "#64748b" }}>
+                      <div style={accountListFooterTextStyle}>
                         {user.brandName} · {user.brandKey}
                         {user.providerCount > 0 ? ` · ${user.providerLabels.join(", ")}` : ""}
                       </div>
@@ -664,29 +673,6 @@ const panelStyle: CSSProperties = {
   padding: "20px",
   display: "grid",
   gap: "18px",
-};
-
-const userCardStyle: CSSProperties = {
-  width: "100%",
-  textAlign: "left",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "#fff",
-  color: "#0f172a",
-  padding: "16px",
-  cursor: "pointer",
-};
-
-const selectedUserCardStyle: CSSProperties = {
-  background: "#fee2e2",
-  border: "1px solid rgba(239,68,68,0.34)",
-};
-
-const userCardHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "16px",
 };
 
 const detailHeaderStyle: CSSProperties = {
