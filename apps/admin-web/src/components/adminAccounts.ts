@@ -2,8 +2,8 @@ import type { CSSProperties } from "react";
 
 export const accountSplitLayoutStyle: CSSProperties = {
   display: "grid",
-  gap: "20px",
-  gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.35fr)",
+  gap: "18px",
+  gridTemplateColumns: "minmax(280px, 360px) minmax(0, 1fr)",
   alignItems: "start",
 };
 
@@ -11,7 +11,7 @@ export const accountListPanelStyle: CSSProperties = {
   borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
-  padding: "20px",
+  padding: "18px",
   display: "flex",
   flexDirection: "column",
   gap: "18px",
@@ -33,12 +33,18 @@ export const accountListRowsStyle: CSSProperties = {
 
 export const accountListCardStyle: CSSProperties = {
   width: "100%",
-  textAlign: "left",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateAreas: `"topLeft topRight" "bottomLeft bottomRight"`,
+  columnGap: "12px",
+  rowGap: "4px",
+  alignItems: "center",
   borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
   background: "#fff",
   color: "#0f172a",
-  padding: "10px 14px",
+  padding: "7px 14px",
+  textAlign: "left",
   cursor: "pointer",
 };
 
@@ -48,44 +54,51 @@ export const selectedAccountListCardStyle: CSSProperties = {
 };
 
 export const accountListCardHeaderStyle: CSSProperties = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  gap: "12px",
+  display: "contents",
 };
 
 export const accountListCardIdentityStyle: CSSProperties = {
+  gridArea: "topLeft",
   minWidth: 0,
-  flex: "1 1 auto",
+  display: "grid",
+  gap: "2px",
+  alignSelf: "end",
 };
 
 export const accountListNameStyle: CSSProperties = {
   fontWeight: 700,
-  fontSize: "0.86rem",
+  fontSize: "0.92rem",
   lineHeight: 1.25,
   color: "#0f172a",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 export const accountListSecondaryTextStyle: CSSProperties = {
-  marginTop: "4px",
-  fontSize: "0.8rem",
-  lineHeight: 1.3,
+  fontSize: "0.74rem",
+  lineHeight: 1.2,
   color: "#64748b",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 export const accountListFooterTextStyle: CSSProperties = {
-  marginTop: "8px",
+  gridArea: "bottomLeft",
+  alignSelf: "start",
   fontSize: "0.74rem",
-  lineHeight: 1.25,
+  lineHeight: 1.2,
   color: "#64748b",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 export const accountListBadgeColumnStyle: CSSProperties = {
-  display: "grid",
-  gap: "5px",
-  justifyItems: "end",
-  alignContent: "start",
-  flex: "0 0 auto",
+  gridArea: "topRight",
+  justifySelf: "end",
+  alignSelf: "end",
 };
 
 export const accountListPillStyle: CSSProperties = {
@@ -93,20 +106,34 @@ export const accountListPillStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   borderRadius: "12px",
-  padding: "4px 8px",
-  minHeight: "18px",
-  fontSize: "0.64rem",
+  padding: "2px 7px",
+  minHeight: "17px",
+  fontSize: "0.6rem",
   lineHeight: 1,
   fontWeight: 800,
   letterSpacing: "0.04em",
   textTransform: "uppercase",
+  maxWidth: "100%",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 export const accountListDensePillStyle: CSSProperties = {
   ...accountListPillStyle,
-  padding: "3px 7px",
-  minHeight: "16px",
-  fontSize: "0.58rem",
+};
+
+export const accountListBottomLeftStyle: CSSProperties = {
+  gridArea: "bottomLeft",
+  justifySelf: "start",
+  alignSelf: "start",
+};
+
+export const accountListBottomRightStyle: CSSProperties = {
+  gridArea: "bottomRight",
+  justifySelf: "end",
+  alignSelf: "start",
+  textAlign: "right",
 };
 
 export function createAccountSearchInputStyle(base: CSSProperties): CSSProperties {
