@@ -481,6 +481,10 @@ Implementation clarification:
 8. expose reporting read models for admin-web
 
 ## Proposed `command/admin-web` Reports
+Existing non-website reports may continue to exist alongside these analytics surfaces.
+Current IA note:
+- `Reports > Events` remains a separate operational placeholder and is outside the website-analytics reporting scope
+
 ### v1 Reports
 1. `Reports > Leads`
    - brand filter
@@ -688,12 +692,7 @@ This order is intentional:
 2. signup creation and signup verification are distinct metrics and must both be tracked
 3. raw AI traffic is normalized under `AI_REFERRAL`
 4. `AEO`, `GEO`, and `LLMO` are reporting/search facets above normalized AI-referral storage
-
-## Remaining Approval
-Session transport recommendation for v1:
-- use a JS-readable analytics-only cookie generated server-side after consent
-
-If that recommendation is approved, the implementation can proceed without another architecture pass on session transport.
+5. v1 session transport uses a JS-readable analytics-only cookie generated server-side after consent
 
 ## Recommendation
 Start with a first-party website analytics pipeline that is honest about what it can and cannot measure.

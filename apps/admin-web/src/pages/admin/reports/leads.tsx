@@ -44,6 +44,33 @@ type AnalyticsPayload = {
     from: string;
     to: string;
   };
+  attribution: {
+    totals: {
+      total: number;
+      contact: number;
+      chat: number;
+    };
+    sourceBreakdown: Array<{
+      sourceCategory: string;
+      sourcePlatform: string | null;
+      total: number;
+      contact: number;
+      chat: number;
+    }>;
+    landingPages: Array<{
+      path: string;
+      total: number;
+      contact: number;
+      chat: number;
+    }>;
+    referrerPlatforms: Array<{
+      platform: string;
+      total: number;
+      contact: number;
+      chat: number;
+    }>;
+  };
+  attributionCoverage: number;
   updatedAt: string;
 };
 
@@ -85,7 +112,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
       params.set("from", nextFrom);
       params.set("to", nextTo);
 
-      const response = await fetch(`/api/admin/analytics?${params.toString()}`);
+      const response = await fetch(`/api/admin/reports/leads?${params.toString()}`);
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.ok) {
         throw new Error(payload?.error || "Failed to load analytics");
@@ -234,6 +261,139 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
               </table>
             </div>
           </section>
+
+          <section style={panelStyle}>
+            <div style={{ display: "grid", gap: "12px" }}>
+              <div style={sectionTitleStyle}>Website Attribution</div>
+              <div style={attributionNoticeStyle}>
+                Attribution below is consented-session analytics only. Operational lead totals above may be higher when visitors did not grant analytics consent.
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "10px",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+                }}
+              >
+                <AttributionSummaryCard label="Operational Leads" value={formatCount(data?.totals.total || 0)} tone="slate" />
+                <AttributionSummaryCard label="Attributed Leads" value={formatCount(data?.attribution.totals.total || 0)} tone="red" />
+                <AttributionSummaryCard label="Coverage" value={formatPercent(data?.attributionCoverage || 0)} tone="amber" />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: "18px", marginTop: "18px" }}>
+              <div>
+                <div style={subsectionTitleStyle}>By Source</div>
+                <div style={tableWrapStyle}>
+                  <table style={tableStyle}>
+                    <thead>
+                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                        <th style={tableHeaderStyle}>Source</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Chat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data?.attribution?.sourceBreakdown?.length ? (
+                        data.attribution.sourceBreakdown.map((row) => (
+                          <tr key={`${row.sourceCategory}:${row.sourcePlatform || ""}`} style={tableBodyRowStyle}>
+                            <td style={tableCellStyle}>
+                              <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                                {formatSourceLabel(row.sourceCategory, row.sourcePlatform)}
+                              </div>
+                              <div style={subTextStyle}>{row.sourceCategory}</div>
+                            </td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.total)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.contact)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.chat)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={emptyTableCellStyle}>
+                            No consent-attributed leads were found for the selected filters.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <div style={subsectionTitleStyle}>By Landing Page</div>
+                <div style={tableWrapStyle}>
+                  <table style={tableStyle}>
+                    <thead>
+                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                        <th style={tableHeaderStyle}>Landing Page</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Chat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data?.attribution?.landingPages?.length ? (
+                        data.attribution.landingPages.map((row) => (
+                          <tr key={row.path} style={tableBodyRowStyle}>
+                            <td style={tableCellStyle}>
+                              <div style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{row.path}</div>
+                            </td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.total)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.contact)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.chat)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={emptyTableCellStyle}>
+                            No attributed landing-page data was found for the selected filters.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div>
+                <div style={subsectionTitleStyle}>By Referrer Platform</div>
+                <div style={tableWrapStyle}>
+                  <table style={tableStyle}>
+                    <thead>
+                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                        <th style={tableHeaderStyle}>Platform</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
+                        <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Chat</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data?.attribution?.referrerPlatforms?.length ? (
+                        data.attribution.referrerPlatforms.map((row) => (
+                          <tr key={row.platform} style={tableBodyRowStyle}>
+                            <td style={tableCellStyle}>
+                              <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.platform}</div>
+                            </td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.total)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.contact)}</td>
+                            <td style={tableCellNumericStyle}>{formatCount(row.chat)}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={emptyTableCellStyle}>
+                            No attributed referrer-platform data was found for the selected filters.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </AdminCard>
     </AdminLayout>
@@ -345,6 +505,21 @@ function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatSourceLabel(category: string, platform: string | null) {
+  const categoryLabel = category
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  if (!platform) return categoryLabel;
+  return `${platform} (${categoryLabel})`;
+}
+
 function createDefaultRange() {
   const now = new Date();
   const to = now.toISOString().slice(0, 10);
@@ -354,6 +529,37 @@ function createDefaultRange() {
     from: start.toISOString().slice(0, 10),
     to,
   };
+}
+
+function AttributionSummaryCard({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "red" | "slate" | "amber";
+}) {
+  const palette =
+    tone === "amber"
+      ? { bg: "var(--admin-warning-bg)", border: "var(--admin-warning-border)", value: "var(--admin-warning-text)" }
+      : tone === "slate"
+        ? { bg: "var(--admin-surface-secondary)", border: "var(--admin-border-subtle)", value: "var(--admin-text-primary)" }
+        : { bg: "var(--admin-error-bg)", border: "var(--admin-error-border)", value: "#b91c1c" };
+
+  return (
+    <div
+      style={{
+        borderRadius: "12px",
+        border: `1px solid ${palette.border}`,
+        background: palette.bg,
+        padding: "10px 12px",
+      }}
+    >
+      <div style={summaryLabelStyle}>{label}</div>
+      <div style={{ marginTop: "4px", fontSize: "1.15rem", fontWeight: 800, color: palette.value }}>{value}</div>
+    </div>
+  );
 }
 
 const primaryButtonStyle: CSSProperties = {
@@ -424,6 +630,12 @@ const sectionTitleStyle: CSSProperties = {
   color: "var(--admin-text-primary)",
 };
 
+const subsectionTitleStyle: CSSProperties = {
+  fontSize: "0.94rem",
+  fontWeight: 800,
+  color: "var(--admin-text-primary)",
+};
+
 const tableHeaderStyle: CSSProperties = {
   padding: "12px 14px",
   textAlign: "left",
@@ -440,6 +652,28 @@ const tableCellStyle: CSSProperties = {
   verticalAlign: "top",
 };
 
+const tableCellNumericStyle: CSSProperties = {
+  ...tableCellStyle,
+  textAlign: "right",
+};
+
+const tableWrapStyle: CSSProperties = {
+  overflowX: "auto",
+  marginTop: "14px",
+  borderRadius: "12px",
+  border: "1px solid rgba(148,163,184,0.24)",
+};
+
+const tableStyle: CSSProperties = {
+  width: "100%",
+  minWidth: "760px",
+  borderCollapse: "collapse",
+};
+
+const tableBodyRowStyle: CSSProperties = {
+  borderTop: "1px solid rgba(226,232,240,0.95)",
+};
+
 const errorStyle: CSSProperties = sharedErrorStyle;
 
 const readOnlyNoticeStyle: CSSProperties = {
@@ -451,6 +685,13 @@ const readOnlyNoticeStyle: CSSProperties = {
   fontSize: "0.94rem",
 };
 
+const summaryLabelStyle: CSSProperties = {
+  color: "var(--admin-text-muted)",
+  fontSize: "0.62rem",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+};
+
 const emptyStateStyle: CSSProperties = {
   borderRadius: "12px",
   border: "1px dashed var(--admin-muted-border)",
@@ -459,4 +700,25 @@ const emptyStateStyle: CSSProperties = {
   padding: "24px 18px",
   fontSize: "0.94rem",
   textAlign: "center",
+};
+
+const emptyTableCellStyle: CSSProperties = {
+  padding: "28px 18px",
+  textAlign: "center",
+  color: "#64748b",
+};
+
+const subTextStyle: CSSProperties = {
+  color: "#64748b",
+  fontSize: "0.82rem",
+};
+
+const attributionNoticeStyle: CSSProperties = {
+  borderRadius: "12px",
+  border: "1px solid rgba(148,163,184,0.24)",
+  background: "rgba(248,250,252,0.95)",
+  color: "#334155",
+  padding: "14px 16px",
+  fontSize: "0.94rem",
+  lineHeight: 1.6,
 };

@@ -3,6 +3,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { loadDashboardMetrics, parseMetricsPeriod, type DashboardMetrics, type MetricsPeriod } from "@command/core-leads";
+import { loadWebsiteDashboardSummary, type WebsiteDashboardSummary } from "@command/core-website-analytics";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
 import { formatAdminDateRange } from "../../lib/adminDates";
@@ -12,10 +13,14 @@ type DashboardProps = {
   principal: string;
   role: string;
   brands: string[];
-  initialMetrics: DashboardMetrics;
+  initialMetrics: DashboardPageMetrics;
 };
 
-type MetricsResponse = ({ ok: true } & DashboardMetrics) | { ok: false; error: string };
+type DashboardPageMetrics = DashboardMetrics & {
+  websiteSummary: WebsiteDashboardSummary;
+};
+
+type MetricsResponse = ({ ok: true } & DashboardPageMetrics) | { ok: false; error: string };
 type CountryMetricMode = "signups" | "clientLogins" | "backofficeLogins";
 
 const PERIOD_OPTIONS: Array<{ value: MetricsPeriod; label: string }> = [
@@ -57,7 +62,7 @@ function formatCount(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
-function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardMetrics {
+function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardPageMetrics {
   const now = new Date();
   const iso = now.toISOString();
   return {
@@ -73,12 +78,21 @@ function fallbackMetrics(period: MetricsPeriod = "7d"): DashboardMetrics {
       clientLogins: [],
       backofficeLogins: [],
     },
+    websiteSummary: {
+      sessions: 0,
+      engagedSessions: 0,
+      convertedSessions: 0,
+      conversionRate: 0,
+      bounceRate: 0,
+      averageEngagedSeconds: 0,
+      topSources: [],
+    },
   };
 }
 
-function isDashboardMetrics(value: unknown): value is DashboardMetrics {
+function isDashboardMetrics(value: unknown): value is DashboardPageMetrics {
   if (!value || typeof value !== "object") return false;
-  const input = value as DashboardMetrics;
+  const input = value as DashboardPageMetrics;
   return (
     (input.period === "today" || input.period === "7d" || input.period === "month") &&
     typeof input.from === "string" &&
@@ -95,7 +109,15 @@ function isDashboardMetrics(value: unknown): value is DashboardMetrics {
     typeof input.totals.clientLogins === "number" &&
     typeof input.totals.backofficeLogins === "number" &&
     typeof input.totals.leads === "number" &&
-    typeof input.totals.chatLeads === "number"
+    typeof input.totals.chatLeads === "number" &&
+    !!input.websiteSummary &&
+    typeof input.websiteSummary.sessions === "number" &&
+    typeof input.websiteSummary.engagedSessions === "number" &&
+    typeof input.websiteSummary.convertedSessions === "number" &&
+    typeof input.websiteSummary.conversionRate === "number" &&
+    typeof input.websiteSummary.bounceRate === "number" &&
+    typeof input.websiteSummary.averageEngagedSeconds === "number" &&
+    Array.isArray(input.websiteSummary.topSources)
   );
 }
 
@@ -281,7 +303,7 @@ export default function DashboardPage({
   initialMetrics,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const safeInitialMetrics = isDashboardMetrics(initialMetrics) ? initialMetrics : fallbackMetrics();
-  const [metrics, setMetrics] = useState<DashboardMetrics>(safeInitialMetrics);
+  const [metrics, setMetrics] = useState<DashboardPageMetrics>(safeInitialMetrics);
   const [selectedPeriod, setSelectedPeriod] = useState<MetricsPeriod>(safeInitialMetrics.period);
   const [selectedCountryMetric, setSelectedCountryMetric] = useState<CountryMetricMode>("signups");
   const [loading, setLoading] = useState(false);
@@ -406,6 +428,45 @@ export default function DashboardPage({
             <SummaryCard label="Chat Leads" value={formatCount(metrics.totals.chatLeads)} tone="amber" />
           </div>
 
+          <section style={websiteSummaryPanelStyle}>
+            <div style={websiteSummaryHeaderStyle}>
+              <div style={websiteSummaryTitleStyle}>Website Analytics</div>
+              <div style={websiteSummaryMetaStyle}>Consented sessions only</div>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gap: "10px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(132px, 1fr))",
+              }}
+            >
+              <SummaryCard label="Sessions" value={formatCount(metrics.websiteSummary.sessions)} tone="slate" />
+              <SummaryCard label="Converted" value={formatCount(metrics.websiteSummary.convertedSessions)} tone="red" />
+              <SummaryCard label="Conv. Rate" value={formatPercent(metrics.websiteSummary.conversionRate)} tone="red" />
+              <SummaryCard label="Bounce Rate" value={formatPercent(metrics.websiteSummary.bounceRate)} tone="amber" />
+            </div>
+            <div style={websiteSummaryFooterStyle}>
+              <div style={websiteSummaryMetaRowStyle}>
+                <span style={websiteSummaryMetaLabelStyle}>Avg engaged duration</span>
+                <strong style={websiteSummaryMetaValueStyle}>{formatDuration(metrics.websiteSummary.averageEngagedSeconds)}</strong>
+              </div>
+              <div style={websiteSummarySourceListStyle}>
+                <span style={websiteSummaryMetaLabelStyle}>Top source mix</span>
+                <div style={websiteSummarySourceChipsStyle}>
+                  {metrics.websiteSummary.topSources.length ? (
+                    metrics.websiteSummary.topSources.map((source) => (
+                      <span key={`${source.sourceCategory}:${source.sourcePlatform || ""}`} style={websiteSummarySourceChipStyle}>
+                        {formatSourceLabel(source.sourceCategory, source.sourcePlatform)} · {formatPercent(source.share)}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={websiteSummaryEmptyStyle}>No consented session data in this range yet.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
           <MetricChart metrics={metrics} />
         </div>
       </AdminCard>
@@ -489,16 +550,50 @@ export const getServerSideProps: GetServerSideProps<DashboardProps> = async (ctx
       allowedBrandIds: auth.principal.allowedBrandIds,
     },
   });
+  const websiteSummary = await loadWebsiteDashboardSummary({
+    scope: {
+      role: auth.principal.role,
+      allowedBrandIds: auth.principal.allowedBrandIds,
+    },
+    from: new Date(initialMetrics.from),
+    to: new Date(initialMetrics.to),
+  });
 
   return {
     props: {
       principal: auth.loggedInAs || auth.principal.displayName,
       role: auth.principal.role,
       brands: auth.principal.allowedBrandKeys,
-      initialMetrics,
+      initialMetrics: {
+        ...initialMetrics,
+        websiteSummary,
+      },
     },
   };
 };
+
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatDuration(seconds: number) {
+  if (!seconds) return "0s";
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.round(seconds % 60);
+  return `${minutes}m ${remainder}s`;
+}
+
+function formatSourceLabel(category: string, platform: string | null) {
+  const categoryLabel = category
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+  if (!platform) return categoryLabel;
+  return `${platform} (${categoryLabel})`;
+}
 
 const summaryLabelStyle: CSSProperties = {
   color: "var(--admin-text-muted)",
@@ -543,4 +638,82 @@ const emptyStateStyle: CSSProperties = {
   color: "var(--admin-text-secondary)",
   fontSize: "0.95rem",
   lineHeight: 1.6,
+};
+
+const websiteSummaryPanelStyle: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+  borderRadius: "14px",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "linear-gradient(180deg, var(--admin-surface-secondary) 0%, var(--admin-surface-tertiary) 100%)",
+  padding: "14px",
+};
+
+const websiteSummaryHeaderStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: "12px",
+  flexWrap: "wrap",
+};
+
+const websiteSummaryTitleStyle: CSSProperties = {
+  fontSize: "0.98rem",
+  fontWeight: 800,
+  color: "var(--admin-text-primary)",
+};
+
+const websiteSummaryMetaStyle: CSSProperties = {
+  fontSize: "0.82rem",
+  color: "var(--admin-text-muted)",
+  fontWeight: 600,
+};
+
+const websiteSummaryFooterStyle: CSSProperties = {
+  display: "grid",
+  gap: "12px",
+};
+
+const websiteSummaryMetaRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "10px",
+  flexWrap: "wrap",
+};
+
+const websiteSummaryMetaLabelStyle: CSSProperties = {
+  fontSize: "0.82rem",
+  color: "var(--admin-text-secondary)",
+  fontWeight: 700,
+};
+
+const websiteSummaryMetaValueStyle: CSSProperties = {
+  fontSize: "0.92rem",
+  color: "var(--admin-text-primary)",
+};
+
+const websiteSummarySourceListStyle: CSSProperties = {
+  display: "grid",
+  gap: "8px",
+};
+
+const websiteSummarySourceChipsStyle: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+};
+
+const websiteSummarySourceChipStyle: CSSProperties = {
+  borderRadius: "999px",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-primary)",
+  color: "var(--admin-text-primary)",
+  padding: "6px 10px",
+  fontSize: "0.82rem",
+  fontWeight: 700,
+};
+
+const websiteSummaryEmptyStyle: CSSProperties = {
+  color: "var(--admin-text-muted)",
+  fontSize: "0.84rem",
 };
