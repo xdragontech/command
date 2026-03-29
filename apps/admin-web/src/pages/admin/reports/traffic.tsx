@@ -354,18 +354,7 @@ export default function ReportsTrafficPage({
                     data.webVitals.map((row) => (
                       <tr key={row.metricName} style={tableBodyRowStyle}>
                         <td style={tableCellStyle}>
-                          <div style={metricNameRowStyle}>
-                            <span style={{ fontWeight: 700, color: "#0f172a" }}>{row.metricName}</span>
-                            {getWebVitalTooltip(row.metricName) ? (
-                              <span
-                                title={getWebVitalTooltip(row.metricName) || undefined}
-                                aria-label={`${row.metricName}: ${getWebVitalTooltip(row.metricName)}`}
-                                style={metricTooltipStyle}
-                              >
-                                ?
-                              </span>
-                            ) : null}
-                          </div>
+                          <WebVitalMetricLabel metricName={row.metricName} />
                         </td>
                         <td style={tableCellNumericStyle}>{formatCount(row.sampleCount)}</td>
                         <td style={tableCellNumericStyle}>{formatMetricValue(row.metricName, row.averageValue)}</td>
@@ -486,6 +475,50 @@ function TrafficSummaryCard({
     >
       <div style={summaryLabelStyle}>{label}</div>
       <div style={{ marginTop: "4px", fontSize: "1.15rem", fontWeight: 800, color: palette.value }}>{value}</div>
+    </div>
+  );
+}
+
+function WebVitalMetricLabel({ metricName }: { metricName: string }) {
+  const [open, setOpen] = useState(false);
+  const tooltip = getWebVitalTooltip(metricName);
+  const tooltipId = `web-vital-tooltip-${metricName.trim().toLowerCase()}`;
+
+  if (!tooltip) {
+    return <div style={{ fontWeight: 700, color: "#0f172a" }}>{metricName}</div>;
+  }
+
+  return (
+    <div
+      style={metricNameWrapStyle}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <div style={metricNameRowStyle}>
+        <span style={{ fontWeight: 700, color: "#0f172a" }}>{metricName}</span>
+        <button
+          type="button"
+          aria-label={`${metricName}: ${tooltip}`}
+          aria-describedby={tooltipId}
+          aria-expanded={open}
+          onClick={() => setOpen((current) => !current)}
+          style={metricTooltipButtonStyle}
+        >
+          ?
+        </button>
+      </div>
+
+      {open ? (
+        <div id={tooltipId} role="tooltip" style={metricTooltipPopoverStyle}>
+          {tooltip}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -757,13 +790,20 @@ const subTextStyle: CSSProperties = {
   fontSize: "0.82rem",
 };
 
+const metricNameWrapStyle: CSSProperties = {
+  position: "relative",
+  display: "inline-flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+};
+
 const metricNameRowStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "8px",
 };
 
-const metricTooltipStyle: CSSProperties = {
+const metricTooltipButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -777,6 +817,24 @@ const metricTooltipStyle: CSSProperties = {
   fontWeight: 700,
   cursor: "help",
   userSelect: "none",
+  padding: 0,
+};
+
+const metricTooltipPopoverStyle: CSSProperties = {
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  left: 0,
+  zIndex: 20,
+  width: "260px",
+  maxWidth: "min(260px, 42vw)",
+  borderRadius: "10px",
+  border: "1px solid rgba(148,163,184,0.32)",
+  background: "#ffffff",
+  boxShadow: "0 18px 42px rgba(15,23,42,0.16)",
+  color: "#334155",
+  fontSize: "0.82rem",
+  lineHeight: 1.55,
+  padding: "10px 12px",
 };
 
 const errorStyle: CSSProperties = sharedErrorStyle;
