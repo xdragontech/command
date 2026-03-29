@@ -3,20 +3,13 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
-  accountListBadgeColumnStyle,
-  accountListBottomRightStyle,
-  accountListCardHeaderStyle,
-  accountListCardIdentityStyle,
-  accountListCardStyle,
-  accountListFooterTextStyle,
+  AccountListRow,
   accountListHeaderStackStyle,
-  accountListNameStyle,
   accountListPanelStyle,
   accountListPillStyle,
   accountListRowsStyle,
   accountSplitLayoutStyle,
   createAccountSearchInputStyle,
-  selectedAccountListCardStyle,
 } from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -409,28 +402,15 @@ export default function ClientAccountsPage({
                 filteredUsers.map((user) => {
                   const selected = user.id === selectedId;
                   return (
-                    <button
+                    <AccountListRow
                       key={user.id}
-                      type="button"
                       onClick={() => selectUser(user)}
-                      style={{
-                        ...accountListCardStyle,
-                        ...(selected ? selectedAccountListCardStyle : {}),
-                      }}
-                    >
-                      <div style={accountListCardHeaderStyle}>
-                        <div style={accountListCardIdentityStyle}>
-                          <div style={accountListNameStyle}>{user.name || user.email}</div>
-                        </div>
-                        <div style={accountListBadgeColumnStyle}>
-                          <VerificationPill verified={Boolean(user.emailVerifiedAt)} compact />
-                        </div>
-                        <div style={accountListFooterTextStyle}>{user.email}</div>
-                        <div style={accountListBottomRightStyle}>
-                          <StatusPill status={user.status} compact />
-                        </div>
-                      </div>
-                    </button>
+                      selected={selected}
+                      title={user.name || user.email}
+                      topRight={<VerificationPill verified={Boolean(user.emailVerifiedAt)} compact />}
+                      bottomLeft={user.email}
+                      bottomRight={<StatusPill status={user.status} compact />}
+                    />
                   );
                 })
               )}
