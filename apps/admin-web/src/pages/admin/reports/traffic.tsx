@@ -354,7 +354,18 @@ export default function ReportsTrafficPage({
                     data.webVitals.map((row) => (
                       <tr key={row.metricName} style={tableBodyRowStyle}>
                         <td style={tableCellStyle}>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.metricName}</div>
+                          <div style={metricNameRowStyle}>
+                            <span style={{ fontWeight: 700, color: "#0f172a" }}>{row.metricName}</span>
+                            {getWebVitalTooltip(row.metricName) ? (
+                              <span
+                                title={getWebVitalTooltip(row.metricName) || undefined}
+                                aria-label={`${row.metricName}: ${getWebVitalTooltip(row.metricName)}`}
+                                style={metricTooltipStyle}
+                              >
+                                ?
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
                         <td style={tableCellNumericStyle}>{formatCount(row.sampleCount)}</td>
                         <td style={tableCellNumericStyle}>{formatMetricValue(row.metricName, row.averageValue)}</td>
@@ -552,7 +563,7 @@ function formatDuration(seconds: number) {
 
 function formatMetricValue(metricName: string, value: number) {
   if (/cls/i.test(metricName)) return value.toFixed(3);
-  if (/lcp|inp|fcp|ttfb/i.test(metricName)) return `${Math.round(value)} ms`;
+  if (/lcp|inp|fid|fcp|ttfb/i.test(metricName)) return `${Math.round(value)} ms`;
   return value.toFixed(2);
 }
 
@@ -565,6 +576,26 @@ function formatSourceLabel(category: string, platform: string | null) {
 
   if (!platform) return categoryLabel;
   return `${platform} (${categoryLabel})`;
+}
+
+function getWebVitalTooltip(metricName: string) {
+  const normalized = metricName.trim().toUpperCase();
+  switch (normalized) {
+    case "LCP":
+      return "Largest Contentful Paint: how long it takes for the main visible page content to render. Lower is better.";
+    case "CLS":
+      return "Cumulative Layout Shift: how much the page layout moves unexpectedly while loading. Lower is better.";
+    case "INP":
+      return "Interaction to Next Paint: how quickly the page responds visually after a user interaction. Lower is better.";
+    case "FCP":
+      return "First Contentful Paint: when the browser first paints visible content on the page. Lower is better.";
+    case "TTFB":
+      return "Time to First Byte: how quickly the browser receives the first byte from the server. Lower is better.";
+    case "FID":
+      return "First Input Delay: how long the page waits before it begins handling the first user input. Lower is better.";
+    default:
+      return null;
+  }
 }
 
 function createDefaultRange() {
@@ -724,6 +755,28 @@ const emptyTableCellStyle: CSSProperties = {
 const subTextStyle: CSSProperties = {
   color: "#64748b",
   fontSize: "0.82rem",
+};
+
+const metricNameRowStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "8px",
+};
+
+const metricTooltipStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "18px",
+  height: "18px",
+  borderRadius: "999px",
+  border: "1px solid rgba(148,163,184,0.35)",
+  background: "rgba(248,250,252,0.95)",
+  color: "#64748b",
+  fontSize: "0.72rem",
+  fontWeight: 700,
+  cursor: "help",
+  userSelect: "none",
 };
 
 const errorStyle: CSSProperties = sharedErrorStyle;
