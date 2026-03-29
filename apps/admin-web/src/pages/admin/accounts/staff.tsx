@@ -3,20 +3,13 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
-  accountListBadgeColumnStyle,
-  accountListBottomRightStyle,
-  accountListCardHeaderStyle,
-  accountListCardIdentityStyle,
-  accountListCardStyle,
+  AccountListRow,
   accountListDensePillStyle,
   accountListHeaderStackStyle,
-  accountListNameStyle,
   accountListPanelStyle,
   accountListRowsStyle,
-  accountListSecondaryTextStyle,
   accountSplitLayoutStyle,
   createAccountSearchInputStyle,
-  selectedAccountListCardStyle,
 } from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -547,39 +540,20 @@ export default function StaffAccountsPage({
                 filteredUsers.map((user) => {
                   const selected = user.id === selectedId;
                   return (
-                    <button
+                    <AccountListRow
                       key={user.id}
-                      type="button"
                       onClick={() => selectUser(user)}
-                      style={{
-                        ...accountListCardStyle,
-                        ...(selected ? selectedAccountListCardStyle : {}),
-                      }}
-                    >
-                      <div style={accountListCardHeaderStyle}>
-                        <div style={accountListCardIdentityStyle}>
-                          <div style={accountListNameStyle}>{user.username}</div>
-                          <div style={accountListSecondaryTextStyle}>
-                            {user.email || "No email set"}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            ...accountListBadgeColumnStyle,
-                            display: "flex",
-                            gap: "6px",
-                            alignItems: "flex-start",
-                            justifyContent: "flex-end",
-                          }}
-                        >
+                      selected={selected}
+                      title={user.username}
+                      topRight={
+                        <div style={{ display: "flex", gap: "6px", alignItems: "flex-start", justifyContent: "flex-end" }}>
                           <RolePill role={user.role} compact />
                           <StatusPill status={user.status} compact />
                         </div>
-                        <div style={accountListBottomRightStyle}>
-                          <MfaPill state={user.mfaState} compact />
-                        </div>
-                      </div>
-                    </button>
+                      }
+                      bottomLeft={user.email || "No email set"}
+                      bottomRight={<MfaPill state={user.mfaState} compact />}
+                    />
                   );
                 })
               )}

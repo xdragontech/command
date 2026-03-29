@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export const accountSplitLayoutStyle: CSSProperties = {
   display: "grid",
@@ -135,6 +135,42 @@ export const accountListBottomRightStyle: CSSProperties = {
   alignSelf: "start",
   textAlign: "right",
 };
+
+export function AccountListRow({
+  selected,
+  title,
+  topRight,
+  bottomLeft,
+  bottomRight,
+  onClick,
+}: {
+  selected: boolean;
+  title: ReactNode;
+  topRight?: ReactNode;
+  bottomLeft?: ReactNode;
+  bottomRight?: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...accountListCardStyle,
+        ...(selected ? selectedAccountListCardStyle : {}),
+      }}
+    >
+      <div style={accountListCardHeaderStyle}>
+        <div style={accountListCardIdentityStyle}>
+          <div style={accountListNameStyle}>{title}</div>
+        </div>
+        {topRight ? <div style={accountListBadgeColumnStyle}>{topRight}</div> : null}
+        {bottomLeft ? <div style={accountListFooterTextStyle}>{bottomLeft}</div> : null}
+        {bottomRight ? <div style={accountListBottomRightStyle}>{bottomRight}</div> : null}
+      </div>
+    </button>
+  );
+}
 
 export function createAccountSearchInputStyle(base: CSSProperties): CSSProperties {
   return {
