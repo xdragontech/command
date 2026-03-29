@@ -2,7 +2,13 @@ import { BackofficeRole, BackofficeUserStatus, BrandStatus } from "@prisma/clien
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import { accountListHeaderStackStyle, accountListRowsStyle, createAccountSearchInputStyle } from "../../../components/adminAccounts";
+import {
+  accountListHeaderStackStyle,
+  accountListPanelStyle,
+  accountListRowsStyle,
+  accountSplitLayoutStyle,
+  createAccountSearchInputStyle,
+} from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import { formatAdminDateTime } from "../../../lib/adminDates";
@@ -509,8 +515,8 @@ export default function StaffAccountsPage({
           </div>
         ) : null}
 
-        <div style={splitLayoutStyle}>
-          <section style={panelStyle}>
+        <div style={accountSplitLayoutStyle}>
+          <section style={accountListPanelStyle}>
             <div style={accountListHeaderStackStyle}>
               <input
                 value={search}
@@ -858,12 +864,6 @@ function disabledInput(disabled: boolean): CSSProperties {
       : null),
   };
 }
-
-const splitLayoutStyle: CSSProperties = {
-  display: "grid",
-  gap: "20px",
-  gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.35fr)",
-};
 
 const panelStyle: CSSProperties = {
   borderRadius: "12px",
