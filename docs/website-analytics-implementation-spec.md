@@ -208,6 +208,7 @@ The browser sends these only to `xdragon-site`.
 
 ### 3. `command/public-api`
 `command/public-api` owns:
+- published brand-scoped analytics consent notice read contract
 - analytics ingest validation
 - normalization
 - source classification
@@ -216,12 +217,19 @@ The browser sends these only to `xdragon-site`.
 
 ### 4. `command/admin-web`
 `command/admin-web` owns:
+- brand-scoped consent notice editing, draft/publish flow, and version history
 - reporting UI
 - dashboards and filters
 - operator-facing analytics surfaces
 
 ## Consent Model
 Analytics collection for deployed brands is consent-gated.
+
+Consent copy source of truth:
+- the consent banner copy is stored in `command`
+- it is edited in `command/admin-web` as a brand-scoped draft/publish resource
+- `xdragon-site` fetches the current published notice through `command/public-api`
+- consent acceptance must be tied to the published consent notice version
 
 That means:
 - no website analytics session should be created before consent
@@ -433,6 +441,7 @@ Each event includes:
 
 ### `xdragon-site` -> `command/public-api`
 New route:
+- `GET /api/v1/analytics/consent-notice`
 - `POST /api/v1/analytics/collect`
 
 Headers:
@@ -452,22 +461,24 @@ Implementation clarification:
 1. add browser tracker module
 2. add first-party analytics API route
 3. create/read website session cookie
-4. capture landing attribution on first page load
-5. send pageview and engagement events
-6. send Web Vitals events
-7. pass website session ID on conversion-relevant BFF routes:
+4. fetch published consent notice and enforce consent versioning locally
+5. capture landing attribution on first page load
+6. send pageview and engagement events
+7. send Web Vitals events
+8. pass website session ID on conversion-relevant BFF routes:
    - auth login/signup
    - contact
    - chat
 
 ## Proposed `command/public-api` Responsibilities
 1. add analytics ingest endpoint
-2. validate integration/auth context
-3. normalize source classification
-4. write raw events
-5. upsert session summary
-6. link conversions from lead/login flows to website session IDs
-7. expose reporting read models for admin-web
+2. add published consent notice read endpoint
+3. validate integration/auth context
+4. normalize source classification
+5. write raw events
+6. upsert session summary
+7. link conversions from lead/login flows to website session IDs
+8. expose reporting read models for admin-web
 
 ## Proposed `command/admin-web` Reports
 ### v1 Reports
@@ -600,9 +611,12 @@ Repos:
 
 Deliverables:
 - browser tracker
+- `GET /api/analytics/config`
+- `POST /api/analytics/consent`
 - `POST /api/analytics/collect`
 - session cookie
 - consent gate integration
+- command-managed consent copy fetch/render
 - landing attribution capture
 - pageview + engagement beacons
 - forward website session header on contact/chat/login/signup flows
