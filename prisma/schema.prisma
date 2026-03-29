@@ -37,6 +37,11 @@ enum BrandEmailProvider {
   RESEND
 }
 
+enum BrandConsentNoticeStatus {
+  DRAFT
+  PUBLISHED
+}
+
 enum BackofficeRole {
   SUPERADMIN
   STAFF
@@ -226,6 +231,7 @@ model Brand {
 
   hosts                           BrandHost[]
   emailConfig                     BrandEmailConfig?
+  consentNotices                  BrandConsentNotice[]
   categories                      Category[]
   prompts                         Prompt[]
   articleCategories               ArticleCategory[]
@@ -278,6 +284,26 @@ model BrandEmailConfig {
   updatedAt         DateTime               @updatedAt
 
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+}
+
+model BrandConsentNotice {
+  id           String                  @id @default(cuid())
+  brandId      String
+  version      Int
+  status       BrandConsentNoticeStatus
+  title        String
+  message      String
+  acceptLabel  String
+  declineLabel String
+  publishedAt  DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, version])
+  @@index([brandId, status])
+  @@index([brandId, publishedAt])
 }
 
 model ScheduleEventSeries {

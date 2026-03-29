@@ -548,6 +548,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /v1/analytics/consent-notice:
+    get:
+      tags: [Analytics]
+      summary: Fetch the current published analytics consent notice
+      description: |
+        Returns the current published brand-scoped consent notice for the calling integration.
+        The public-site BFF uses this to render the consent banner and tie user consent to the
+        published notice version.
+      responses:
+        '200':
+          description: Current published consent notice
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsConsentNoticeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /v1/analytics/collect:
     post:
       tags: [Analytics]
@@ -747,6 +766,43 @@ components:
         duplicateEvents:
           type: integer
           minimum: 0
+    AnalyticsConsentNotice:
+      type: object
+      additionalProperties: false
+      required: [id, version, status, title, message, acceptLabel, declineLabel, publishedAt, updatedAt]
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [PUBLISHED]
+        title:
+          type: string
+        message:
+          type: string
+        acceptLabel:
+          type: string
+        declineLabel:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AnalyticsConsentNoticeResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, notice]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        notice:
+          $ref: '#/components/schemas/AnalyticsConsentNotice'
     ExternalAccount:
       type: object
       additionalProperties: false

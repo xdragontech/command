@@ -1,5 +1,6 @@
 import {
   BackofficeRole,
+  BrandConsentNoticeStatus,
   BrandEmailConfigStatus,
   BrandStatus,
 } from "@prisma/client";
@@ -48,6 +49,34 @@ type BrandForm = {
   previewPublicHost: string;
   previewAdminHost: string;
   emailConfig: BrandEmailConfig;
+};
+
+type BrandConsentNoticeVersion = {
+  id: string;
+  version: number;
+  status: BrandConsentNoticeStatus;
+  title: string;
+  message: string;
+  acceptLabel: string;
+  declineLabel: string;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type EditableBrandConsentNotice = {
+  brandId: string;
+  draft: BrandConsentNoticeVersion | null;
+  published: BrandConsentNoticeVersion | null;
+  effective: BrandConsentNoticeVersion | null;
+  nextDraftVersion: number;
+};
+
+type BrandConsentNoticeForm = {
+  title: string;
+  message: string;
+  acceptLabel: string;
+  declineLabel: string;
 };
 
 type BrandsPageProps = {
@@ -129,6 +158,24 @@ function normalizeBrandForm(form: BrandForm) {
   });
 }
 
+function consentFormFromSource(source: BrandConsentNoticeVersion | null): BrandConsentNoticeForm {
+  return {
+    title: source?.title || "",
+    message: source?.message || "",
+    acceptLabel: source?.acceptLabel || "",
+    declineLabel: source?.declineLabel || "",
+  };
+}
+
+function normalizeConsentForm(form: BrandConsentNoticeForm) {
+  return JSON.stringify({
+    title: form.title.trim(),
+    message: form.message.replace(/\r\n?/g, "\n").trim(),
+    acceptLabel: form.acceptLabel.trim(),
+    declineLabel: form.declineLabel.trim(),
+  });
+}
+
 function formatDate(value: string | null) {
   return formatAdminDateTime(value);
 }
@@ -149,6 +196,11 @@ function EmailStatusPill({ status }: { status: BrandEmailConfigStatus }) {
   return <span style={{ ...pillStyle, ...style }}>{`EMAIL ${status}`}</span>;
 }
 
+function ConsentNoticeStatusPill({ status }: { status: BrandConsentNoticeStatus }) {
+  const style = status === BrandConsentNoticeStatus.PUBLISHED ? pillToneStyles.success : pillToneStyles.warning;
+  return <span style={{ ...pillStyle, ...style }}>{status}</span>;
+}
+
 export default function BrandsPage({
   loggedInAs,
   canManageBrands,
@@ -162,6 +214,11 @@ export default function BrandsPage({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [consentNotice, setConsentNotice] = useState<EditableBrandConsentNotice | null>(null);
+  const [consentForm, setConsentForm] = useState<BrandConsentNoticeForm | null>(null);
+  const [consentLoading, setConsentLoading] = useState(false);
+  const [consentSaving, setConsentSaving] = useState(false);
+  const [consentPublishing, setConsentPublishing] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -205,6 +262,46 @@ export default function BrandsPage({
     void loadBrands();
   }, []);
 
+  useEffect(() => {
+    if (!selectedId || selectedId === NEW_BRAND_ID) {
+      setConsentNotice(null);
+      setConsentForm(null);
+      setConsentLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadConsentNotice(brandId: string) {
+      setConsentLoading(true);
+
+      try {
+        const res = await fetch(`/api/admin/brands/${brandId}/consent-notice`);
+        const payload = await res.json().catch(() => null);
+        if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to load consent notice");
+
+        if (cancelled) return;
+
+        const nextNotice = payload.notice as EditableBrandConsentNotice;
+        setConsentNotice(nextNotice);
+        setConsentForm(consentFormFromSource(nextNotice.effective));
+      } catch (nextError: any) {
+        if (cancelled) return;
+        setConsentNotice(null);
+        setConsentForm(null);
+        setError(nextError?.message || "Failed to load consent notice");
+      } finally {
+        if (!cancelled) setConsentLoading(false);
+      }
+    }
+
+    void loadConsentNotice(selectedId);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId]);
+
   const filteredBrands = useMemo(() => {
     const needle = search.trim().toLowerCase();
     if (!needle) return brands;
@@ -240,6 +337,11 @@ export default function BrandsPage({
     return normalizeBrandForm(form) !== normalizeBrandForm(cloneBrand(selectedBrand));
   }, [form, isNewBrand, selectedBrand]);
 
+  const consentDirty = useMemo(() => {
+    if (!consentForm) return false;
+    return normalizeConsentForm(consentForm) !== normalizeConsentForm(consentFormFromSource(consentNotice?.effective || null));
+  }, [consentForm, consentNotice]);
+
   function selectBrand(brand: BrandRecord) {
     setSelectedId(brand.id);
     setForm(cloneBrand(brand));
@@ -272,12 +374,22 @@ export default function BrandsPage({
     );
   }
 
+  function updateConsentField<K extends keyof BrandConsentNoticeForm>(key: K, value: BrandConsentNoticeForm[K]) {
+    setConsentForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
   function resetForm() {
     if (selectedBrand) {
       setForm(cloneBrand(selectedBrand));
     } else {
       setForm(blankBrand());
     }
+    setError("");
+    setNotice("");
+  }
+
+  function resetConsentForm() {
+    setConsentForm(consentFormFromSource(consentNotice?.effective || null));
     setError("");
     setNotice("");
   }
@@ -353,6 +465,75 @@ export default function BrandsPage({
       setNotice("");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function saveConsentNotice(options?: { quiet?: boolean }) {
+    if (!selectedBrand || !consentForm) return null;
+
+    setConsentSaving(true);
+    setError("");
+    if (!options?.quiet) setNotice("");
+
+    try {
+      const res = await fetch(`/api/admin/brands/${selectedBrand.id}/consent-notice`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(consentForm),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to save consent notice");
+
+      const nextNotice = payload.notice as EditableBrandConsentNotice;
+      setConsentNotice(nextNotice);
+      setConsentForm(consentFormFromSource(nextNotice.effective));
+      if (!options?.quiet) {
+        setNotice(`Consent notice draft v${nextNotice.draft?.version || nextNotice.nextDraftVersion} saved.`);
+      }
+
+      return nextNotice;
+    } catch (nextError: any) {
+      setError(nextError?.message || "Failed to save consent notice");
+      if (!options?.quiet) setNotice("");
+      return null;
+    } finally {
+      setConsentSaving(false);
+    }
+  }
+
+  async function publishConsentNotice() {
+    if (!selectedBrand || !consentForm) return;
+
+    setConsentPublishing(true);
+    setError("");
+    setNotice("");
+
+    try {
+      let nextNotice = consentNotice;
+      if (consentDirty || !consentNotice?.draft) {
+        nextNotice = await saveConsentNotice({ quiet: true });
+      }
+      if (!nextNotice?.draft) {
+        throw new Error("Save a consent notice draft before publishing");
+      }
+
+      const res = await fetch(`/api/admin/brands/${selectedBrand.id}/consent-notice/publish`, {
+        method: "POST",
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to publish consent notice");
+
+      const publishedNotice = payload.notice as EditableBrandConsentNotice;
+      setConsentNotice(publishedNotice);
+      setConsentForm(consentFormFromSource(publishedNotice.effective));
+      setNotice(`Consent notice v${publishedNotice.published?.version || ""} published.`);
+    } catch (nextError: any) {
+      setError(nextError?.message || "Failed to publish consent notice");
+      setNotice("");
+    } finally {
+      setConsentPublishing(false);
     }
   }
 
@@ -670,6 +851,138 @@ export default function BrandsPage({
                       </label>
                     </div>
 
+                    <div style={subPanelStyle}>
+                      <div style={subsectionHeaderStyle}>
+                        <div>
+                          <div style={subsectionTitleStyle}>Website Analytics Consent</div>
+                          <p style={paragraphStyle}>
+                            Public-site consent copy is managed here as a brand-scoped published resource. Draft edits stay staged until you publish a new version.
+                          </p>
+                        </div>
+                        {consentNotice?.draft ? (
+                          <ConsentNoticeStatusPill status={BrandConsentNoticeStatus.DRAFT} />
+                        ) : consentNotice?.published ? (
+                          <ConsentNoticeStatusPill status={BrandConsentNoticeStatus.PUBLISHED} />
+                        ) : null}
+                      </div>
+
+                      {isNewBrand ? (
+                        <div style={{ ...mutedPanelStyle, marginTop: "18px" }}>
+                          Create the brand first. New brands get an initial published consent notice automatically, then you can draft and publish copy revisions here.
+                        </div>
+                      ) : consentLoading ? (
+                        <div style={{ ...mutedPanelStyle, marginTop: "18px" }}>Loading consent notice...</div>
+                      ) : !consentForm ? (
+                        <div style={{ ...mutedPanelStyle, marginTop: "18px" }}>No consent notice is available for this brand yet.</div>
+                      ) : (
+                        <>
+                          <div style={{ ...twoColumnStyle, marginTop: "18px" }}>
+                            <div style={metaPanelStyle}>
+                              <div style={metaLabelStyle}>Published Version</div>
+                              <div style={metaValueStyle}>
+                                {consentNotice?.published ? `v${consentNotice.published.version}` : "None"}
+                              </div>
+                              <div style={subtleTextStyle}>
+                                {consentNotice?.published?.publishedAt
+                                  ? `Published ${formatDate(consentNotice.published.publishedAt)}`
+                                  : "No published notice yet"}
+                              </div>
+                            </div>
+
+                            <div style={metaPanelStyle}>
+                              <div style={metaLabelStyle}>Draft State</div>
+                              <div style={metaValueStyle}>
+                                {consentNotice?.draft ? `Draft v${consentNotice.draft.version}` : `Next draft v${consentNotice?.nextDraftVersion || 1}`}
+                              </div>
+                              <div style={subtleTextStyle}>
+                                {consentNotice?.draft?.updatedAt
+                                  ? `Last edited ${formatDate(consentNotice.draft.updatedAt)}`
+                                  : "Editing below creates a new draft on save"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <label style={{ ...fieldStyle, marginTop: "18px" }}>
+                            <span style={labelStyle}>Banner Title</span>
+                            <input
+                              value={consentForm.title}
+                              onChange={(event) => updateConsentField("title", event.target.value)}
+                              placeholder="Website Analytics Consent"
+                              style={inputStyle}
+                              disabled={!canManageBrands}
+                            />
+                          </label>
+
+                          <label style={{ ...fieldStyle, marginTop: "16px" }}>
+                            <span style={labelStyle}>Banner Message</span>
+                            <textarea
+                              value={consentForm.message}
+                              onChange={(event) => updateConsentField("message", event.target.value)}
+                              placeholder="We use consented analytics..."
+                              style={textAreaStyle}
+                              disabled={!canManageBrands}
+                            />
+                          </label>
+
+                          <div style={{ ...twoColumnStyle, marginTop: "16px" }}>
+                            <label style={fieldStyle}>
+                              <span style={labelStyle}>Accept Button Label</span>
+                              <input
+                                value={consentForm.acceptLabel}
+                                onChange={(event) => updateConsentField("acceptLabel", event.target.value)}
+                                placeholder="Accept analytics"
+                                style={inputStyle}
+                                disabled={!canManageBrands}
+                              />
+                            </label>
+
+                            <label style={fieldStyle}>
+                              <span style={labelStyle}>Decline Button Label</span>
+                              <input
+                                value={consentForm.declineLabel}
+                                onChange={(event) => updateConsentField("declineLabel", event.target.value)}
+                                placeholder="Decline"
+                                style={inputStyle}
+                                disabled={!canManageBrands}
+                              />
+                            </label>
+                          </div>
+
+                          <div style={{ ...actionRowStyle, marginTop: "18px" }}>
+                            <button
+                              type="button"
+                              onClick={() => void saveConsentNotice()}
+                              disabled={!canManageBrands || consentSaving || !consentDirty}
+                              style={primaryButtonStyle}
+                            >
+                              {consentSaving ? "Saving Draft..." : consentNotice?.draft ? "Save Draft" : "Create Draft"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void publishConsentNotice()}
+                              disabled={
+                                !canManageBrands ||
+                                consentPublishing ||
+                                consentLoading ||
+                                (!consentNotice?.draft && !consentDirty)
+                              }
+                              style={secondaryButtonStyle}
+                            >
+                              {consentPublishing ? "Publishing..." : "Publish Consent Notice"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={resetConsentForm}
+                              disabled={!canManageBrands || !consentDirty}
+                              style={secondaryButtonStyle}
+                            >
+                              Reset Copy
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
                     <div style={actionRowStyle}>
                       <button
                         type="button"
@@ -810,6 +1123,13 @@ const inputStyle: CSSProperties = {
   color: "#0f172a",
 };
 
+const textAreaStyle: CSSProperties = {
+  ...inputStyle,
+  minHeight: "136px",
+  resize: "vertical",
+  fontFamily: "inherit",
+};
+
 const readOnlyInputStyle: CSSProperties = {
   ...inputStyle,
   background: "#e2e8f0",
@@ -913,6 +1233,29 @@ const paragraphStyle: CSSProperties = {
   fontSize: "0.92rem",
   lineHeight: 1.6,
   color: "#64748b",
+};
+
+const metaPanelStyle: CSSProperties = {
+  borderRadius: "12px",
+  border: "1px solid rgba(148,163,184,0.22)",
+  background: "#fff",
+  padding: "14px 16px",
+  display: "grid",
+  gap: "6px",
+};
+
+const metaLabelStyle: CSSProperties = {
+  fontSize: "0.75rem",
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  textTransform: "uppercase",
+  color: "#64748b",
+};
+
+const metaValueStyle: CSSProperties = {
+  fontSize: "1rem",
+  fontWeight: 700,
+  color: "#0f172a",
 };
 
 const twoColumnStyle: CSSProperties = {

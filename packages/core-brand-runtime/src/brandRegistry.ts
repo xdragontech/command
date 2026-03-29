@@ -10,6 +10,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import { normalizeHost } from "./requestHost";
+import { getDefaultBrandConsentNoticeInput } from "./consentNotice";
 
 type BrandWithHosts = Prisma.BrandGetPayload<{
   include: {
@@ -392,6 +393,14 @@ export async function saveEditableBrandWithClient(
             fromEmail: input.emailConfig.fromEmail || null,
             replyToEmail: input.emailConfig.replyToEmail || null,
             supportEmail: input.emailConfig.supportEmail || null,
+          },
+        },
+        consentNotices: {
+          create: {
+            version: 1,
+            status: "PUBLISHED",
+            publishedAt: new Date(),
+            ...getDefaultBrandConsentNoticeInput(),
           },
         },
       },

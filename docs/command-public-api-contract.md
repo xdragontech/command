@@ -33,6 +33,7 @@ The BFF is responsible for:
 - rendering the public UI
 - storing the opaque `command` session token in a server-side session store or equivalent BFF-controlled session layer
 - forwarding that token to `command`
+- fetching the current published analytics consent notice for the brand and rendering the consent banner from that source of truth
 - creating and forwarding the consent-gated website analytics session identifier for first-party analytics batches
 - shielding the browser from integration credentials and raw `command` session details
 
@@ -100,6 +101,7 @@ Deferred from this contract:
 - capture lead follow-up intent and notification triggers
 
 **Analytics**
+- fetch the current published analytics consent notice
 - ingest consented first-party website analytics event batches
 - normalize attribution and session summaries inside `command`
 
