@@ -358,7 +358,6 @@ export default function ClientAccountsPage({
     >
       <AdminCard
         title="Client Accounts"
-        description="Manage brand-scoped external accounts that authenticate through command and are consumed by brand frontends."
         actions={
           <div style={actionRowStyle}>
             <button type="button" onClick={() => void loadData(selectedId)} disabled={loading} style={secondaryButtonStyle}>
