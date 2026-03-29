@@ -35,7 +35,10 @@ paths:
       description: |
         Creates a brand-scoped external account for the integration's brand context and starts
         the email-verification flow. This endpoint is called by the public-site BFF, not directly
-        by the browser.
+        by the browser. When consent exists, the BFF should also forward the website session
+        header so `command` can link the created-signup conversion server-side.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
       requestBody:
         required: true
         content:
@@ -62,7 +65,10 @@ paths:
       description: |
         Authenticates the external user and returns an opaque Command session token for the BFF to
         store and forward on subsequent requests. The browser should not receive or manage the raw
-        Command session token directly.
+        Command session token directly. When consent exists, the BFF should also forward the
+        website session header so `command` can link the login conversion server-side.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
       requestBody:
         required: true
         content:
@@ -116,6 +122,12 @@ paths:
     post:
       tags: [Auth]
       summary: Verify an external account email address
+      description: |
+        Finalizes the external account email-verification flow. When consent exists, the BFF
+        should also forward the website session header so `command` can link the verified-signup
+        conversion server-side.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
       requestBody:
         required: true
         content:
@@ -491,7 +503,10 @@ paths:
       description: |
         Accepts a public contact form submission, writes lead records, and attempts brand-scoped
         notification delivery. This endpoint is integration-authenticated but does not require an
-        end-user session.
+        end-user session. When consent exists, the BFF should also forward the website session
+        header so `command` can link the contact conversion server-side.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
       requestBody:
         required: true
         content:
@@ -526,7 +541,11 @@ paths:
       description: |
         Processes the current conversation turn, applies lead-capture rules, and optionally sends
         brand-scoped notification email when enough follow-up data has been collected. This
-        endpoint is integration-authenticated but does not require an end-user session.
+        endpoint is integration-authenticated but does not require an end-user session. When
+        consent exists, the BFF should also forward the website session header so `command` can
+        link chat conversions server-side without trusting the browser to declare them.
+      parameters:
+        - $ref: '#/components/parameters/WebsiteSessionHeader'
       requestBody:
         required: true
         content:

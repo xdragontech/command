@@ -5,6 +5,7 @@ import {
   getPublicLeadRequestIdentity,
 } from "../../../server/publicLeadSupport";
 import { submitPublicContact } from "../../../server/publicContact";
+import { recordWebsiteConversionFromRequest } from "../../../server/websiteAnalytics";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -32,6 +33,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
       payload: req.body || {},
     });
+
+    if (result.analytics) {
+      await recordWebsiteConversionFromRequest({
+        req,
+        brandId: context.brand.brandId,
+        eventId: result.analytics.conversionEventId,
+        conversionType: "CONTACT_SUBMIT",
+        raw: result.analytics.raw,
+        options: { trustForwardedClientHeaders: true },
+      });
+    }
 
     return res.status(result.status).json(result.body);
   } catch (error) {

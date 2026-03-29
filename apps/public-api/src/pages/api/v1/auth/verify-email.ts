@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyExternalEmail } from "@command/core-auth-external";
 import { requirePublicApiContext, sendPublicApiError } from "../../../../server/auth";
+import { recordWebsiteConversionFromRequest } from "../../../../server/websiteAnalytics";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -18,7 +19,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       token: req.body?.token,
     });
 
-    return res.status(200).json(result);
+    if (result.analytics?.verifiedUserId) {
+      await recordWebsiteConversionFromRequest({
+        req,
+        brandId: context.brand.brandId,
+        eventId: `client-signup-verified:${result.analytics.verifiedUserId}`,
+        conversionType: "CLIENT_SIGNUP_VERIFIED",
+        raw: {
+          externalUserId: result.analytics.verifiedUserId,
+        },
+        options: { trustForwardedClientHeaders: true },
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      verified: true,
+    });
   } catch (error) {
     return sendPublicApiError(res, error);
   }
