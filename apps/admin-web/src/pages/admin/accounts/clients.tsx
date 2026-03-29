@@ -405,7 +405,7 @@ export default function ClientAccountsPage({
                       <div style={userCardHeaderStyle}>
                         <div>
                           <div style={{ fontWeight: 700 }}>{user.name || user.email}</div>
-                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: selected ? "#cbd5e1" : "#64748b" }}>
+                          <div style={{ marginTop: "6px", fontSize: "0.9rem", color: "#64748b" }}>
                             {user.email}
                           </div>
                         </div>
@@ -414,7 +414,7 @@ export default function ClientAccountsPage({
                           <StatusPill status={user.status} />
                         </div>
                       </div>
-                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: selected ? "#cbd5e1" : "#64748b" }}>
+                      <div style={{ marginTop: "14px", fontSize: "0.76rem", color: "#64748b" }}>
                         {user.brandName} · {user.brandKey}
                         {user.providerCount > 0 ? ` · ${user.providerLabels.join(", ")}` : ""}
                       </div>
@@ -677,9 +677,8 @@ const userCardStyle: CSSProperties = {
 };
 
 const selectedUserCardStyle: CSSProperties = {
-  background: "#0f172a",
-  color: "#fff",
-  border: "1px solid #0f172a",
+  background: "#fee2e2",
+  border: "1px solid rgba(239,68,68,0.34)",
 };
 
 const userCardHeaderStyle: CSSProperties = {
