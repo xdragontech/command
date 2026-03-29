@@ -443,6 +443,11 @@ Headers:
 
 `command/public-api` should trust session linkage and forwarded identity only on authenticated integration requests.
 
+Implementation clarification:
+- the `command/public-api` contract uses the forwarded session header as the authoritative session identifier
+- top-level `sessionId` in the browser-facing collector remains an `xdragon-site` concern, not part of the `command` public contract
+- client-reported `CONVERSION` events remain reserved until server-owned conversion linkage is implemented
+
 ## Proposed `xdragon-site` Responsibilities
 1. add browser tracker module
 2. add first-party analytics API route
@@ -578,6 +583,10 @@ Deliverables:
 - event ingest logic
 - source classification module
 - server-side conversion linkage helpers
+
+Wave-1 implementation constraint adopted after review:
+- schema + source normalization + collect endpoint can land before server-owned conversion linkage
+- the endpoint must reject client-reported `CONVERSION` events until those linkage helpers exist
 
 Validation:
 - typecheck

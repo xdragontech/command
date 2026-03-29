@@ -21,6 +21,7 @@ Implementation/extraction companion:
 - brand-scoped published schedule feeds
 - public contact flow
 - public chat flow
+- consent-gated first-party website analytics ingestion
 
 This pass is intentionally narrow. It does not try to freeze every future service into v1.
 
@@ -32,6 +33,7 @@ The BFF is responsible for:
 - rendering the public UI
 - storing the opaque `command` session token in a server-side session store or equivalent BFF-controlled session layer
 - forwarding that token to `command`
+- creating and forwarding the consent-gated website analytics session identifier for first-party analytics batches
 - shielding the browser from integration credentials and raw `command` session details
 
 **Trust Layers**
@@ -41,8 +43,11 @@ The BFF is responsible for:
 2. Forwarded user session
    - proves that the end user is authenticated inside `command`
    - proposed header in v1: `X-Command-Session`
+3. Forwarded website analytics session
+   - identifies a consent-gated first-party analytics session owned by the public-site BFF
+   - proposed header in v1: `X-Command-Website-Session`
 
-These must remain separate.
+These must remain separate. Analytics session IDs are not auth tokens.
 
 **Brand Context In v1**
 - initial assumption: the integration credential is brand-scoped
@@ -94,15 +99,21 @@ Deferred from this contract:
 - execute the public website chat flow
 - capture lead follow-up intent and notification triggers
 
+**Analytics**
+- ingest consented first-party website analytics event batches
+- normalize attribution and session summaries inside `command`
+
 **Recommended v1 Conventions**
 - path prefix: `/v1`
 - JSON responses only
 - OpenAPI-first versioning
 - opaque session token, not a browser-managed direct auth contract
 - generic password-forgot response to avoid account enumeration
+- browsers never call analytics ingest directly; the public-site BFF remains the only caller
 
 **Why This Contract Is The Right First Cut**
 - it covers the public-site features that already exist today
+- it adds the first-party analytics foundation without exposing internal services directly to browsers
 - it avoids freezing internal admin or backoffice-only concerns into the external API
 - it gives the future `command` repo a concrete surface to implement before extraction
 
@@ -111,5 +122,9 @@ Deferred from this contract:
 - analytics/leads ingestion APIs for third-party websites
 - partner accounts
 - feature-permission APIs
+
+Important boundary:
+- first-party analytics ingestion for deployed branded public sites is now in scope
+- generic third-party analytics ingestion remains out of scope
 
 Those can be added later, but they should not be smuggled into the public contract without a clearer product need.
