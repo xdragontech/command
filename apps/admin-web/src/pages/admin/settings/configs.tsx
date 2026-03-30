@@ -226,31 +226,31 @@ const sectionTitleStyle: CSSProperties = {
   margin: 0,
   fontSize: "1.08rem",
   lineHeight: 1.2,
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
 };
 
 const sectionDescriptionStyle: CSSProperties = {
   margin: "8px 0 0",
   fontSize: "0.94rem",
   lineHeight: 1.6,
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const tableWrapStyle: CSSProperties = {
   overflowX: "auto",
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
+  border: "1px solid var(--admin-border-subtle)",
 };
 
 const tableStyle: CSSProperties = {
   width: "100%",
   minWidth: "960px",
   borderCollapse: "collapse",
-  background: "#fff",
+  background: "var(--admin-surface-primary)",
 };
 
 const tableHeadRowStyle: CSSProperties = {
-  background: "#f8fafc",
+  background: "var(--admin-surface-secondary)",
 };
 
 const tableHeadCellStyle: CSSProperties = {
@@ -258,36 +258,37 @@ const tableHeadCellStyle: CSSProperties = {
   textAlign: "left",
   fontSize: "0.86rem",
   fontWeight: 700,
-  color: "#475569",
-  borderBottom: "1px solid rgba(148,163,184,0.22)",
+  color: "var(--admin-text-secondary)",
+  borderBottom: "1px solid var(--admin-border-subtle)",
 };
 
 const tableRowStyle: CSSProperties = {
-  borderTop: "1px solid rgba(148,163,184,0.18)",
+  borderTop: "1px solid var(--admin-border-subtle)",
   verticalAlign: "top",
 };
 
 const tableCellStyle: CSSProperties = {
   padding: "16px",
+  color: "var(--admin-text-primary)",
 };
 
 const monoKeyStyle: CSSProperties = {
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   fontSize: "0.74rem",
   fontWeight: 700,
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
 };
 
 const tableLabelStyle: CSSProperties = {
   marginTop: "6px",
   fontSize: "0.94rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
 };
 
 const monoValueStyle: CSSProperties = {
   fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   fontSize: "0.76rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   wordBreak: "break-all",
   lineHeight: 1.55,
 };
@@ -296,23 +297,23 @@ const tableDescriptionStyle: CSSProperties = {
   margin: 0,
   fontSize: "0.9rem",
   lineHeight: 1.6,
-  color: "#475569",
+  color: "var(--admin-text-secondary)",
 };
 
 const metaRowStyle: CSSProperties = {
   fontSize: "0.78rem",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const metaLabelStyle: CSSProperties = {
   fontWeight: 700,
-  color: "#475569",
+  color: "var(--admin-text-secondary)",
 };
 
 const subPanelStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "#f8fafc",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-secondary)",
   padding: "18px",
 };
 
@@ -332,8 +333,8 @@ const statusGridStyle: CSSProperties = {
 
 const metricCardStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "#fff",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-primary)",
   padding: "16px",
 };
 
@@ -342,14 +343,14 @@ const metricLabelStyle: CSSProperties = {
   fontWeight: 700,
   letterSpacing: "0.12em",
   textTransform: "uppercase",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const metricValueStyle: CSSProperties = {
   marginTop: "10px",
   fontSize: "0.96rem",
   fontWeight: 600,
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   lineHeight: 1.5,
   wordBreak: "break-word",
 };
@@ -358,15 +359,15 @@ const paragraphStyle: CSSProperties = {
   margin: "8px 0 0",
   fontSize: "0.92rem",
   lineHeight: 1.6,
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const secondaryButtonStyle: CSSProperties = {
-  border: "1px solid rgba(148,163,184,0.38)",
+  border: "1px solid var(--admin-border-strong)",
   borderRadius: "12px",
   padding: "10px 14px",
-  background: "#fff",
-  color: "#0f172a",
+  background: "var(--admin-surface-primary)",
+  color: "var(--admin-text-secondary)",
   fontSize: "0.88rem",
   fontWeight: 700,
   cursor: "pointer",
@@ -374,31 +375,31 @@ const secondaryButtonStyle: CSSProperties = {
 
 const infoPanelStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(59,130,246,0.22)",
-  background: "#eff6ff",
-  color: "#1d4ed8",
+  border: "1px solid var(--admin-info-border)",
+  background: "var(--admin-info-bg)",
+  color: "var(--admin-info-text)",
   padding: "16px",
 };
 
 const mutedPanelStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.22)",
-  background: "#f8fafc",
-  color: "#475569",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
   padding: "16px",
 };
 
 const errorStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(239,68,68,0.24)",
-  background: "#fef2f2",
-  color: "#991b1b",
+  border: "1px solid var(--admin-error-border)",
+  background: "var(--admin-error-bg)",
+  color: "var(--admin-error-text)",
   padding: "14px 16px",
 };
 
 const subtleTextStyle: CSSProperties = {
   fontSize: "0.88rem",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const pillStyle: CSSProperties = {

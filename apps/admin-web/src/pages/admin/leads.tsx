@@ -3,6 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../components/AdminCard";
 import { AdminLayout } from "../../components/AdminLayout";
+import {
+  errorStyle as sharedErrorStyle,
+  inputStyle as sharedInputStyle,
+  secondaryButtonStyle as sharedSecondaryButtonStyle,
+  tableCellStyle as sharedTableCellStyle,
+  tableHeadCellStyle as sharedTableHeadCellStyle,
+  tableWrapStyle as sharedTableWrapStyle,
+} from "../../components/adminScheduling";
 import { formatAdminDateTime } from "../../lib/adminDates";
 import { requireBackofficePage } from "../../server/backofficeAuth";
 
@@ -240,10 +248,10 @@ export default function LeadsPage({ principal, role, brands }: InferGetServerSid
           {error ? <div style={errorStyle}>{error}</div> : null}
           {notice ? <div style={noticeStyle}>{notice}</div> : null}
 
-          <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
+          <div style={tableWrapStyle}>
             <table style={{ width: "100%", minWidth: "1020px", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                <tr style={tableHeadRowStyle}>
                   <th style={tableHeaderStyle}>Brand</th>
                   <th style={tableHeaderStyle}>Name</th>
                   <th style={tableHeaderStyle}>Email</th>
@@ -257,8 +265,8 @@ export default function LeadsPage({ principal, role, brands }: InferGetServerSid
                 {filteredItems.map((item, index) => (
                   <tr key={`${item.source}-${item.ts}-${index}`} style={{ borderTop: "1px solid rgba(226,232,240,0.95)" }}>
                     <td style={tableCellStyle}>
-                      <div style={{ fontWeight: 700, color: "#0f172a" }}>{item.brandName || "Unknown"}</div>
-                      <div style={{ color: "#64748b", fontSize: "0.82rem" }}>{item.brandKey || "No brand key"}</div>
+                      <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{item.brandName || "Unknown"}</div>
+                      <div style={{ color: "var(--admin-text-muted)", fontSize: "0.82rem" }}>{item.brandKey || "No brand key"}</div>
                     </td>
                     <td style={tableCellStyle}>{item.name || "—"}</td>
                     <td style={tableCellStyle}>{item.email || "—"}</td>
@@ -283,7 +291,7 @@ export default function LeadsPage({ principal, role, brands }: InferGetServerSid
 
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: "28px 18px", textAlign: "center", color: "#64748b" }}>
+                    <td colSpan={7} style={emptyTableCellStyle}>
                       No leads found.
                     </td>
                   </tr>
@@ -312,20 +320,12 @@ export const getServerSideProps: GetServerSideProps<LeadsProps> = async (ctx) =>
   };
 };
 
-const inputStyle: CSSProperties = {
-  width: "100%",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.34)",
-  background: "rgba(255,255,255,0.95)",
-  padding: "12px 14px",
-  fontSize: "0.95rem",
-  color: "#0f172a",
-};
+const inputStyle: CSSProperties = sharedInputStyle;
 
 const countStyle: CSSProperties = {
   alignSelf: "center",
   justifySelf: "end",
-  color: "#475569",
+  color: "var(--admin-text-secondary)",
   fontSize: "0.92rem",
   fontWeight: 600,
 };
@@ -342,30 +342,35 @@ const primaryButtonStyle: CSSProperties = {
 };
 
 const secondaryButtonStyle: CSSProperties = {
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.34)",
-  background: "rgba(255,255,255,0.95)",
-  color: "#0f172a",
+  ...sharedSecondaryButtonStyle,
   padding: "10px 14px",
   fontSize: "0.9rem",
-  fontWeight: 700,
-  cursor: "pointer",
+};
+
+const tableWrapStyle: CSSProperties = sharedTableWrapStyle;
+
+const tableHeadRowStyle: CSSProperties = {
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
 };
 
 const tableHeaderStyle: CSSProperties = {
-  padding: "12px 14px",
-  textAlign: "left",
+  ...sharedTableHeadCellStyle,
   fontSize: "0.8rem",
-  fontWeight: 700,
   letterSpacing: "0.08em",
-  textTransform: "uppercase",
 };
 
 const tableCellStyle: CSSProperties = {
+  ...sharedTableCellStyle,
   padding: "13px 14px",
   fontSize: "0.94rem",
-  color: "#0f172a",
   verticalAlign: "top",
+};
+
+const emptyTableCellStyle: CSSProperties = {
+  padding: "28px 18px",
+  textAlign: "center",
+  color: "var(--admin-text-muted)",
 };
 
 const sourceChipBaseStyle: CSSProperties = {
@@ -391,14 +396,7 @@ const sourceChipContactStyle: CSSProperties = {
   color: "#92400e",
 };
 
-const errorStyle: CSSProperties = {
-  borderRadius: "12px",
-  border: "1px solid rgba(248,113,113,0.28)",
-  background: "rgba(254,242,242,0.94)",
-  color: "#991b1b",
-  padding: "14px 16px",
-  fontSize: "0.95rem",
-};
+const errorStyle: CSSProperties = sharedErrorStyle;
 
 const noticeStyle: CSSProperties = {
   borderRadius: "12px",
