@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyExternalEmail } from "@command/core-auth-external";
 import { requirePublicApiContext, sendPublicApiError } from "../../../../server/auth";
+import { capturePublicApiRoutePerformance } from "../../../../server/performanceMetrics";
 import { recordWebsiteConversionFromRequest } from "../../../../server/websiteAnalytics";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,24 +14,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!context) return;
 
   try {
-    const result = await verifyExternalEmail({
-      brandKey: context.brand.brandKey,
-      publicOrigin: context.brand.publicOrigin,
-      token: req.body?.token,
-    });
+    await capturePublicApiRoutePerformance({
+      req,
+      brandId: context.brand.brandId,
+      routeKey: "VERIFY_EMAIL",
+      statusCode: 200,
+      options: { trustForwardedClientHeaders: true },
+      operation: async () => {
+        const result = await verifyExternalEmail({
+          brandKey: context.brand.brandKey,
+          publicOrigin: context.brand.publicOrigin,
+          token: req.body?.token,
+        });
 
-    if (result.analytics?.verifiedUserId) {
-      await recordWebsiteConversionFromRequest({
-        req,
-        brandId: context.brand.brandId,
-        eventId: `client-signup-verified:${result.analytics.verifiedUserId}`,
-        conversionType: "CLIENT_SIGNUP_VERIFIED",
-        raw: {
-          externalUserId: result.analytics.verifiedUserId,
-        },
-        options: { trustForwardedClientHeaders: true },
-      });
-    }
+        if (result.analytics?.verifiedUserId) {
+          await recordWebsiteConversionFromRequest({
+            req,
+            brandId: context.brand.brandId,
+            eventId: `client-signup-verified:${result.analytics.verifiedUserId}`,
+            conversionType: "CLIENT_SIGNUP_VERIFIED",
+            raw: {
+              externalUserId: result.analytics.verifiedUserId,
+            },
+            options: { trustForwardedClientHeaders: true },
+          });
+        }
+
+        return result;
+      },
+    });
 
     return res.status(200).json({
       ok: true,

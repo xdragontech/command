@@ -4,6 +4,7 @@ import {
   enforcePublicLeadRateLimit,
   getPublicLeadRequestIdentity,
 } from "../../../server/publicLeadSupport";
+import { capturePublicApiRoutePerformance } from "../../../server/performanceMetrics";
 import { submitPublicContact } from "../../../server/publicContact";
 import { recordWebsiteConversionFromRequest } from "../../../server/websiteAnalytics";
 
@@ -27,23 +28,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!rateLimitOk) return;
 
   try {
-    const result = await submitPublicContact({
-      brand: context.brand,
-      integration: context.integration,
-      identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
-      payload: req.body || {},
-    });
+    const result = await capturePublicApiRoutePerformance({
+      req,
+      brandId: context.brand.brandId,
+      routeKey: "CONTACT",
+      options: { trustForwardedClientHeaders: true },
+      operation: async () => {
+        const contactResult = await submitPublicContact({
+          brand: context.brand,
+          integration: context.integration,
+          identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
+          payload: req.body || {},
+        });
 
-    if (result.analytics) {
-      await recordWebsiteConversionFromRequest({
-        req,
-        brandId: context.brand.brandId,
-        eventId: result.analytics.conversionEventId,
-        conversionType: "CONTACT_SUBMIT",
-        raw: result.analytics.raw,
-        options: { trustForwardedClientHeaders: true },
-      });
-    }
+        if (contactResult.analytics) {
+          await recordWebsiteConversionFromRequest({
+            req,
+            brandId: context.brand.brandId,
+            eventId: contactResult.analytics.conversionEventId,
+            conversionType: "CONTACT_SUBMIT",
+            raw: contactResult.analytics.raw,
+            options: { trustForwardedClientHeaders: true },
+          });
+        }
+
+        return contactResult;
+      },
+    });
 
     return res.status(result.status).json(result.body);
   } catch (error) {

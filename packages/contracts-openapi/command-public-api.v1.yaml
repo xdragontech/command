@@ -697,7 +697,7 @@ components:
           const: true
     AnalyticsEventType:
       type: string
-      enum: [SESSION_START, PAGE_VIEW, ENGAGEMENT_PING, SESSION_END, WEB_VITAL]
+      enum: [SESSION_START, PAGE_VIEW, ENGAGEMENT_PING, SESSION_END, WEB_VITAL, PERFORMANCE_METRIC]
     AnalyticsEvent:
       type: object
       additionalProperties: false

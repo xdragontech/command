@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -48,8 +48,12 @@ type TrafficPayload = {
     conversionRate: number;
     averageEngagedSeconds: number;
   }>;
-  webVitals: Array<{
+  performanceMetrics: Array<{
     metricName: string;
+    metricSource: "BROWSER" | "PUBLIC_WEBSITE" | "PUBLIC_API";
+    routeKey: string | null;
+    routeLabel: string | null;
+    label: string;
     sampleCount: number;
     averageValue: number;
     p75Value: number;
@@ -338,7 +342,7 @@ export default function ReportsTrafficPage({
           </section>
 
           <section style={panelStyle}>
-            <div style={sectionTitleStyle}>Web Vitals</div>
+            <div style={sectionTitleStyle}>Performance</div>
             <div style={tableWrapStyle}>
               <table style={tableStyle}>
                 <thead>
@@ -350,11 +354,11 @@ export default function ReportsTrafficPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {data?.webVitals?.length ? (
-                    data.webVitals.map((row) => (
-                      <tr key={row.metricName} style={tableBodyRowStyle}>
+                  {data?.performanceMetrics?.length ? (
+                    data.performanceMetrics.map((row) => (
+                      <tr key={`${row.metricSource}:${row.metricName}:${row.routeKey || ""}`} style={tableBodyRowStyle}>
                         <td style={tableCellStyle}>
-                          <WebVitalMetricLabel metricName={row.metricName} />
+                          <PerformanceMetricLabel metric={row} />
                         </td>
                         <td style={tableCellNumericStyle}>{formatCount(row.sampleCount)}</td>
                         <td style={tableCellNumericStyle}>{formatMetricValue(row.metricName, row.averageValue)}</td>
@@ -364,7 +368,7 @@ export default function ReportsTrafficPage({
                   ) : (
                     <tr>
                       <td colSpan={4} style={emptyTableCellStyle}>
-                        No Web Vitals samples were found for the selected filters.
+                        No performance samples were found for the selected filters.
                       </td>
                     </tr>
                   )}
@@ -479,21 +483,56 @@ function TrafficSummaryCard({
   );
 }
 
-function WebVitalMetricLabel({ metricName }: { metricName: string }) {
+function PerformanceMetricLabel({
+  metric,
+}: {
+  metric: TrafficPayload["performanceMetrics"][number];
+}) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
-  const tooltip = getWebVitalTooltip(metricName);
-  const tooltipId = `web-vital-tooltip-${metricName.trim().toLowerCase()}`;
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const tooltip = getPerformanceTooltip(metric);
+  const tooltipId = `performance-tooltip-${metric.metricSource.toLowerCase()}-${metric.metricName.trim().toLowerCase()}-${metric.routeKey || "global"}`;
+
+  function syncAnchorPosition() {
+    if (buttonRef.current) {
+      setAnchorRect(buttonRef.current.getBoundingClientRect());
+    }
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    syncAnchorPosition();
+
+    function handleViewportChange() {
+      syncAnchorPosition();
+    }
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [open]);
 
   if (!tooltip) {
-    return <div style={{ fontWeight: 700, color: "#0f172a" }}>{metricName}</div>;
+    return <div style={{ fontWeight: 700, color: "#0f172a" }}>{metric.label}</div>;
   }
 
   return (
     <div
       style={metricNameWrapStyle}
-      onMouseEnter={() => setOpen(true)}
+      onMouseEnter={() => {
+        syncAnchorPosition();
+        setOpen(true);
+      }}
       onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
+      onFocus={() => {
+        syncAnchorPosition();
+        setOpen(true);
+      }}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           setOpen(false);
@@ -501,21 +540,29 @@ function WebVitalMetricLabel({ metricName }: { metricName: string }) {
       }}
     >
       <div style={metricNameRowStyle}>
-        <span style={{ fontWeight: 700, color: "#0f172a" }}>{metricName}</span>
+        <span style={{ fontWeight: 700, color: "#0f172a" }}>{metric.label}</span>
         <button
+          ref={buttonRef}
           type="button"
-          aria-label={`${metricName}: ${tooltip}`}
+          aria-label={`${metric.label}: ${tooltip}`}
           aria-describedby={tooltipId}
           aria-expanded={open}
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => {
+            if (open) {
+              setOpen(false);
+              return;
+            }
+            syncAnchorPosition();
+            setOpen(true);
+          }}
           style={metricTooltipButtonStyle}
         >
           ?
         </button>
       </div>
 
-      {open ? (
-        <div id={tooltipId} role="tooltip" style={metricTooltipPopoverStyle}>
+      {open && anchorRect ? (
+        <div id={tooltipId} role="tooltip" style={buildMetricTooltipPopoverStyle(anchorRect)}>
           {tooltip}
         </div>
       ) : null}
@@ -596,7 +643,8 @@ function formatDuration(seconds: number) {
 
 function formatMetricValue(metricName: string, value: number) {
   if (/cls/i.test(metricName)) return value.toFixed(3);
-  if (/lcp|inp|fid|fcp|ttfb/i.test(metricName)) return `${Math.round(value)} ms`;
+  if (/db_query_count/i.test(metricName)) return formatCount(Math.round(value));
+  if (/lcp|inp|fid|fcp|ttfb|request_ms|server_ms|db_query_ms/i.test(metricName)) return `${Math.round(value)} ms`;
   return value.toFixed(2);
 }
 
@@ -611,8 +659,29 @@ function formatSourceLabel(category: string, platform: string | null) {
   return `${platform} (${categoryLabel})`;
 }
 
-function getWebVitalTooltip(metricName: string) {
-  const normalized = metricName.trim().toUpperCase();
+function getPerformanceTooltip(metric: TrafficPayload["performanceMetrics"][number]) {
+  const normalized = metric.metricName.trim().toUpperCase();
+
+  if (metric.metricSource === "PUBLIC_WEBSITE" && normalized === "REQUEST_MS") {
+    return `Public Website ${metric.routeLabel || "request"} request time: total time spent inside the branded website route before it returned the response. Lower is better.`;
+  }
+
+  if (metric.metricSource === "PUBLIC_API" && normalized === "REQUEST_MS") {
+    return `Public API ${metric.routeLabel || "request"} round-trip time: end-to-end time from the branded website to command/public-api and back. Lower is better.`;
+  }
+
+  if (metric.metricSource === "PUBLIC_API" && normalized === "SERVER_MS") {
+    return `Public API ${metric.routeLabel || "request"} server time: time spent inside command/public-api handling the request. Lower is better.`;
+  }
+
+  if (metric.metricSource === "PUBLIC_API" && normalized === "DB_QUERY_MS") {
+    return `Public API ${metric.routeLabel || "request"} DB query time: total Prisma database query time accumulated while handling the request. Lower is better.`;
+  }
+
+  if (metric.metricSource === "PUBLIC_API" && normalized === "DB_QUERY_COUNT") {
+    return `Public API ${metric.routeLabel || "request"} DB query count: number of Prisma database queries executed while handling the request. Lower is generally better if the response behavior stays correct.`;
+  }
+
   switch (normalized) {
     case "LCP":
       return "Largest Contentful Paint: how long it takes for the main visible page content to render. Lower is better.";
@@ -629,6 +698,23 @@ function getWebVitalTooltip(metricName: string) {
     default:
       return null;
   }
+}
+
+function buildMetricTooltipPopoverStyle(anchorRect: DOMRect): CSSProperties {
+  const popoverWidth = 260;
+  const viewportWidth = typeof window === "undefined" ? 1440 : window.innerWidth;
+  const viewportHeight = typeof window === "undefined" ? 900 : window.innerHeight;
+  const left = Math.min(Math.max(12, anchorRect.left - 6), viewportWidth - popoverWidth - 12);
+  const estimatedHeight = 140;
+  const shouldRenderAbove =
+    anchorRect.bottom + estimatedHeight > viewportHeight && anchorRect.top > estimatedHeight;
+
+  return {
+    ...metricTooltipPopoverStyle,
+    left,
+    top: shouldRenderAbove ? anchorRect.top - 10 : anchorRect.bottom + 10,
+    transform: shouldRenderAbove ? "translateY(-100%)" : "none",
+  };
 }
 
 function createDefaultRange() {
@@ -821,10 +907,8 @@ const metricTooltipButtonStyle: CSSProperties = {
 };
 
 const metricTooltipPopoverStyle: CSSProperties = {
-  position: "absolute",
-  top: "calc(100% + 8px)",
-  left: 0,
-  zIndex: 20,
+  position: "fixed",
+  zIndex: 1200,
   width: "260px",
   maxWidth: "min(260px, 42vw)",
   borderRadius: "10px",

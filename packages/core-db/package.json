@@ -4,6 +4,16 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./performance": {
+      "types": "./dist/performance.d.ts",
+      "default": "./dist/performance.js"
+    }
+  },
   "dependencies": {
     "@prisma/client": "6.19.2"
   }

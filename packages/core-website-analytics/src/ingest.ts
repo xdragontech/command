@@ -57,7 +57,8 @@ function parseEventType(value: unknown): WebsiteAnalyticsIngestEventType {
     value !== "PAGE_VIEW" &&
     value !== "ENGAGEMENT_PING" &&
     value !== "SESSION_END" &&
-    value !== "WEB_VITAL"
+    value !== "WEB_VITAL" &&
+    value !== "PERFORMANCE_METRIC"
   ) {
     throw new WebsiteAnalyticsValidationError("Unsupported analytics eventType.");
   }
@@ -101,15 +102,15 @@ function validateEvent(input: WebsiteAnalyticsCollectEventInput): ValidatedWebsi
   const metricValue = parseMetricValue(input?.metricValue);
   const engagedSeconds = parseEngagedSeconds(input?.engagedSeconds);
 
-  if (eventType === "WEB_VITAL" && (!metricName || metricValue == null)) {
+  if ((eventType === "WEB_VITAL" || eventType === "PERFORMANCE_METRIC") && (!metricName || metricValue == null)) {
     throw new WebsiteAnalyticsValidationError(
-      "WEB_VITAL events require both metricName and metricValue."
+      "WEB_VITAL and PERFORMANCE_METRIC events require both metricName and metricValue."
     );
   }
 
-  if (eventType !== "WEB_VITAL" && (metricName || metricValue != null)) {
+  if (eventType !== "WEB_VITAL" && eventType !== "PERFORMANCE_METRIC" && (metricName || metricValue != null)) {
     throw new WebsiteAnalyticsValidationError(
-      "metricName and metricValue are only valid for WEB_VITAL events."
+      "metricName and metricValue are only valid for WEB_VITAL and PERFORMANCE_METRIC events."
     );
   }
 

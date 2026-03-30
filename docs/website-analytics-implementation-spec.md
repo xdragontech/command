@@ -67,7 +67,7 @@ This mirrors the existing BFF trust model and avoids exposing internal services 
 | Traffic by source | No | Yes | Requires landing attribution and source classifier. |
 | Bounce rate | No | Yes | Requires pageview/session model and explicit bounce definition. |
 | Average session duration | No | Yes, approximate | Should be reported as engaged duration, not literal wall-clock tab-open time. |
-| Page load time / UX | No | Yes | Requires browser-side Web Vitals capture. |
+| Page load time / UX | No | Yes | Requires browser-side Web Vitals capture plus server/request performance metrics for public-site flows. |
 | SEO | Partial | Partial + better | `command` can track observed search traffic and conversions. Rankings/impressions require Search Console. |
 | AEO | No | Partial | Only observed assistant/answer-engine referrals are measurable. |
 | GEO | No | Partial | Only observed AI referrals are measurable. |
@@ -195,7 +195,7 @@ The browser collects:
 - pageviews
 - route transitions
 - visibility/engagement pings
-- Web Vitals
+- Performance metrics
 
 The browser sends these only to `xdragon-site`.
 
@@ -464,7 +464,7 @@ Implementation clarification:
 4. fetch published consent notice and enforce consent versioning locally
 5. capture landing attribution on first page load
 6. send pageview and engagement events
-7. send Web Vitals events
+7. send Web Vitals and public request/server performance events
 8. pass website session ID on conversion-relevant BFF routes:
    - auth login/signup
    - contact
@@ -500,7 +500,7 @@ Current IA note:
    - average engaged duration
    - traffic by source
    - landing pages
-   - web vitals summary
+   - performance summary
 
 3. `Dashboard`
    - top-line summary only

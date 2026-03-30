@@ -1,0 +1,1 @@
+ALTER TYPE "WebsiteAnalyticsEventType" ADD VALUE 'PERFORMANCE_METRIC';
