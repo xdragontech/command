@@ -1,9 +1,14 @@
-import { getRuntimeAllowedHosts, resolveRuntimeBrandForHost } from "./brandRegistry";
+import {
+  getRuntimeAllowedHosts,
+  resolveRuntimeBrandForHost,
+  type RuntimeBrandResolution,
+} from "./brandRegistry";
 import { normalizeHost } from "./requestHost";
 
 export type RuntimeHostConfig = {
   requestHost: string;
   brandKey: string | null;
+  runtime: RuntimeBrandResolution | null;
   canonicalPublicHost: string | null;
   canonicalAdminHost: string | null;
   allowedHosts: string[];
@@ -20,6 +25,7 @@ export async function getRuntimeHostConfig(requestHost?: string | null): Promise
   return {
     requestHost: normalizedHost,
     brandKey: runtime?.brandKey || null,
+    runtime,
     canonicalPublicHost: runtime?.canonicalPublicHost || normalizedHost || null,
     canonicalAdminHost: runtime?.canonicalAdminHost || normalizedHost || null,
     allowedHosts,

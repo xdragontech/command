@@ -16,6 +16,7 @@ Implementation/extraction companion:
 - external auth
 - external account read/update
 - password reset
+- install-scoped runtime host resolution for website entrypoints
 - brand-scoped prompt feed
 - brand-scoped guide feed
 - brand-scoped published schedule feeds
@@ -113,6 +114,11 @@ Deferred from this contract:
   - contact
   - chat
 
+**Runtime**
+- resolve install-scoped host runtime config for the website/frontend entrypoint
+- return canonical public/admin hosts plus allowed-host redirect policy from the database-backed brand host registry
+- keep live host/brand resolution owned by `command` even when the public website remains the browser-facing entrypoint
+
 **Recommended v1 Conventions**
 - path prefix: `/v1`
 - JSON responses only
@@ -120,10 +126,12 @@ Deferred from this contract:
 - opaque session token, not a browser-managed direct auth contract
 - generic password-forgot response to avoid account enumeration
 - browsers never call analytics ingest directly; the public-site BFF remains the only caller
+- runtime host resolution is the exception to brand-scoped integration context: it validates the website integration, then resolves install-scoped host routing before brand context exists
 
 **Why This Contract Is The Right First Cut**
 - it covers the public-site features that already exist today
 - it adds the first-party analytics foundation without exposing internal services directly to browsers
+- it removes duplicate live brand-host registry ownership from the public website runtime
 - it avoids freezing internal admin or backoffice-only concerns into the external API
 - it gives the future `command` repo a concrete surface to implement before extraction
 
