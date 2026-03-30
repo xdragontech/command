@@ -74,12 +74,12 @@ Once `command/public-api` preview is healthy, set these env vars on `xdragon-sit
 
 - `COMMAND_PUBLIC_API_BASE_URL=https://<command-public-api-preview-host>`
 - `COMMAND_PUBLIC_INTEGRATION_KEY=<matching key from COMMAND_PUBLIC_INTEGRATIONS_JSON>`
-- `COMMAND_BFF_SESSION_SECRET=<optional but recommended>`
+- `COMMAND_BFF_SESSION_SECRET=<required dedicated BFF secret>`
 
 Notes:
 
-- `COMMAND_BFF_SESSION_SECRET` is recommended so the public site’s BFF session envelope does not depend on `NEXTAUTH_SECRET`.
-- `xdragon-site` already has fallback behavior. If these command env vars are absent, it stays on the legacy local public-auth path.
+- `COMMAND_BFF_SESSION_SECRET` is required because the public site’s BFF session envelope no longer falls back to `NEXTAUTH_SECRET`.
+- `xdragon-site` no longer uses the legacy local public-auth fallback path for these public auth/contact/chat flows. Missing command envs now break that BFF contract instead of silently switching ownership.
 
 ## Staging Smoke Checklist
 
