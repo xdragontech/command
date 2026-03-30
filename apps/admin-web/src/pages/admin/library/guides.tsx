@@ -2,6 +2,13 @@ import { PromptStatus } from "@prisma/client";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
+import {
+  AccountListRow,
+  accountListDensePillStyle,
+  accountListPanelStyle,
+  accountListRowsStyle,
+  accountSplitLayoutStyle,
+} from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import { formatAdminDateTime } from "../../../lib/adminDates";
@@ -113,7 +120,7 @@ function formatDate(value: string | null) {
   return formatAdminDateTime(value);
 }
 
-function StatusPill({ status }: { status: PromptStatus }) {
+function StatusPill({ status, compact = false }: { status: PromptStatus; compact?: boolean }) {
   const style =
     status === PromptStatus.PUBLISHED
       ? toneStyles.success
@@ -121,7 +128,7 @@ function StatusPill({ status }: { status: PromptStatus }) {
         ? toneStyles.slate
         : toneStyles.warning;
 
-  return <span style={{ ...pillStyle, ...style }}>{status}</span>;
+  return <span style={{ ...(compact ? accountListDensePillStyle : pillStyle), ...style }}>{status}</span>;
 }
 
 export default function GuidesLibraryPage({
@@ -551,40 +558,22 @@ export default function GuidesLibraryPage({
           {error ? <div style={errorStyle}>{error}</div> : null}
           {notice ? <div style={noticeStyle}>{notice}</div> : null}
 
-          <div
-            style={{
-              display: "grid",
-              gap: "18px",
-              gridTemplateColumns: "minmax(280px, 0.9fr) minmax(0, 1.35fr)",
-            }}
-          >
-            <div style={listPanelStyle}>
+          <div style={accountSplitLayoutStyle}>
+            <div style={accountListPanelStyle}>
               <div style={listHeaderStyle}>Guide Directory</div>
-              <div style={{ display: "grid", gap: "10px" }}>
+              <div style={accountListRowsStyle}>
                 {guides.map((guide) => {
                   const active = selectedGuideId === guide.id;
                   return (
-                    <button
+                    <AccountListRow
                       key={guide.id}
-                      type="button"
                       onClick={() => selectGuide(guide)}
-                      style={{
-                        ...listItemStyle,
-                        ...(active ? listItemActiveStyle : null),
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: "8px", alignItems: "flex-start" }}>
-                        <div style={{ fontWeight: 700, color: "#0f172a", textAlign: "left" }}>{guide.title}</div>
-                        <StatusPill status={guide.status} />
-                      </div>
-                      <div style={{ marginTop: "6px", color: "#64748b", textAlign: "left", fontSize: "0.84rem" }}>
-                        {guide.brandName || "Unknown brand"}
-                        {guide.categoryName ? ` • ${guide.categoryName}` : ""}
-                      </div>
-                      <div style={{ marginTop: "8px", color: "#64748b", textAlign: "left", fontSize: "0.8rem" }}>
-                        Updated {formatDate(guide.updatedAt)}
-                      </div>
-                    </button>
+                      selected={active}
+                      title={guide.title}
+                      topRight={<StatusPill status={guide.status} compact />}
+                      bottomLeft={`${guide.brandName || "Unknown brand"}${guide.categoryName ? ` • ${guide.categoryName}` : ""}`}
+                      bottomRight={<span style={rowMetaStyle}>Updated {formatDate(guide.updatedAt)}</span>}
+                    />
                   );
                 })}
 
@@ -757,33 +746,20 @@ export default function GuidesLibraryPage({
           </button>
         }
       >
-        <div
-          style={{
-            display: "grid",
-            gap: "18px",
-            gridTemplateColumns: "minmax(280px, 0.85fr) minmax(0, 1fr)",
-          }}
-        >
-          <div style={listPanelStyle}>
+        <div style={accountSplitLayoutStyle}>
+          <div style={accountListPanelStyle}>
             <div style={listHeaderStyle}>Guide Category Directory</div>
-            <div style={{ display: "grid", gap: "10px" }}>
+            <div style={accountListRowsStyle}>
               {categories.map((category) => {
                 const active = selectedCategoryId === category.id;
                 return (
-                  <button
+                  <AccountListRow
                     key={category.id}
-                    type="button"
                     onClick={() => selectCategory(category)}
-                    style={{
-                      ...listItemStyle,
-                      ...(active ? listItemActiveStyle : null),
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, color: "#0f172a", textAlign: "left" }}>{category.name}</div>
-                    <div style={{ marginTop: "6px", color: "#64748b", textAlign: "left", fontSize: "0.84rem" }}>
-                      {category.brandName || "Unknown brand"} • {category.guideCount} guide{category.guideCount === 1 ? "" : "s"}
-                    </div>
-                  </button>
+                    selected={active}
+                    title={category.name}
+                    bottomLeft={`${category.brandName || "Unknown brand"} • ${category.guideCount} guide${category.guideCount === 1 ? "" : "s"}`}
+                  />
                 );
               })}
 
@@ -970,35 +946,10 @@ const countStyle: CSSProperties = {
   fontWeight: 600,
 };
 
-const listPanelStyle: CSSProperties = {
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(248,250,252,0.95)",
-  padding: "18px",
-  display: "grid",
-  gap: "14px",
-  alignSelf: "start",
-};
-
 const listHeaderStyle: CSSProperties = {
   fontWeight: 700,
   color: "#0f172a",
   fontSize: "0.96rem",
-};
-
-const listItemStyle: CSSProperties = {
-  width: "100%",
-  textAlign: "left",
-  borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(255,255,255,0.96)",
-  padding: "14px",
-  cursor: "pointer",
-};
-
-const listItemActiveStyle: CSSProperties = {
-  border: "1px solid rgba(239,68,68,0.28)",
-  background: "rgba(254,226,226,0.78)",
 };
 
 const editorPanelStyle: CSSProperties = {
@@ -1007,7 +958,8 @@ const editorPanelStyle: CSSProperties = {
   background: "rgba(255,255,255,0.96)",
   padding: "20px",
   display: "grid",
-  gap: "16px",
+  gap: "18px",
+  alignSelf: "start",
 };
 
 const editorHeaderRowStyle: CSSProperties = {
@@ -1028,6 +980,15 @@ const editorMetaStyle: CSSProperties = {
   marginTop: "6px",
   color: "#64748b",
   fontSize: "0.88rem",
+};
+
+const rowMetaStyle: CSSProperties = {
+  fontSize: "0.74rem",
+  lineHeight: 1.2,
+  color: "#64748b",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const formGridStyle: CSSProperties = {
