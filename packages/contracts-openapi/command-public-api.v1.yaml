@@ -17,6 +17,8 @@ tags:
     description: External user authentication and session lifecycle
   - name: Account
     description: Authenticated external account profile operations
+  - name: Runtime
+    description: Install-scoped runtime host resolution for website/BFF entrypoints
   - name: Resources
     description: Authenticated brand-scoped prompt and guide feeds
   - name: Scheduling
@@ -615,6 +617,33 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
+  /v1/runtime/host:
+    get:
+      tags: [Runtime]
+      summary: Resolve install-scoped host runtime config
+      description: |
+        Returns canonical public/admin host routing and allowed-host redirect policy for the
+        requested host from the database-backed BrandHost registry. This endpoint is integration-
+        authenticated, but intentionally install-scoped rather than brand-scoped because host
+        routing must be resolved before brand context exists on the website entrypoint.
+      parameters:
+        - in: query
+          name: host
+          required: true
+          schema:
+            type: string
+          description: Hostname to resolve.
+      responses:
+        '200':
+          description: Runtime host config resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeHostConfigResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 components:
   securitySchemes:
     IntegrationKeyAuth:
@@ -785,6 +814,99 @@ components:
         duplicateEvents:
           type: integer
           minimum: 0
+    RuntimeBrandResolution:
+      type: object
+      additionalProperties: false
+      required:
+        - source
+        - brandKey
+        - brandName
+        - status
+        - environment
+        - matchedHost
+        - canonicalPublicHost
+        - canonicalAdminHost
+        - apexHost
+        - isAdminHost
+      properties:
+        source:
+          type: string
+          const: database
+        brandId:
+          type: string
+          nullable: true
+        brandKey:
+          type: string
+        brandName:
+          type: string
+        status:
+          type: string
+        environment:
+          type: string
+          enum: [production, preview]
+        matchedHost:
+          type: string
+        canonicalPublicHost:
+          type: string
+        canonicalAdminHost:
+          type: string
+        apexHost:
+          type: string
+        isAdminHost:
+          type: boolean
+    RuntimeHostConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - requestHost
+        - brandKey
+        - runtime
+        - canonicalPublicHost
+        - canonicalAdminHost
+        - allowedHosts
+        - resolvedFromBrandRegistry
+      properties:
+        requestHost:
+          type: string
+        brandKey:
+          type: string
+          nullable: true
+        runtime:
+          anyOf:
+            - $ref: '#/components/schemas/RuntimeBrandResolution'
+            - type: 'null'
+        canonicalPublicHost:
+          type: string
+          nullable: true
+        canonicalAdminHost:
+          type: string
+          nullable: true
+        allowedHosts:
+          type: array
+          items:
+            type: string
+        resolvedFromBrandRegistry:
+          type: boolean
+    RuntimeHostConfigResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, config, scope]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        config:
+          $ref: '#/components/schemas/RuntimeHostConfig'
+        scope:
+          type: object
+          additionalProperties: false
+          required: [integration, access]
+          properties:
+            integration:
+              type: string
+            access:
+              type: string
+              const: install
     AnalyticsConsentNotice:
       type: object
       additionalProperties: false

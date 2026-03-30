@@ -32,12 +32,29 @@ export function sendPublicApiError(res: NextApiResponse, error: unknown) {
   return res.status(500).json({ ok: false, error: "Server error" });
 }
 
+export async function requirePublicIntegration(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<PublicIntegrationConfig | null> {
+  try {
+    return resolveIntegrationFromRequest(req);
+  } catch (error: any) {
+    const message = typeof error?.message === "string" ? error.message : "Unauthorized";
+    const status =
+      message === "Missing integration key" || message === "Invalid integration key" ? 401 : 503;
+    res.status(status).json({ ok: false, error: message });
+    return null;
+  }
+}
+
 export async function requirePublicApiContext(
   req: NextApiRequest,
   res: NextApiResponse
 ): Promise<PublicApiContext | null> {
+  const integration = await requirePublicIntegration(req, res);
+  if (!integration) return null;
+
   try {
-    const integration = resolveIntegrationFromRequest(req);
     const brand = await resolveExternalBrandContext({
       brandKey: integration.brandKey,
       publicOrigin: integration.publicOrigin,
@@ -46,9 +63,7 @@ export async function requirePublicApiContext(
     return { integration, brand };
   } catch (error: any) {
     const message = typeof error?.message === "string" ? error.message : "Unauthorized";
-    const status =
-      message === "Missing integration key" || message === "Invalid integration key" ? 401 : 503;
-    res.status(status).json({ ok: false, error: message });
+    res.status(503).json({ ok: false, error: message });
     return null;
   }
 }
