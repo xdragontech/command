@@ -230,7 +230,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
             <div style={{ overflowX: "auto", marginTop: "14px", borderRadius: "12px", border: "1px solid rgba(148,163,184,0.24)" }}>
               <table style={{ width: "100%", minWidth: "760px", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                  <tr style={tableHeadRowStyle}>
                     <th style={tableHeaderStyle}>Brand</th>
                     <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
                     <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
@@ -242,8 +242,8 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                     data.brandBreakdown.map((row) => (
                       <tr key={row.brandId || row.brandKey || "unscoped"} style={{ borderTop: "1px solid rgba(226,232,240,0.95)" }}>
                         <td style={tableCellStyle}>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.brandName || "Unscoped"}</div>
-                          <div style={{ color: "#64748b", fontSize: "0.82rem" }}>{row.brandKey || "No brand key"}</div>
+                          <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{row.brandName || "Unscoped"}</div>
+                          <div style={{ color: "var(--admin-text-muted)", fontSize: "0.82rem" }}>{row.brandKey || "No brand key"}</div>
                         </td>
                         <td style={{ ...tableCellStyle, textAlign: "right", fontWeight: 700 }}>{formatCount(row.total)}</td>
                         <td style={{ ...tableCellStyle, textAlign: "right" }}>{formatCount(row.contact)}</td>
@@ -252,7 +252,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={4} style={{ padding: "28px 18px", textAlign: "center", color: "#64748b" }}>
+                      <td colSpan={4} style={emptyTableCellStyle}>
                         No analytics data found for the selected filters.
                       </td>
                     </tr>
@@ -287,7 +287,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                 <div style={tableWrapStyle}>
                   <table style={tableStyle}>
                     <thead>
-                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                      <tr style={tableHeadRowStyle}>
                         <th style={tableHeaderStyle}>Source</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
@@ -299,7 +299,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                         data.attribution.sourceBreakdown.map((row) => (
                           <tr key={`${row.sourceCategory}:${row.sourcePlatform || ""}`} style={tableBodyRowStyle}>
                             <td style={tableCellStyle}>
-                              <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>
                                 {formatSourceLabel(row.sourceCategory, row.sourcePlatform)}
                               </div>
                               <div style={subTextStyle}>{row.sourceCategory}</div>
@@ -326,7 +326,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                 <div style={tableWrapStyle}>
                   <table style={tableStyle}>
                     <thead>
-                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                      <tr style={tableHeadRowStyle}>
                         <th style={tableHeaderStyle}>Landing Page</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
@@ -338,7 +338,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                         data.attribution.landingPages.map((row) => (
                           <tr key={row.path} style={tableBodyRowStyle}>
                             <td style={tableCellStyle}>
-                              <div style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{row.path}</div>
+                              <div style={{ fontWeight: 700, color: "var(--admin-text-primary)", wordBreak: "break-word" }}>{row.path}</div>
                             </td>
                             <td style={tableCellNumericStyle}>{formatCount(row.total)}</td>
                             <td style={tableCellNumericStyle}>{formatCount(row.contact)}</td>
@@ -362,7 +362,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                 <div style={tableWrapStyle}>
                   <table style={tableStyle}>
                     <thead>
-                      <tr style={{ background: "rgba(248,250,252,0.9)", color: "#475569" }}>
+                      <tr style={tableHeadRowStyle}>
                         <th style={tableHeaderStyle}>Platform</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Total</th>
                         <th style={{ ...tableHeaderStyle, textAlign: "right" }}>Contact</th>
@@ -374,7 +374,7 @@ export default function ReportsLeadsPage({ principal, role, brands }: InferGetSe
                         data.attribution.referrerPlatforms.map((row) => (
                           <tr key={row.platform} style={tableBodyRowStyle}>
                             <td style={tableCellStyle}>
-                              <div style={{ fontWeight: 700, color: "#0f172a" }}>{row.platform}</div>
+                              <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{row.platform}</div>
                             </td>
                             <td style={tableCellNumericStyle}>{formatCount(row.total)}</td>
                             <td style={tableCellNumericStyle}>{formatCount(row.contact)}</td>
@@ -648,7 +648,7 @@ const tableHeaderStyle: CSSProperties = {
 const tableCellStyle: CSSProperties = {
   padding: "13px 14px",
   fontSize: "0.94rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   verticalAlign: "top",
 };
 
@@ -670,6 +670,11 @@ const tableStyle: CSSProperties = {
   borderCollapse: "collapse",
 };
 
+const tableHeadRowStyle: CSSProperties = {
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
+};
+
 const tableBodyRowStyle: CSSProperties = {
   borderTop: "1px solid rgba(226,232,240,0.95)",
 };
@@ -678,9 +683,9 @@ const errorStyle: CSSProperties = sharedErrorStyle;
 
 const readOnlyNoticeStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(248,250,252,0.95)",
-  color: "#334155",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
   padding: "14px 16px",
   fontSize: "0.94rem",
 };
@@ -705,19 +710,19 @@ const emptyStateStyle: CSSProperties = {
 const emptyTableCellStyle: CSSProperties = {
   padding: "28px 18px",
   textAlign: "center",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const subTextStyle: CSSProperties = {
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.82rem",
 };
 
 const attributionNoticeStyle: CSSProperties = {
   borderRadius: "12px",
-  border: "1px solid rgba(148,163,184,0.24)",
-  background: "rgba(248,250,252,0.95)",
-  color: "#334155",
+  border: "1px solid var(--admin-border-subtle)",
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
   padding: "14px 16px",
   fontSize: "0.94rem",
   lineHeight: 1.6,
