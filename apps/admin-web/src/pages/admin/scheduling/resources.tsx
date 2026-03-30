@@ -13,6 +13,8 @@ import {
   fieldStyle,
   inputStyle,
   infoPanelStyle,
+  lightSurfaceTextPrimaryColor,
+  lightSurfaceTextSecondaryColor,
   mutedPanelStyle,
   panelStyle,
   paragraphStyle,
@@ -693,7 +695,7 @@ const selectedResourceRowStyle = {
 
 const resourceCellStyle = {
   fontSize: "0.92rem",
-  color: "var(--admin-text-secondary)",
+  color: lightSurfaceTextSecondaryColor,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -703,7 +705,7 @@ const resourceNameStyle = {
   ...resourceCellStyle,
   gridArea: "name",
   fontWeight: 700,
-  color: "var(--admin-text-primary)",
+  color: lightSurfaceTextPrimaryColor,
   alignSelf: "end",
 } as const;
 
@@ -713,7 +715,7 @@ const resourceTypeStyle = {
   textAlign: "right",
   justifySelf: "end",
   alignSelf: "end",
-  color: "var(--admin-text-secondary)",
+  color: lightSurfaceTextSecondaryColor,
 } as const;
 
 const resourceEventStyle = {

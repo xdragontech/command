@@ -17,6 +17,8 @@ import {
   errorStyle,
   formatDateOnly,
   formatMinuteRange,
+  lightSurfaceTextPrimaryColor,
+  lightSurfaceTextSecondaryColor,
   mutedPanelStyle,
   panelStyle,
   paragraphStyle,
@@ -518,8 +520,10 @@ export default function SchedulingPlannerPage({
                               }}
                             >
                               <div style={{ display: "grid", gap: "8px", minWidth: 0 }}>
-                                <div style={{ fontWeight: 800, color: "var(--admin-text-primary)" }}>{resource.name}</div>
-                                <div style={subtleTextStyle}>{resource.description || resourceTypeLabels[resource.type]}</div>
+                                <div style={{ fontWeight: 800, color: lightSurfaceTextPrimaryColor }}>{resource.name}</div>
+                                <div style={{ ...subtleTextStyle, color: lightSurfaceTextSecondaryColor }}>
+                                  {resource.description || resourceTypeLabels[resource.type]}
+                                </div>
                                 <div style={actionRowStyle}>
                                   <TonePill label={resourceTypeLabels[resource.type]} tone={resourceTypeTone(resource.type)} />
                                   <TonePill

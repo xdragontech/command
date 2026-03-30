@@ -277,7 +277,7 @@ export default function ReportsTrafficPage({
                     data.sourceBreakdown.map((row) => (
                       <tr key={`${row.sourceCategory}:${row.sourcePlatform || ""}`} style={tableBodyRowStyle}>
                         <td style={tableCellStyle}>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                          <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>
                             {formatSourceLabel(row.sourceCategory, row.sourcePlatform)}
                           </div>
                           <div style={subTextStyle}>{row.sourceCategory}</div>
@@ -320,7 +320,7 @@ export default function ReportsTrafficPage({
                     data.landingPages.map((row) => (
                       <tr key={row.path} style={tableBodyRowStyle}>
                         <td style={tableCellStyle}>
-                          <div style={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-word" }}>{row.path}</div>
+                          <div style={{ fontWeight: 700, color: "var(--admin-text-primary)", wordBreak: "break-word" }}>{row.path}</div>
                         </td>
                         <td style={tableCellNumericStyle}>{formatCount(row.sessions)}</td>
                         <td style={tableCellNumericStyle}>{formatCount(row.engagedSessions)}</td>
@@ -518,7 +518,7 @@ function PerformanceMetricLabel({
   }, [open]);
 
   if (!tooltip) {
-    return <div style={{ fontWeight: 700, color: "#0f172a" }}>{metric.label}</div>;
+    return <div style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{metric.label}</div>;
   }
 
   return (
@@ -540,7 +540,7 @@ function PerformanceMetricLabel({
       }}
     >
       <div style={metricNameRowStyle}>
-        <span style={{ fontWeight: 700, color: "#0f172a" }}>{metric.label}</span>
+        <span style={{ fontWeight: 700, color: "var(--admin-text-primary)" }}>{metric.label}</span>
         <button
           ref={buttonRef}
           type="button"
@@ -836,8 +836,8 @@ const tableStyle: CSSProperties = {
 };
 
 const tableHeadRowStyle: CSSProperties = {
-  background: "rgba(248,250,252,0.9)",
-  color: "#475569",
+  background: "var(--admin-surface-secondary)",
+  color: "var(--admin-text-secondary)",
 };
 
 const tableHeaderStyle: CSSProperties = {
@@ -856,7 +856,7 @@ const tableBodyRowStyle: CSSProperties = {
 const tableCellStyle: CSSProperties = {
   padding: "13px 14px",
   fontSize: "0.94rem",
-  color: "#0f172a",
+  color: "var(--admin-text-primary)",
   verticalAlign: "top",
 };
 
@@ -868,11 +868,11 @@ const tableCellNumericStyle: CSSProperties = {
 const emptyTableCellStyle: CSSProperties = {
   padding: "28px 18px",
   textAlign: "center",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
 };
 
 const subTextStyle: CSSProperties = {
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.82rem",
 };
 
@@ -898,7 +898,7 @@ const metricTooltipButtonStyle: CSSProperties = {
   borderRadius: "999px",
   border: "1px solid rgba(148,163,184,0.35)",
   background: "rgba(248,250,252,0.95)",
-  color: "#64748b",
+  color: "var(--admin-text-muted)",
   fontSize: "0.72rem",
   fontWeight: 700,
   cursor: "help",
@@ -913,9 +913,9 @@ const metricTooltipPopoverStyle: CSSProperties = {
   maxWidth: "min(260px, 42vw)",
   borderRadius: "10px",
   border: "1px solid rgba(148,163,184,0.32)",
-  background: "#ffffff",
+  background: "var(--admin-surface-primary)",
   boxShadow: "0 18px 42px rgba(15,23,42,0.16)",
-  color: "#334155",
+  color: "var(--admin-text-secondary)",
   fontSize: "0.82rem",
   lineHeight: 1.55,
   padding: "10px 12px",
