@@ -303,6 +303,10 @@ export const subtleTextStyle: CSSProperties = {
   fontSize: "0.85rem",
 };
 
+export const lightSurfaceTextPrimaryColor = "#0f172a";
+export const lightSurfaceTextSecondaryColor = "#475569";
+export const lightSurfaceTextMutedColor = "#64748b";
+
 export const detailHeaderStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
@@ -406,7 +410,7 @@ export const selectedSchedulingListRowStyle: CSSProperties = {
 
 const schedulingListCellStyle: CSSProperties = {
   fontSize: "0.92rem",
-  color: "var(--admin-text-secondary)",
+  color: lightSurfaceTextSecondaryColor,
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
@@ -416,7 +420,7 @@ export const schedulingListTopLeftStyle: CSSProperties = {
   ...schedulingListCellStyle,
   gridArea: "topLeft",
   fontWeight: 700,
-  color: "var(--admin-text-primary)",
+  color: lightSurfaceTextPrimaryColor,
   alignSelf: "end",
 };
 
@@ -426,7 +430,7 @@ export const schedulingListTopRightStyle: CSSProperties = {
   textAlign: "right",
   justifySelf: "end",
   alignSelf: "end",
-  color: "var(--admin-text-secondary)",
+  color: lightSurfaceTextSecondaryColor,
 };
 
 export const schedulingListBottomLeftStyle: CSSProperties = {
