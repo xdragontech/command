@@ -7,6 +7,13 @@ import {
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import {
+  accountListHeaderStackStyle,
+  accountListPanelStyle,
+  accountListRowsStyle,
+  accountSplitLayoutStyle,
+  createAccountSearchInputStyle,
+} from "../../../components/adminAccounts";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import { formatAdminDateTime } from "../../../lib/adminDates";
@@ -587,21 +594,21 @@ export default function BrandsPage({
           </div>
         ) : null}
 
-        <div style={splitLayoutStyle}>
-          <section style={panelStyle}>
-            <div style={{ display: "grid", gap: "14px" }}>
+        <div style={accountSplitLayoutStyle}>
+          <section style={accountListPanelStyle}>
+            <div style={accountListHeaderStackStyle}>
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search brands and hosts..."
-                style={inputStyle}
+                style={searchInputStyle}
               />
               <div style={subtleTextStyle}>
                 {loading ? "Loading..." : `${filteredBrands.length} brand${filteredBrands.length === 1 ? "" : "s"} shown`}
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+            <div style={accountListRowsStyle}>
               {loading ? (
                 <div style={mutedPanelStyle}>Loading...</div>
               ) : filteredBrands.length === 0 ? (
@@ -1034,12 +1041,6 @@ export const getServerSideProps: GetServerSideProps<BrandsPageProps> = async (ct
   };
 };
 
-const splitLayoutStyle: CSSProperties = {
-  display: "grid",
-  gap: "20px",
-  gridTemplateColumns: "minmax(0, 0.95fr) minmax(0, 1.35fr)",
-};
-
 const panelStyle: CSSProperties = {
   borderRadius: "12px",
   border: "1px solid rgba(148,163,184,0.22)",
@@ -1121,6 +1122,10 @@ const inputStyle: CSSProperties = {
   outline: "none",
   background: "#fff",
   color: "#0f172a",
+};
+
+const searchInputStyle: CSSProperties = {
+  ...createAccountSearchInputStyle(inputStyle),
 };
 
 const textAreaStyle: CSSProperties = {
