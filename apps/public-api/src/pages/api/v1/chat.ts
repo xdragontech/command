@@ -4,6 +4,7 @@ import {
   enforcePublicLeadRateLimit,
   getPublicLeadRequestIdentity,
 } from "../../../server/publicLeadSupport";
+import { capturePublicApiRoutePerformance } from "../../../server/performanceMetrics";
 import { submitPublicChat } from "../../../server/publicChat";
 import { recordWebsiteConversionFromRequest } from "../../../server/websiteAnalytics";
 
@@ -27,23 +28,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!rateLimitOk) return;
 
   try {
-    const result = await submitPublicChat({
-      brand: context.brand,
-      integration: context.integration,
-      identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
-      payload: req.body || {},
-    });
+    const result = await capturePublicApiRoutePerformance({
+      req,
+      brandId: context.brand.brandId,
+      routeKey: "CHAT",
+      options: { trustForwardedClientHeaders: true },
+      operation: async () => {
+        const chatResult = await submitPublicChat({
+          brand: context.brand,
+          integration: context.integration,
+          identity: getPublicLeadRequestIdentity(req, { trustForwardedClientHeaders: true }),
+          payload: req.body || {},
+        });
 
-    if (result.analytics) {
-      await recordWebsiteConversionFromRequest({
-        req,
-        brandId: context.brand.brandId,
-        eventId: result.analytics.conversionEventId,
-        conversionType: "CHAT_LEAD_SUBMIT",
-        raw: result.analytics.raw,
-        options: { trustForwardedClientHeaders: true },
-      });
-    }
+        if (chatResult.analytics) {
+          await recordWebsiteConversionFromRequest({
+            req,
+            brandId: context.brand.brandId,
+            eventId: chatResult.analytics.conversionEventId,
+            conversionType: "CHAT_LEAD_SUBMIT",
+            raw: chatResult.analytics.raw,
+            options: { trustForwardedClientHeaders: true },
+          });
+        }
+
+        return chatResult;
+      },
+    });
 
     return res.status(result.status).json(result.body);
   } catch (error) {

@@ -104,6 +104,7 @@ Deferred from this contract:
 **Analytics**
 - fetch the current published analytics consent notice
 - ingest consented first-party website analytics event batches
+- ingest browser vitals and server/request performance metrics for public-website traffic
 - normalize attribution and session summaries inside `command`
 - link server-owned conversions to forwarded website session IDs on:
   - register

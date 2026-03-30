@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import type {
   WebsiteAnalyticsConversionType,
@@ -42,8 +43,17 @@ export type WebsiteTrafficLandingPageRow = {
   averageEngagedSeconds: number;
 };
 
-export type WebsiteTrafficWebVitalRow = {
+export type WebsiteTrafficPerformanceMetricSource =
+  | "BROWSER"
+  | "PUBLIC_WEBSITE"
+  | "PUBLIC_API";
+
+export type WebsiteTrafficPerformanceRow = {
   metricName: string;
+  metricSource: WebsiteTrafficPerformanceMetricSource;
+  routeKey: string | null;
+  routeLabel: string | null;
+  label: string;
   sampleCount: number;
   averageValue: number;
   p75Value: number;
@@ -62,7 +72,7 @@ export type WebsiteTrafficReport = {
   timeline: WebsiteTrafficTimelinePoint[];
   sourceBreakdown: WebsiteTrafficSourceRow[];
   landingPages: WebsiteTrafficLandingPageRow[];
-  webVitals: WebsiteTrafficWebVitalRow[];
+  performanceMetrics: WebsiteTrafficPerformanceRow[];
   brandOptions: WebsiteAnalyticsBrandOption[];
   range: {
     from: string;
@@ -130,9 +140,11 @@ type SessionRow = {
   sourcePlatform: string | null;
 };
 
-type WebVitalRow = {
+type PerformanceMetricEventRow = {
+  eventType: "WEB_VITAL" | "PERFORMANCE_METRIC";
   metricName: string | null;
   metricValue: number | null;
+  raw: Prisma.JsonValue | null;
 };
 
 type AttributedLeadRow = {
@@ -204,6 +216,87 @@ function roundRate(value: number) {
 
 function roundMetric(value: number) {
   return Number(value.toFixed(2));
+}
+
+function getJsonObject(value: Prisma.JsonValue | null) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getJsonString(value: Record<string, unknown> | null, key: string, max = 120) {
+  const raw = value?.[key];
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed ? trimmed.slice(0, max) : null;
+}
+
+function normalizePerformanceMetricSource(
+  eventType: "WEB_VITAL" | "PERFORMANCE_METRIC",
+  raw: Prisma.JsonValue | null
+): WebsiteTrafficPerformanceMetricSource {
+  if (eventType === "WEB_VITAL") return "BROWSER";
+
+  const source = getJsonString(getJsonObject(raw), "source", 40);
+  if (source === "PUBLIC_WEBSITE" || source === "PUBLIC_API") {
+    return source;
+  }
+
+  return "PUBLIC_API";
+}
+
+function buildPerformanceMetricLabel(args: {
+  eventType: "WEB_VITAL" | "PERFORMANCE_METRIC";
+  metricName: string;
+  metricSource: WebsiteTrafficPerformanceMetricSource;
+  routeLabel: string | null;
+}) {
+  if (args.eventType === "WEB_VITAL") {
+    return args.metricName;
+  }
+
+  const routeLabel = args.routeLabel || "Request";
+
+  if (args.metricSource === "PUBLIC_WEBSITE" && args.metricName === "REQUEST_MS") {
+    return `Public Website ${routeLabel} Request Time`;
+  }
+
+  if (args.metricSource === "PUBLIC_API" && args.metricName === "REQUEST_MS") {
+    return `Public API ${routeLabel} Round-Trip Time`;
+  }
+
+  if (args.metricSource === "PUBLIC_API" && args.metricName === "SERVER_MS") {
+    return `Public API ${routeLabel} Server Time`;
+  }
+
+  if (args.metricSource === "PUBLIC_API" && args.metricName === "DB_QUERY_MS") {
+    return `Public API ${routeLabel} DB Query Time`;
+  }
+
+  if (args.metricSource === "PUBLIC_API" && args.metricName === "DB_QUERY_COUNT") {
+    return `Public API ${routeLabel} DB Query Count`;
+  }
+
+  return args.metricName;
+}
+
+function getPerformanceMetricSortWeight(args: {
+  eventType: "WEB_VITAL" | "PERFORMANCE_METRIC";
+  metricName: string;
+  metricSource: WebsiteTrafficPerformanceMetricSource;
+}) {
+  if (args.eventType === "WEB_VITAL") {
+    const browserOrder = ["LCP", "CLS", "INP", "FCP", "TTFB", "FID"];
+    const index = browserOrder.indexOf(args.metricName.toUpperCase());
+    return index >= 0 ? index : browserOrder.length;
+  }
+
+  const performanceOrder =
+    args.metricSource === "PUBLIC_WEBSITE"
+      ? ["REQUEST_MS"]
+      : ["REQUEST_MS", "SERVER_MS", "DB_QUERY_MS", "DB_QUERY_COUNT"];
+  const index = performanceOrder.indexOf(args.metricName);
+  return 100 + (index >= 0 ? index : performanceOrder.length);
 }
 
 function buildBrandOptions(brands: Array<{ id: string; brandKey: string | null; name: string }>) {
@@ -298,7 +391,7 @@ function emptyTrafficReport(
     })),
     sourceBreakdown: [],
     landingPages: [],
-    webVitals: [],
+    performanceMetrics: [],
     brandOptions,
     range,
     updatedAt: new Date().toISOString(),
@@ -341,7 +434,7 @@ export async function loadWebsiteTrafficReport(params: {
     return emptyTrafficReport(range, brandOptions);
   }
 
-  const [sessionRows, webVitalRows] = await Promise.all([
+  const [sessionRows, performanceEventRows] = await Promise.all([
     prisma.websiteSession.findMany({
       where: buildTrafficWhere({
         scope: params.scope,
@@ -369,13 +462,17 @@ export async function loadWebsiteTrafficReport(params: {
           from: range.from,
           to: range.to,
         }),
-        eventType: "WEB_VITAL",
+        eventType: {
+          in: ["WEB_VITAL", "PERFORMANCE_METRIC"],
+        },
       },
       select: {
+        eventType: true,
         metricName: true,
         metricValue: true,
+        raw: true,
       },
-    }) as Promise<WebVitalRow[]>,
+    }) as Promise<PerformanceMetricEventRow[]>,
   ]);
 
   const totals = {
@@ -478,34 +575,84 @@ export async function loadWebsiteTrafficReport(params: {
     .sort((left, right) => right.sessions - left.sessions || left.path.localeCompare(right.path))
     .slice(0, 20);
 
-  const webVitalMetrics = new Map<string, number[]>();
-  for (const row of webVitalRows) {
+  const performanceMetricRows = new Map<
+    string,
+    {
+      eventType: "WEB_VITAL" | "PERFORMANCE_METRIC";
+      metricName: string;
+      metricSource: WebsiteTrafficPerformanceMetricSource;
+      routeKey: string | null;
+      routeLabel: string | null;
+      label: string;
+      values: number[];
+    }
+  >();
+  for (const row of performanceEventRows) {
     if (!row.metricName || typeof row.metricValue !== "number") continue;
-    const current = webVitalMetrics.get(row.metricName) || [];
-    current.push(row.metricValue);
-    webVitalMetrics.set(row.metricName, current);
+    const raw = getJsonObject(row.raw);
+    const metricSource = normalizePerformanceMetricSource(row.eventType, row.raw);
+    const routeKey = row.eventType === "PERFORMANCE_METRIC" ? getJsonString(raw, "routeKey", 60) : null;
+    const routeLabel = row.eventType === "PERFORMANCE_METRIC" ? getJsonString(raw, "routeLabel", 120) : null;
+    const groupKey = [row.eventType, metricSource, row.metricName, routeKey || ""].join(":");
+    const current = performanceMetricRows.get(groupKey) || {
+      eventType: row.eventType,
+      metricName: row.metricName,
+      metricSource,
+      routeKey,
+      routeLabel,
+      label: buildPerformanceMetricLabel({
+        eventType: row.eventType,
+        metricName: row.metricName,
+        metricSource,
+        routeLabel,
+      }),
+      values: [],
+    };
+    current.values.push(row.metricValue);
+    performanceMetricRows.set(groupKey, current);
   }
 
-  const webVitals = Array.from(webVitalMetrics.entries())
-    .map(([metricName, values]) => {
+  const performanceMetrics = Array.from(performanceMetricRows.values())
+    .map((row) => {
+      const values = row.values;
       const sorted = [...values].sort((left, right) => left - right);
       const p75Index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * 0.75) - 1));
       const averageValue = values.reduce((sum, value) => sum + value, 0) / values.length;
       return {
-        metricName,
+        metricName: row.metricName,
+        metricSource: row.metricSource,
+        routeKey: row.routeKey,
+        routeLabel: row.routeLabel,
+        label: row.label,
         sampleCount: values.length,
         averageValue: roundMetric(averageValue),
         p75Value: roundMetric(sorted[p75Index] || 0),
       };
     })
-    .sort((left, right) => left.metricName.localeCompare(right.metricName));
+    .sort((left, right) => {
+      const leftWeight = getPerformanceMetricSortWeight({
+        eventType: left.metricSource === "BROWSER" ? "WEB_VITAL" : "PERFORMANCE_METRIC",
+        metricName: left.metricName,
+        metricSource: left.metricSource,
+      });
+      const rightWeight = getPerformanceMetricSortWeight({
+        eventType: right.metricSource === "BROWSER" ? "WEB_VITAL" : "PERFORMANCE_METRIC",
+        metricName: right.metricName,
+        metricSource: right.metricSource,
+      });
+      return (
+        leftWeight - rightWeight ||
+        (left.routeLabel || "").localeCompare(right.routeLabel || "") ||
+        left.label.localeCompare(right.label)
+      );
+    });
 
   return {
     totals,
     timeline: Array.from(timelineRows.values()),
     sourceBreakdown,
     landingPages,
-    webVitals,
+    performanceMetrics,
     brandOptions,
     range,
     updatedAt: new Date().toISOString(),

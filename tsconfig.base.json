@@ -19,6 +19,9 @@
       "@command/core-db": [
         "packages/core-db/src/index.ts"
       ],
+      "@command/core-db/performance": [
+        "packages/core-db/src/performance.ts"
+      ],
       "@command/core-brand-runtime": [
         "packages/core-brand-runtime/src/index.ts"
       ],
