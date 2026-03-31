@@ -52,8 +52,6 @@ export type DashboardMetricsScope = {
 type SignupRow = {
   id: string;
   createdAt: Date;
-  kind: "legacy" | "external";
-  legacyUserId?: string | null;
 };
 
 type LoginMetricEvent = {
@@ -235,20 +233,11 @@ export async function loadDashboardMetrics(params: {
   let leadTotals = { leads: 0, chatLeads: 0 };
 
   if (isSuperadmin) {
-    const [legacyUsers, externalUsers, legacyEvents, externalEvents, backofficeEvents, totalLeadCount, chatLeadCount] =
+    const [externalUsers, externalEvents, backofficeEvents, totalLeadCount, chatLeadCount] =
       await Promise.all([
-      prisma.user.findMany({
-        where: { createdAt: { gte: start, lte: end } },
-        select: { id: true, createdAt: true },
-      }),
       prisma.externalUser.findMany({
         where: { createdAt: { gte: start, lte: end } },
-        select: { id: true, legacyUserId: true, createdAt: true },
-      }),
-      prisma.loginEvent.findMany({
-        where: { createdAt: { gte: start, lte: end } },
-        select: { userId: true, createdAt: true, ip: true, countryIso2: true, countryName: true },
-        orderBy: { createdAt: "desc" },
+        select: { id: true, createdAt: true },
       }),
       prisma.externalLoginEvent.findMany({
         where: { createdAt: { gte: start, lte: end } },
@@ -271,37 +260,12 @@ export async function loadDashboardMetrics(params: {
       }),
     ]);
 
-    const migratedLegacyIds = new Set(
-      externalUsers
-        .map((user) => user.legacyUserId)
-        .filter((value): value is string => Boolean(value))
-    );
-
-    signupRows = [
-      ...legacyUsers
-        .filter((user) => !migratedLegacyIds.has(user.id))
-        .map((user) => ({
-          id: user.id,
-          createdAt: user.createdAt,
-          kind: "legacy" as const,
-        })),
-      ...externalUsers.map((user) => ({
-        id: user.id,
-        createdAt: user.createdAt,
-        kind: "external" as const,
-        legacyUserId: user.legacyUserId || null,
-      })),
-    ];
+    signupRows = externalUsers.map((user) => ({
+      id: user.id,
+      createdAt: user.createdAt,
+    }));
 
     events = [
-      ...legacyEvents.map((event) => ({
-        streamKey: "client" as const,
-        principalId: event.userId,
-        createdAt: event.createdAt,
-        ip: event.ip,
-        countryIso2: event.countryIso2 || null,
-        countryName: event.countryName || null,
-      })),
       ...externalEvents.map((event) => ({
         streamKey: "client" as const,
         principalId: event.externalUserId,
@@ -331,7 +295,7 @@ export async function loadDashboardMetrics(params: {
           brandId: { in: scope.allowedBrandIds },
           createdAt: { gte: start, lte: end },
         },
-        select: { id: true, legacyUserId: true, createdAt: true },
+        select: { id: true, createdAt: true },
       }),
       prisma.externalLoginEvent.findMany({
         where: {
@@ -355,8 +319,6 @@ export async function loadDashboardMetrics(params: {
     signupRows = externalUsers.map((user) => ({
       id: user.id,
       createdAt: user.createdAt,
-      kind: "external" as const,
-      legacyUserId: user.legacyUserId || null,
     }));
 
     events = externalEvents
@@ -455,30 +417,13 @@ export async function loadDashboardMetrics(params: {
   };
 
   const signupCountryCounts = new Map<string, DashboardCountryCount>();
-  const legacySignupRows = signupRows.filter((row) => row.kind === "legacy");
-  const externalSignupRows = signupRows.filter((row) => row.kind === "external");
-  const firstLegacyIpByUser = new Map<string, string>();
-  const firstLegacyGeoByUser = new Map<string, { iso2: string | null; name: string | null }>();
   const firstExternalIpByUser = new Map<string, string>();
   const firstExternalGeoByUser = new Map<string, { iso2: string | null; name: string | null }>();
 
   const chunkSize = 500;
 
-  for (let index = 0; index < legacySignupRows.length; index += chunkSize) {
-    const chunk = legacySignupRows.slice(index, index + chunkSize).map((row) => row.id);
-    const loginRows = await prisma.loginEvent.findMany({
-      where: { userId: { in: chunk } },
-      select: { userId: true, ip: true, createdAt: true, countryIso2: true, countryName: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-    for (const row of loginRows) {
-      rememberFirstLogin(firstLegacyIpByUser, firstLegacyGeoByUser, row.userId, row.ip, row.countryIso2, row.countryName);
-    }
-  }
-
-  for (let index = 0; index < externalSignupRows.length; index += chunkSize) {
-    const chunk = externalSignupRows.slice(index, index + chunkSize).map((row) => row.id);
+  for (let index = 0; index < signupRows.length; index += chunkSize) {
+    const chunk = signupRows.slice(index, index + chunkSize).map((row) => row.id);
     const loginRows = await prisma.externalLoginEvent.findMany({
       where: { externalUserId: { in: chunk } },
       select: { externalUserId: true, ip: true, createdAt: true, countryIso2: true, countryName: true },
@@ -498,15 +443,7 @@ export async function loadDashboardMetrics(params: {
   }
 
   for (const signup of signupRows) {
-    const externalStored = signup.kind === "external" ? firstExternalGeoByUser.get(signup.id) : null;
-    const legacyStored =
-      signup.kind === "legacy"
-        ? firstLegacyGeoByUser.get(signup.id)
-        : signup.legacyUserId
-          ? firstLegacyGeoByUser.get(signup.legacyUserId)
-          : null;
-
-    const stored = externalStored || legacyStored || { iso2: null, name: null };
+    const stored = firstExternalGeoByUser.get(signup.id) || { iso2: null, name: null };
     addCountryCount(signupCountryCounts, stored.iso2, stored.name);
   }
 

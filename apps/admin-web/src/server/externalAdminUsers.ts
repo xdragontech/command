@@ -44,7 +44,6 @@ export type ManagedExternalUserRecord = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
-  legacyLinked: boolean;
   providerCount: number;
   providerLabels: string[];
   loginEventCount: number;
@@ -88,7 +87,6 @@ function isValidEmail(email: string): boolean {
 }
 
 function summarizeBrandLock(user: ManagedExternalUserPayload): string | null {
-  if (user.legacyUserId) return "Legacy-linked client accounts cannot be moved between brands.";
   if (user.accounts.length > 0) return "Provider-linked client accounts cannot be moved between brands.";
   if (user._count.loginEvents > 0 || user.lastLoginAt) {
     return "Client accounts with login history should stay on their current brand.";
@@ -119,7 +117,6 @@ function toManagedExternalUserRecord(user: ManagedExternalUserPayload): ManagedE
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
-    legacyLinked: Boolean(user.legacyUserId),
     providerCount: providerLabels.length,
     providerLabels,
     loginEventCount: user._count.loginEvents,
