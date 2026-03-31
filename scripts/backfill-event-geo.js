@@ -23,12 +23,6 @@ const LIMIT = Number(getArgValue("--limit", "0")) || 0;
 
 const TABLES = [
   {
-    key: "loginEvent",
-    label: "LoginEvent",
-    client: "loginEvent",
-    ipFieldNullable: false,
-  },
-  {
     key: "externalLoginEvent",
     label: "ExternalLoginEvent",
     client: "externalLoginEvent",
@@ -197,10 +191,7 @@ async function loadKnownGeo(targetIps) {
 }
 
 async function countRemainingMissing() {
-  const [loginEvent, externalLoginEvent, leadEvent] = await Promise.all([
-    prisma.loginEvent.count({
-      where: { OR: [{ countryIso2: null }, { countryName: null }] },
-    }),
+  const [externalLoginEvent, leadEvent] = await Promise.all([
     prisma.externalLoginEvent.count({
       where: { OR: [{ countryIso2: null }, { countryName: null }] },
     }),
@@ -210,10 +201,9 @@ async function countRemainingMissing() {
   ]);
 
   return {
-    loginEvent,
     externalLoginEvent,
     leadEvent,
-    total: loginEvent + externalLoginEvent + leadEvent,
+    total: externalLoginEvent + leadEvent,
   };
 }
 
@@ -255,13 +245,11 @@ async function main() {
     lookupsAttempted: 0,
     lookupsResolved: 0,
     initialMissing: {
-      loginEvent: missingRowsByTable[0].length,
-      externalLoginEvent: missingRowsByTable[1].length,
-      leadEvent: missingRowsByTable[2].length,
+      externalLoginEvent: missingRowsByTable[0].length,
+      leadEvent: missingRowsByTable[1].length,
       total: missingRows.length,
     },
     perTable: {
-      loginEvent: { processed: 0, updated: 0, unresolved: 0, skippedNoIp: 0, skippedPrivate: 0 },
       externalLoginEvent: { processed: 0, updated: 0, unresolved: 0, skippedNoIp: 0, skippedPrivate: 0 },
       leadEvent: { processed: 0, updated: 0, unresolved: 0, skippedNoIp: 0, skippedPrivate: 0 },
     },
@@ -373,14 +361,12 @@ async function main() {
   summary.remainingMissing = APPLY
     ? await countRemainingMissing()
     : {
-        loginEvent: Math.max(0, summary.initialMissing.loginEvent - summary.perTable.loginEvent.updated),
         externalLoginEvent: Math.max(
           0,
           summary.initialMissing.externalLoginEvent - summary.perTable.externalLoginEvent.updated
         ),
         leadEvent: Math.max(0, summary.initialMissing.leadEvent - summary.perTable.leadEvent.updated),
         total:
-          Math.max(0, summary.initialMissing.loginEvent - summary.perTable.loginEvent.updated) +
           Math.max(0, summary.initialMissing.externalLoginEvent - summary.perTable.externalLoginEvent.updated) +
           Math.max(0, summary.initialMissing.leadEvent - summary.perTable.leadEvent.updated),
       };

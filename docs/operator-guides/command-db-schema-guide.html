@@ -72,8 +72,6 @@
     <tr><td><code>BackofficeUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Backoffice sign-in status</td></tr>
     <tr><td><code>BackofficeMfaMethod</code></td><td>AUTHENTICATOR_APP</td><td>Backoffice MFA method</td></tr>
     <tr><td><code>ExternalUserStatus</code></td><td>ACTIVE, BLOCKED</td><td>Public/client account status</td></tr>
-    <tr><td><code>UserStatus</code></td><td>ACTIVE, SUSPENDED</td><td>Legacy user status</td></tr>
-    <tr><td><code>UserRole</code></td><td>ADMIN, USER</td><td>Legacy user role</td></tr>
     <tr><td><code>PromptStatus</code></td><td>DRAFT, PUBLISHED, ARCHIVED</td><td>Prompt and article publishing state</td></tr>
     <tr><td><code>LeadSource</code></td><td>CONTACT, CHAT</td><td>Lead origin</td></tr>
   </table>
@@ -88,17 +86,8 @@
     <li><strong>Prompts, articles, and leads</strong> are also brand-scoped or optionally brand-linked.</li>
   </ul>
 
-  <h2>4. Domain: Legacy Auth And User Tables</h2>
-  <table>
-    <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
-    <tr><td><code>User</code></td><td>Legacy user table still present in the shared schema</td><td>Owns <code>Account</code>, <code>Session</code>, <code>LoginEvent</code>, and optional links to <code>ExternalUser</code>.</td></tr>
-    <tr><td><code>Account</code></td><td>Legacy auth provider linkage</td><td>Standard provider/account identifier pair tied to <code>User</code>.</td></tr>
-    <tr><td><code>Session</code></td><td>Legacy user session records</td><td>Session token + expiry for <code>User</code>.</td></tr>
-    <tr><td><code>EmailVerificationToken</code></td><td>Email verification token storage</td><td>Token and expiry keyed by identifier.</td></tr>
-    <tr><td><code>VerificationToken</code></td><td>General verification token storage</td><td>Unique by <code>(identifier, token)</code>.</td></tr>
-    <tr><td><code>PasswordResetToken</code></td><td>Legacy password reset flow</td><td>Stores the hashed token, not the raw token.</td></tr>
-    <tr><td><code>LoginEvent</code></td><td>Legacy login audit/history</td><td>Captures IP, optional country, user agent, and timestamp.</td></tr>
-  </table>
+  <h2>4. Legacy Auth Domain</h2>
+  <p>The old shared <code>User</code>/<code>LoginEvent</code> auth domain was retired and removed from the active schema on 2026-03-30. Command now uses the separate <code>Backoffice*</code> and <code>External*</code> identity domains only.</p>
 
   <h2>5. Domain: Brand And Runtime Configuration</h2>
   <table>
@@ -140,7 +129,7 @@
   <h2>9. Domain: External / Client Identity</h2>
   <table>
     <tr><th>Table</th><th>Purpose</th><th>Key Relationships / Notes</th></tr>
-    <tr><td><code>ExternalUser</code></td><td>Brand-scoped public/client account</td><td>Unique by <code>(brandId, email)</code>; optional legacy user link; owns sessions, accounts, and login events.</td></tr>
+    <tr><td><code>ExternalUser</code></td><td>Brand-scoped public/client account</td><td>Unique by <code>(brandId, email)</code>; owns sessions, accounts, and login events.</td></tr>
     <tr><td><code>ExternalAccount</code></td><td>External auth provider linkage</td><td>Unique by <code>(brandId, provider, providerAccountId)</code>.</td></tr>
     <tr><td><code>ExternalSession</code></td><td>External session storage</td><td>Opaque session tokens used by the BFF/public-api model.</td></tr>
     <tr><td><code>ExternalLoginEvent</code></td><td>External login audit/history</td><td>Captures brand-scoped IP, country, user agent, and timestamp.</td></tr>
@@ -211,7 +200,7 @@ Brand
 
   <h2>14. Review Notes</h2>
   <ul>
-    <li>The schema still contains legacy user/auth tables alongside newer backoffice and external identity domains.</li>
+    <li>The legacy shared auth domain has been removed. Backoffice and external identities are the only active auth domains in the schema.</li>
     <li>The public-api contract depends on the external identity, brand, content, lead, and scheduling parts of this schema.</li>
     <li>The scheduling domain is intentionally phase-1 shaped: it supports approved/schedulable entities now, while future application-review linkage is deferred.</li>
     <li><code>InstallProfile</code> is the explicit install-initialization marker. Setup should not be inferred indirectly from “no brands” or “no users”.</li>
