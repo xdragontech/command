@@ -63,6 +63,10 @@ Status:
   - require explicit inputs or a setup/install manifest
   - fail fast when required install values are missing
 
+Status:
+- partially resolved on 2026-03-30 by retiring `scripts/sync-legacy-identities.js`
+- legacy identity bridge tooling is no longer a supported operator workflow because `ExternalUser.legacyUserId` has been removed from the shared schema
+
 3. Public chat behavior is hardcoded to X Dragon brand copy
 - file:
   - [`apps/public-api/src/server/publicChat.ts`](/Users/grantr/Projects/command/apps/public-api/src/server/publicChat.ts)

@@ -29,7 +29,6 @@ type ClientAccountRecord = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
-  legacyLinked: boolean;
   providerCount: number;
   providerLabels: string[];
   loginEventCount: number;
@@ -569,7 +568,7 @@ export default function ClientAccountsPage({
                         <div>
                           <div style={subsectionTitleStyle}>Lifecycle Status</div>
                           <p style={paragraphStyle}>
-                            Verification, provider linkage, and legacy bridge state are read from the live account.
+                            Verification and provider linkage are read from the live account.
                           </p>
                         </div>
                         {selectedUser ? <StatusPill status={selectedUser.status} /> : null}
@@ -582,7 +581,6 @@ export default function ClientAccountsPage({
                         <MetricCard label="Providers">
                           {selectedUser ? (selectedUser.providerCount > 0 ? selectedUser.providerLabels.join(", ") : "Password only") : "—"}
                         </MetricCard>
-                        <MetricCard label="Legacy Link">{selectedUser?.legacyLinked ? "Yes" : "No"}</MetricCard>
                         <MetricCard label="Login Events">{selectedUser ? selectedUser.loginEventCount : "—"}</MetricCard>
                       </div>
                     </div>
