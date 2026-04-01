@@ -3,6 +3,7 @@ import type {
   ScheduleAssignmentRecord,
   ScheduleConflictRecord,
   ScheduleEventOccurrenceRecord,
+  ScheduleEventSeriesRecord,
   ScheduleResourceRecord,
 } from "@command/core-scheduling";
 import type { CSSProperties } from "react";
@@ -181,8 +182,10 @@ export default function SchedulingPlannerPage({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const [brandFilter, setBrandFilter] = useState("ALL");
+  const [seriesFilter, setSeriesFilter] = useState("ALL");
   const [occurrenceId, setOccurrenceId] = useState("");
   const [resourceTypeFilter, setResourceTypeFilter] = useState<"ALL" | ScheduleResourceType>("ALL");
+  const [serieses, setSerieses] = useState<ScheduleEventSeriesRecord[]>([]);
   const [occurrences, setOccurrences] = useState<ScheduleEventOccurrenceRecord[]>([]);
   const [resources, setResources] = useState<ScheduleResourceRecord[]>([]);
   const [assignments, setAssignments] = useState<ScheduleAssignmentRecord[]>([]);
@@ -192,43 +195,67 @@ export default function SchedulingPlannerPage({
   const [notice, setNotice] = useState("");
 
   const selectedOccurrence = occurrences.find((occurrence) => occurrence.id === occurrenceId) || null;
-  const plannerBrandId = selectedOccurrence?.brandId || (brandFilter !== "ALL" ? brandFilter : "");
+  const selectedSeries = seriesFilter !== "ALL" ? serieses.find((series) => series.id === seriesFilter) || null : null;
+  const plannerBrandId = selectedOccurrence?.brandId || selectedSeries?.brandId || (brandFilter !== "ALL" ? brandFilter : "");
 
   async function loadData(options?: {
     nextBrandFilter?: string;
+    nextSeriesFilter?: string;
     nextOccurrenceId?: string | null;
   }) {
     const resolvedBrandFilter = options?.nextBrandFilter ?? brandFilter;
+    const requestedSeriesFilter = options?.nextSeriesFilter ?? seriesFilter;
     setLoading(true);
     setError("");
 
     try {
-      const params = new URLSearchParams();
-      if (resolvedBrandFilter !== "ALL") params.set("brandId", resolvedBrandFilter);
+      const brandParams = new URLSearchParams();
+      if (resolvedBrandFilter !== "ALL") brandParams.set("brandId", resolvedBrandFilter);
 
-      const [brandsRes, occurrencesRes, resourcesRes, assignmentsRes, conflictsRes] = await Promise.all([
+      const [brandsRes, seriesesRes] = await Promise.all([
         fetch("/api/admin/brands"),
+        fetch(`/api/admin/scheduling/series?${brandParams.toString()}`),
+      ]);
+
+      const [brandsPayload, seriesesPayload] = await Promise.all([
+        brandsRes.json().catch(() => null),
+        seriesesRes.json().catch(() => null),
+      ]);
+
+      if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
+      if (!seriesesRes.ok || !seriesesPayload?.ok) throw new Error(seriesesPayload?.error || "Failed to load events");
+
+      const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
+      const nextSerieses = Array.isArray(seriesesPayload.serieses)
+        ? (seriesesPayload.serieses as ScheduleEventSeriesRecord[])
+        : [];
+      const resolvedSeriesFilter =
+        requestedSeriesFilter !== "ALL" && nextSerieses.some((series) => series.id === requestedSeriesFilter)
+          ? requestedSeriesFilter
+          : "ALL";
+
+      const params = new URLSearchParams(brandParams);
+      if (resolvedSeriesFilter !== "ALL") params.set("seriesId", resolvedSeriesFilter);
+
+      const [occurrencesRes, resourcesRes, assignmentsRes, conflictsRes] = await Promise.all([
         fetch(`/api/admin/scheduling/occurrences?${params.toString()}`),
         fetch(`/api/admin/scheduling/resources?${params.toString()}`),
         fetch(`/api/admin/scheduling/assignments?${params.toString()}`),
         fetch(`/api/admin/scheduling/conflicts?${params.toString()}`),
       ]);
 
-      const [brandsPayload, occurrencesPayload, resourcesPayload, assignmentsPayload, conflictsPayload] = await Promise.all([
-        brandsRes.json().catch(() => null),
+      const [occurrencesPayload, resourcesPayload, assignmentsPayload, conflictsPayload] = await Promise.all([
         occurrencesRes.json().catch(() => null),
         resourcesRes.json().catch(() => null),
         assignmentsRes.json().catch(() => null),
         conflictsRes.json().catch(() => null),
       ]);
 
-      if (!brandsRes.ok || !brandsPayload?.ok) throw new Error(brandsPayload?.error || "Failed to load brands");
       if (!occurrencesRes.ok || !occurrencesPayload?.ok) throw new Error(occurrencesPayload?.error || "Failed to load occurrences");
       if (!resourcesRes.ok || !resourcesPayload?.ok) throw new Error(resourcesPayload?.error || "Failed to load resources");
       if (!assignmentsRes.ok || !assignmentsPayload?.ok) throw new Error(assignmentsPayload?.error || "Failed to load assignments");
       if (!conflictsRes.ok || !conflictsPayload?.ok) throw new Error(conflictsPayload?.error || "Failed to load conflicts");
 
-      const nextBrands = Array.isArray(brandsPayload.brands) ? (brandsPayload.brands as BrandOption[]) : [];
       const nextOccurrences = Array.isArray(occurrencesPayload.occurrences)
         ? (occurrencesPayload.occurrences as ScheduleEventOccurrenceRecord[])
         : [];
@@ -243,6 +270,8 @@ export default function SchedulingPlannerPage({
         : [];
 
       setBrands(nextBrands);
+      setSerieses(nextSerieses);
+      setSeriesFilter(resolvedSeriesFilter);
       setOccurrences(nextOccurrences);
       setResources(nextResources);
       setAssignments(nextAssignments);
@@ -363,7 +392,7 @@ export default function SchedulingPlannerPage({
         }
       >
         <div style={schedulingFilterCardStyle}>
-          <div style={{ ...schedulingFilterGridStyle, gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          <div style={{ ...schedulingFilterGridStyle, gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
             <label style={schedulingFilterFieldStyle}>
               <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Brand Filter</span>
               <select
@@ -371,8 +400,9 @@ export default function SchedulingPlannerPage({
                 onChange={(event) => {
                   const nextBrandFilter = event.target.value;
                   setBrandFilter(nextBrandFilter);
+                  setSeriesFilter("ALL");
                   setOccurrenceId("");
-                  void loadData({ nextBrandFilter, nextOccurrenceId: null });
+                  void loadData({ nextBrandFilter, nextSeriesFilter: "ALL", nextOccurrenceId: null });
                 }}
                 style={schedulingFilterControlStyle}
               >
@@ -380,6 +410,27 @@ export default function SchedulingPlannerPage({
                 {brands.map((brand) => (
                   <option key={brand.id} value={brand.id}>
                     {brand.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label style={schedulingFilterFieldStyle}>
+              <span style={{ ...subtleTextStyle, fontWeight: 700 }}>Event</span>
+              <select
+                value={seriesFilter}
+                onChange={(event) => {
+                  const nextSeriesFilter = event.target.value;
+                  setSeriesFilter(nextSeriesFilter);
+                  setOccurrenceId("");
+                  void loadData({ nextSeriesFilter, nextOccurrenceId: null });
+                }}
+                style={schedulingFilterControlStyle}
+              >
+                <option value="ALL">All Events</option>
+                {serieses.map((series) => (
+                  <option key={series.id} value={series.id}>
+                    {series.name}
                   </option>
                 ))}
               </select>

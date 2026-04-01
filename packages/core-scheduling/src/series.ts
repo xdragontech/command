@@ -347,21 +347,23 @@ export async function updateScheduleEventSeries(params: {
     throw new Error("Occurrence day end must be after occurrence day start");
   }
 
-  const recurrenceChanged =
+  const occurrenceDatesChanged =
     recurrencePattern !== existing.recurrencePattern ||
     recurrenceInterval !== existing.recurrenceInterval ||
     JSON.stringify(recurrenceDays) !== JSON.stringify(existing.recurrenceDays) ||
     seasonStartsOn.getTime() !== existing.seasonStartsOn.getTime() ||
-    seasonEndsOn.getTime() !== existing.seasonEndsOn.getTime() ||
+    seasonEndsOn.getTime() !== existing.seasonEndsOn.getTime();
+  const occurrenceWindowChanged =
     occurrenceDayStartsAtMinutes !== existing.occurrenceDayStartsAtMinutes ||
     occurrenceDayEndsAtMinutes !== existing.occurrenceDayEndsAtMinutes;
+  const recurrenceChanged = occurrenceDatesChanged || occurrenceWindowChanged;
 
   const slug =
     params.input.slug !== undefined || name !== existing.name
       ? await buildUniqueSeriesSlug(brandId, normalizeText(params.input.slug) || name, existing.id)
       : existing.slug;
 
-  const nextOccurrenceDates = recurrenceChanged
+  const nextOccurrenceDates = occurrenceDatesChanged
     ? buildOccurrenceDates({
         seasonStartsOn,
         seasonEndsOn,
@@ -371,27 +373,69 @@ export async function updateScheduleEventSeries(params: {
       })
     : [];
 
-  if (recurrenceChanged && nextOccurrenceDates.length === 0) {
+  if (occurrenceDatesChanged && nextOccurrenceDates.length === 0) {
     throw new Error("This recurrence does not generate any occurrences within the selected season");
   }
 
-  if (recurrenceChanged) {
-    const assignmentCount = await prisma.scheduleAssignment.count({
-      where: {
-        scheduleEventOccurrenceId: {
-          in: (
-            await prisma.scheduleEventOccurrence.findMany({
-              where: { scheduleEventSeriesId: existing.id },
-              select: { id: true },
-            })
-          ).map((occurrence) => occurrence.id),
+  const existingOccurrences = recurrenceChanged
+    ? await prisma.scheduleEventOccurrence.findMany({
+        where: { scheduleEventSeriesId: existing.id },
+        include: {
+          assignments: {
+            select: {
+              id: true,
+              status: true,
+              kind: true,
+              startsAtMinutes: true,
+              endsAtMinutes: true,
+            },
+          },
         },
-        status: { not: "CANCELLED" },
-      },
-    });
+      })
+    : [];
 
-    if (assignmentCount > 0) {
-      throw new Error("Cannot change recurrence or occurrence window after assignments exist");
+  const nextOccurrenceDateKeys = occurrenceDatesChanged
+    ? new Set(nextOccurrenceDates.map((occursOn) => toIsoDateOnly(occursOn)))
+    : null;
+  const keptOccurrences = occurrenceDatesChanged
+    ? existingOccurrences.filter((occurrence) => nextOccurrenceDateKeys?.has(toIsoDateOnly(occurrence.occursOn)))
+    : existingOccurrences;
+  const removedOccurrences = occurrenceDatesChanged
+    ? existingOccurrences.filter((occurrence) => !nextOccurrenceDateKeys?.has(toIsoDateOnly(occurrence.occursOn)))
+    : [];
+  const addedOccurrenceDates = occurrenceDatesChanged
+    ? nextOccurrenceDates.filter(
+        (occursOn) => !existingOccurrences.some((occurrence) => toIsoDateOnly(occurrence.occursOn) === toIsoDateOnly(occursOn))
+      )
+    : [];
+
+  if (occurrenceDatesChanged) {
+    const removedWithAssignments = removedOccurrences.find((occurrence) => occurrence.assignments.length > 0);
+    if (removedWithAssignments) {
+      throw new Error("Cannot remove occurrences that still have assignment history");
+    }
+  }
+
+  if (occurrenceWindowChanged) {
+    const invalidAssignment = keptOccurrences
+      .flatMap((occurrence) =>
+        occurrence.assignments
+          .filter((assignment) => assignment.status !== "CANCELLED" && assignment.kind !== "FULL_DAY")
+          .map((assignment) => ({
+            occursOn: toIsoDateOnly(occurrence.occursOn),
+            assignment,
+          }))
+      )
+      .find(
+        ({ assignment }) =>
+          assignment.startsAtMinutes < occurrenceDayStartsAtMinutes ||
+          assignment.endsAtMinutes > occurrenceDayEndsAtMinutes
+      );
+
+    if (invalidAssignment) {
+      throw new Error(
+        `Cannot shorten the occurrence window because a scheduled slot on ${invalidAssignment.occursOn} would fall outside it`
+      );
     }
   }
 
@@ -417,19 +461,54 @@ export async function updateScheduleEventSeries(params: {
     });
 
     if (recurrenceChanged) {
-      await tx.scheduleEventOccurrence.deleteMany({
-        where: { scheduleEventSeriesId: existing.id },
-      });
+      if (occurrenceDatesChanged && removedOccurrences.length > 0) {
+        await tx.scheduleEventOccurrence.deleteMany({
+          where: {
+            id: {
+              in: removedOccurrences.map((occurrence) => occurrence.id),
+            },
+          },
+        });
+      }
 
-      await tx.scheduleEventOccurrence.createMany({
-        data: nextOccurrenceDates.map((occursOn) => ({
-          brandId,
-          scheduleEventSeriesId: existing.id,
-          occursOn,
-          dayStartsAtMinutes: occurrenceDayStartsAtMinutes,
-          dayEndsAtMinutes: occurrenceDayEndsAtMinutes,
-        })),
-      });
+      if (occurrenceWindowChanged && keptOccurrences.length > 0) {
+        await tx.scheduleEventOccurrence.updateMany({
+          where: {
+            id: {
+              in: keptOccurrences.map((occurrence) => occurrence.id),
+            },
+          },
+          data: {
+            dayStartsAtMinutes: occurrenceDayStartsAtMinutes,
+            dayEndsAtMinutes: occurrenceDayEndsAtMinutes,
+          },
+        });
+
+        await tx.scheduleAssignment.updateMany({
+          where: {
+            scheduleEventOccurrenceId: {
+              in: keptOccurrences.map((occurrence) => occurrence.id),
+            },
+            kind: "FULL_DAY",
+          },
+          data: {
+            startsAtMinutes: occurrenceDayStartsAtMinutes,
+            endsAtMinutes: occurrenceDayEndsAtMinutes,
+          },
+        });
+      }
+
+      if (occurrenceDatesChanged && addedOccurrenceDates.length > 0) {
+        await tx.scheduleEventOccurrence.createMany({
+          data: addedOccurrenceDates.map((occursOn) => ({
+            brandId,
+            scheduleEventSeriesId: existing.id,
+            occursOn,
+            dayStartsAtMinutes: occurrenceDayStartsAtMinutes,
+            dayEndsAtMinutes: occurrenceDayEndsAtMinutes,
+          })),
+        });
+      }
     }
 
     return tx.scheduleEventSeries.findUniqueOrThrow({
