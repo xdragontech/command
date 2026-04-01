@@ -96,17 +96,17 @@ export async function logLeadEvent(kind: "contact" | "chat", payload: Record<str
   await upstashExpire(key, 60 * 60 * 24 * 90);
 }
 
-export type PublicLeadRateLimitConfig = {
+export type PublicRateLimitConfig = {
   name: string;
   perMinute: number;
   perHour: number;
   scopeKey?: string | null;
 };
 
-export async function enforcePublicLeadRateLimit(
+export async function enforcePublicRateLimit(
   req: NextApiRequest,
   res: NextApiResponse,
-  config: PublicLeadRateLimitConfig,
+  config: PublicRateLimitConfig,
   options?: TrustedClientIdentityOptions
 ) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
@@ -145,6 +145,17 @@ export async function enforcePublicLeadRateLimit(
   }
 
   return true;
+}
+
+export type PublicLeadRateLimitConfig = PublicRateLimitConfig;
+
+export async function enforcePublicLeadRateLimit(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  config: PublicLeadRateLimitConfig,
+  options?: TrustedClientIdentityOptions
+) {
+  return enforcePublicRateLimit(req, res, config, options);
 }
 
 export function cleanString(value: unknown, max = 2000) {

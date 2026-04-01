@@ -47,6 +47,7 @@ Phase 1 must support:
 - publish-state control
 - overlap/conflict detection
 - public read APIs with filterable schedule data
+- generated public feed projections keyed by feed ID for alternate website layouts
 
 ## Core Domain Model
 
@@ -213,6 +214,12 @@ Public schedule endpoints should be:
 - filterable at the API level
 - safe for future extension
 - scoped to published data only
+
+Generated schedule feeds should:
+- be configured in backoffice against one event at a time
+- return flat rows for alternate list/ticker/card surfaces
+- use event-scoped resource `locationId` values as the stable public location identifier
+- preserve room for future event-map rendering instead of inventing a second location key later
 
 ### Recommended Public Read Surface
 

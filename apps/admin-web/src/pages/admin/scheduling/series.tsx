@@ -1,6 +1,17 @@
-import { ScheduleEventSeriesStatus, ScheduleRecurrencePattern, ScheduleWeekday } from "@prisma/client";
+import {
+  ScheduleEventSeriesStatus,
+  ScheduleParticipantType,
+  SchedulePublicFeedOrderBy,
+  ScheduleRecurrencePattern,
+  ScheduleResourceType,
+  ScheduleWeekday,
+} from "@prisma/client";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
+import type {
+  SchedulePublicFeedRecord,
+  ScheduleResourceRecord,
+} from "@command/core-scheduling";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import {
@@ -86,6 +97,16 @@ type SeriesForm = {
   occurrenceDayEndsAt: string;
 };
 
+type FeedForm = {
+  scheduleResourceId: string;
+  startsOn: string;
+  endsOn: string;
+  weekdays: ScheduleWeekday[];
+  resourceType: ScheduleResourceType;
+  participantType: ScheduleParticipantType;
+  orderBy: SchedulePublicFeedOrderBy;
+};
+
 type PageProps = {
   loggedInAs: string | null;
   principalRole: string;
@@ -93,6 +114,7 @@ type PageProps = {
 };
 
 const NEW_SERIES_ID = "__new_series__";
+const NEW_FEED_ID = "__new_feed__";
 const WEEKDAY_OPTIONS: ScheduleWeekday[] = [
   ScheduleWeekday.SUNDAY,
   ScheduleWeekday.MONDAY,
@@ -101,6 +123,22 @@ const WEEKDAY_OPTIONS: ScheduleWeekday[] = [
   ScheduleWeekday.THURSDAY,
   ScheduleWeekday.FRIDAY,
   ScheduleWeekday.SATURDAY,
+];
+const FEED_WEEKDAY_OPTIONS: ScheduleWeekday[] = [
+  ScheduleWeekday.MONDAY,
+  ScheduleWeekday.TUESDAY,
+  ScheduleWeekday.WEDNESDAY,
+  ScheduleWeekday.THURSDAY,
+  ScheduleWeekday.FRIDAY,
+  ScheduleWeekday.SATURDAY,
+  ScheduleWeekday.SUNDAY,
+];
+const FEED_ORDER_OPTIONS: Array<{ value: SchedulePublicFeedOrderBy; label: string }> = [
+  { value: SchedulePublicFeedOrderBy.TIME_ASC, label: "Time Asc" },
+  { value: SchedulePublicFeedOrderBy.TIME_DESC, label: "Time Desc" },
+  { value: SchedulePublicFeedOrderBy.LOCATION_ID, label: "Location ID" },
+  { value: SchedulePublicFeedOrderBy.NAME_ASC, label: "Name Asc" },
+  { value: SchedulePublicFeedOrderBy.NAME_DESC, label: "Name Desc" },
 ];
 
 function blankSeriesForm(brands: BrandOption[], brandFilter: string): SeriesForm {
@@ -161,6 +199,75 @@ function normalizeSeriesForm(form: SeriesForm) {
   });
 }
 
+function defaultParticipantTypeForResourceType(resourceType: ScheduleResourceType) {
+  switch (resourceType) {
+    case ScheduleResourceType.FOOD_SPOT:
+      return ScheduleParticipantType.FOOD_VENDOR;
+    case ScheduleResourceType.MARKET_SPOT:
+      return ScheduleParticipantType.MARKET_VENDOR;
+    case ScheduleResourceType.OTHER:
+    case ScheduleResourceType.STAGE:
+    default:
+      return ScheduleParticipantType.ENTERTAINMENT;
+  }
+}
+
+function participantTypeOptionsForResourceType(resourceType: ScheduleResourceType) {
+  switch (resourceType) {
+    case ScheduleResourceType.FOOD_SPOT:
+      return [ScheduleParticipantType.FOOD_VENDOR];
+    case ScheduleResourceType.MARKET_SPOT:
+      return [ScheduleParticipantType.MARKET_VENDOR];
+    case ScheduleResourceType.OTHER:
+      return [
+        ScheduleParticipantType.ENTERTAINMENT,
+        ScheduleParticipantType.FOOD_VENDOR,
+        ScheduleParticipantType.MARKET_VENDOR,
+      ];
+    case ScheduleResourceType.STAGE:
+    default:
+      return [ScheduleParticipantType.ENTERTAINMENT];
+  }
+}
+
+function blankFeedForm(series: SeriesRecord, resources: ScheduleResourceRecord[]): FeedForm {
+  const defaultResource = resources.find((resource) => resource.isActive) || resources[0] || null;
+  const resourceType = defaultResource?.type || ScheduleResourceType.STAGE;
+  return {
+    scheduleResourceId: defaultResource?.id || "",
+    startsOn: series.seasonStartsOn,
+    endsOn: series.seasonEndsOn,
+    weekdays: series.recurrenceDays.length > 0 ? series.recurrenceDays : [ScheduleWeekday.FRIDAY],
+    resourceType,
+    participantType: defaultParticipantTypeForResourceType(resourceType),
+    orderBy: SchedulePublicFeedOrderBy.TIME_ASC,
+  };
+}
+
+function feedFormFromRecord(feed: SchedulePublicFeedRecord): FeedForm {
+  return {
+    scheduleResourceId: feed.resourceId,
+    startsOn: feed.startsOn,
+    endsOn: feed.endsOn,
+    weekdays: feed.weekdays,
+    resourceType: feed.resourceType,
+    participantType: feed.participantType,
+    orderBy: feed.orderBy,
+  };
+}
+
+function normalizeFeedForm(form: FeedForm) {
+  return JSON.stringify({
+    scheduleResourceId: form.scheduleResourceId,
+    startsOn: form.startsOn,
+    endsOn: form.endsOn,
+    weekdays: [...form.weekdays].sort(),
+    resourceType: form.resourceType,
+    participantType: form.participantType,
+    orderBy: form.orderBy,
+  });
+}
+
 export default function SchedulingSeriesPage({
   loggedInAs,
   principalRole,
@@ -179,10 +286,24 @@ export default function SchedulingSeriesPage({
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [feedResources, setFeedResources] = useState<ScheduleResourceRecord[]>([]);
+  const [feeds, setFeeds] = useState<SchedulePublicFeedRecord[]>([]);
+  const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
+  const [feedForm, setFeedForm] = useState<FeedForm | null>(null);
+  const [loadingFeeds, setLoadingFeeds] = useState(false);
+  const [savingFeed, setSavingFeed] = useState(false);
+  const [deletingFeed, setDeletingFeed] = useState(false);
+  const [feedError, setFeedError] = useState("");
+  const [feedNotice, setFeedNotice] = useState("");
 
   const selectedSeries =
     selectedId && selectedId !== NEW_SERIES_ID ? serieses.find((series) => series.id === selectedId) || null : null;
   const isNewSeries = selectedId === NEW_SERIES_ID;
+  const selectedFeed =
+    selectedFeedId && selectedFeedId !== NEW_FEED_ID
+      ? feeds.find((feed) => feed.id === selectedFeedId) || null
+      : null;
+  const isNewFeed = selectedFeedId === NEW_FEED_ID;
 
   async function loadData(options?: {
     nextSelectedId?: string | null;
@@ -243,6 +364,83 @@ export default function SchedulingSeriesPage({
     void loadData();
   }, []);
 
+  async function loadFeedData(series: SeriesRecord, options?: { nextSelectedFeedId?: string | null }) {
+    setLoadingFeeds(true);
+    setFeedError("");
+
+    try {
+      const [resourcesRes, feedsRes] = await Promise.all([
+        fetch(`/api/admin/scheduling/resources?seriesId=${encodeURIComponent(series.id)}`),
+        fetch(`/api/admin/scheduling/series/${encodeURIComponent(series.id)}/feeds`),
+      ]);
+
+      const [resourcesPayload, feedsPayload] = await Promise.all([
+        resourcesRes.json().catch(() => null),
+        feedsRes.json().catch(() => null),
+      ]);
+
+      if (!resourcesRes.ok || !resourcesPayload?.ok) {
+        throw new Error(resourcesPayload?.error || "Failed to load feed resources");
+      }
+      if (!feedsRes.ok || !feedsPayload?.ok) {
+        throw new Error(feedsPayload?.error || "Failed to load feeds");
+      }
+
+      const nextResources = Array.isArray(resourcesPayload.resources)
+        ? (resourcesPayload.resources as ScheduleResourceRecord[])
+        : [];
+      const nextFeeds = Array.isArray(feedsPayload.feeds)
+        ? (feedsPayload.feeds as SchedulePublicFeedRecord[])
+        : [];
+
+      setFeedResources(nextResources);
+      setFeeds(nextFeeds);
+
+      const desiredFeedId = options?.nextSelectedFeedId ?? selectedFeedId;
+      if (desiredFeedId === NEW_FEED_ID) {
+        setSelectedFeedId(NEW_FEED_ID);
+        setFeedForm(blankFeedForm(series, nextResources));
+        return;
+      }
+
+      const nextSelectedFeed =
+        (desiredFeedId && nextFeeds.find((feed) => feed.id === desiredFeedId)) ||
+        nextFeeds[0] ||
+        null;
+
+      if (nextSelectedFeed) {
+        setSelectedFeedId(nextSelectedFeed.id);
+        setFeedForm(feedFormFromRecord(nextSelectedFeed));
+      } else {
+        setSelectedFeedId(NEW_FEED_ID);
+        setFeedForm(blankFeedForm(series, nextResources));
+      }
+    } catch (nextError: any) {
+      setFeedError(nextError?.message || "Failed to load feeds");
+      setFeedNotice("");
+      setFeedResources([]);
+      setFeeds([]);
+      setSelectedFeedId(null);
+      setFeedForm(null);
+    } finally {
+      setLoadingFeeds(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!selectedSeries || isNewSeries) {
+      setFeedResources([]);
+      setFeeds([]);
+      setSelectedFeedId(null);
+      setFeedForm(null);
+      setFeedError("");
+      setFeedNotice("");
+      return;
+    }
+
+    void loadFeedData(selectedSeries);
+  }, [selectedSeries?.id, isNewSeries]);
+
   const filteredSerieses = useMemo(() => {
     const needle = search.trim().toLowerCase();
     return serieses.filter((series) => {
@@ -272,6 +470,20 @@ export default function SchedulingSeriesPage({
     return normalizeSeriesForm(form) !== normalizeSeriesForm(seriesFormFromRecord(selectedSeries));
   }, [form, isNewSeries, selectedSeries, brands, brandFilter]);
 
+  const visibleFeedResources = useMemo(() => {
+    if (!feedForm) return feedResources;
+    return feedResources.filter((resource) => resource.isActive && resource.type === feedForm.resourceType);
+  }, [feedForm, feedResources]);
+
+  const isFeedDirty = useMemo(() => {
+    if (!feedForm || !selectedSeries) return false;
+    if (isNewFeed) {
+      return normalizeFeedForm(feedForm) !== normalizeFeedForm(blankFeedForm(selectedSeries, feedResources));
+    }
+    if (!selectedFeed) return false;
+    return normalizeFeedForm(feedForm) !== normalizeFeedForm(feedFormFromRecord(selectedFeed));
+  }, [feedForm, feedResources, isNewFeed, selectedFeed, selectedSeries]);
+
   function startNewSeries() {
     setSelectedId(NEW_SERIES_ID);
     setForm(blankSeriesForm(brands, brandFilter));
@@ -297,6 +509,52 @@ export default function SchedulingSeriesPage({
         ? current.recurrenceDays.filter((entry) => entry !== day)
         : [...current.recurrenceDays, day];
       return { ...current, recurrenceDays: nextDays };
+    });
+  }
+
+  function startNewFeed() {
+    if (!selectedSeries) return;
+    setSelectedFeedId(NEW_FEED_ID);
+    setFeedForm(blankFeedForm(selectedSeries, feedResources));
+    setFeedError("");
+    setFeedNotice("");
+  }
+
+  function selectFeed(feed: SchedulePublicFeedRecord) {
+    setSelectedFeedId(feed.id);
+    setFeedForm(feedFormFromRecord(feed));
+    setFeedError("");
+    setFeedNotice("");
+  }
+
+  function updateFeedField<K extends keyof FeedForm>(key: K, value: FeedForm[K]) {
+    setFeedForm((current) => {
+      if (!current) return current;
+
+      if (key === "resourceType") {
+        const nextResourceType = value as ScheduleResourceType;
+        const nextResources = feedResources.filter((resource) => resource.isActive && resource.type === nextResourceType);
+        return {
+          ...current,
+          resourceType: nextResourceType,
+          participantType: defaultParticipantTypeForResourceType(nextResourceType),
+          scheduleResourceId: nextResources.some((resource) => resource.id === current.scheduleResourceId)
+            ? current.scheduleResourceId
+            : nextResources[0]?.id || "",
+        };
+      }
+
+      return { ...current, [key]: value };
+    });
+  }
+
+  function toggleFeedWeekday(day: ScheduleWeekday) {
+    setFeedForm((current) => {
+      if (!current) return current;
+      const nextDays = current.weekdays.includes(day)
+        ? current.weekdays.filter((entry) => entry !== day)
+        : [...current.weekdays, day];
+      return { ...current, weekdays: nextDays };
     });
   }
 
@@ -380,6 +638,80 @@ export default function SchedulingSeriesPage({
       setNotice("");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function saveFeed() {
+    if (!selectedSeries || !feedForm) return;
+    if (!isNewFeed && !selectedFeed) return;
+
+    setSavingFeed(true);
+    setFeedError("");
+    setFeedNotice("");
+
+    try {
+      const payload = {
+        scheduleResourceId: feedForm.scheduleResourceId,
+        startsOn: feedForm.startsOn,
+        endsOn: feedForm.endsOn,
+        weekdays: feedForm.weekdays,
+        resourceType: feedForm.resourceType,
+        participantType: feedForm.participantType,
+        orderBy: feedForm.orderBy,
+      };
+
+      const res = await fetch(
+        isNewFeed
+          ? `/api/admin/scheduling/series/${selectedSeries.id}/feeds`
+          : `/api/admin/scheduling/feeds/${selectedFeed?.id}`,
+        {
+          method: isNewFeed ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const responsePayload = await res.json().catch(() => null);
+      if (!res.ok || !responsePayload?.ok) {
+        throw new Error(responsePayload?.error || "Failed to save feed");
+      }
+
+      const saved = responsePayload.feed as SchedulePublicFeedRecord;
+      await loadFeedData(selectedSeries, { nextSelectedFeedId: saved.id });
+      setFeedNotice(isNewFeed ? "Feed created." : "Feed updated.");
+    } catch (nextError: any) {
+      setFeedError(nextError?.message || "Failed to save feed");
+      setFeedNotice("");
+    } finally {
+      setSavingFeed(false);
+    }
+  }
+
+  async function deleteFeed() {
+    if (!selectedFeed || !selectedSeries) return;
+    const ok = window.confirm(`Delete feed ${selectedFeed.feedId}?`);
+    if (!ok) return;
+
+    setDeletingFeed(true);
+    setFeedError("");
+    setFeedNotice("");
+
+    try {
+      const res = await fetch(`/api/admin/scheduling/feeds/${selectedFeed.id}`, {
+        method: "DELETE",
+      });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Failed to delete feed");
+      }
+
+      await loadFeedData(selectedSeries, { nextSelectedFeedId: NEW_FEED_ID });
+      setFeedNotice("Feed deleted.");
+    } catch (nextError: any) {
+      setFeedError(nextError?.message || "Failed to delete feed");
+      setFeedNotice("");
+    } finally {
+      setDeletingFeed(false);
     }
   }
 
@@ -720,6 +1052,221 @@ export default function SchedulingSeriesPage({
             )}
           </section>
         </div>
+
+        {selectedSeries && !isNewSeries ? (
+          <div style={{ ...splitLayoutStyle, marginTop: "24px" }}>
+            <section style={panelStyle}>
+              <div style={detailHeaderStyle}>
+                <div>
+                  <h3 style={detailTitleStyle}>Feeds</h3>
+                  <p style={paragraphStyle}>Feeds are active-only public schedule projections tied to this event. They are consumed through the public-site BFF by feed ID.</p>
+                </div>
+                <button type="button" onClick={startNewFeed} style={primaryButtonStyle}>
+                  Add Feed
+                </button>
+              </div>
+
+              {feedError ? <div style={{ ...errorStyle, marginTop: "16px" }}>{feedError}</div> : null}
+              {!feedError && feedNotice ? <div style={{ ...successStyle, marginTop: "16px" }}>{feedNotice}</div> : null}
+
+              <div style={{ ...subtleTextStyle, marginTop: "16px" }}>
+                {loadingFeeds ? "Loading..." : `${feeds.length} feeds shown`}
+              </div>
+
+              <div style={{ display: "grid", gap: "12px", marginTop: "18px" }}>
+                {loadingFeeds ? (
+                  <div style={mutedPanelStyle}>Loading feeds...</div>
+                ) : feeds.length === 0 ? (
+                  <div style={mutedPanelStyle}>No feeds configured for this event yet.</div>
+                ) : (
+                  feeds.map((feed) => (
+                    <SchedulingListRow
+                      key={feed.id}
+                      selected={feed.id === selectedFeedId}
+                      onClick={() => selectFeed(feed)}
+                      topLeft={feed.resourceName}
+                      topRight={feed.participantType.replace("_", " ")}
+                      bottomLeft={
+                        <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>
+                          {`${feed.startsOn} - ${feed.endsOn} · ${feed.weekdays.map((day) => day.slice(0, 3)).join(", ")}`}
+                        </span>
+                      }
+                      bottomRight={
+                        <span style={{ ...schedulingListPillStyle, ...schedulingListSubtlePillStyle }}>
+                          {feed.orderBy.replaceAll("_", " ")}
+                        </span>
+                      }
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section style={panelStyle}>
+              <div style={detailHeaderStyle}>
+                <div>
+                  <h3 style={detailTitleStyle}>{isNewFeed ? "New Feed" : "Feed Details"}</h3>
+                  <p style={paragraphStyle}>This v1 feed returns a flat list with occurrence date, resource name, participant name, timeslot, and location ID.</p>
+                </div>
+                <TonePill label="ACTIVE" tone="success" />
+              </div>
+
+              {!feedForm ? (
+                <div style={mutedPanelStyle}>Select a feed to edit it.</div>
+              ) : (
+                <div style={{ display: "grid", gap: "18px" }}>
+                  <div style={twoColumnStyle}>
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Event</span>
+                      <input value={selectedSeries.name} readOnly style={inputStyle} />
+                    </label>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Feed ID</span>
+                      <input value={selectedFeed?.feedId || "Generated on create"} readOnly style={inputStyle} />
+                    </label>
+                  </div>
+
+                  <div style={twoColumnStyle}>
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Feed Starts On</span>
+                      <input type="date" value={feedForm.startsOn} onChange={(event) => updateFeedField("startsOn", event.target.value)} style={inputStyle} />
+                    </label>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Feed Ends On</span>
+                      <input type="date" value={feedForm.endsOn} onChange={(event) => updateFeedField("endsOn", event.target.value)} style={inputStyle} />
+                    </label>
+                  </div>
+
+                  <div style={twoColumnStyle}>
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Type</span>
+                      <select
+                        value={feedForm.resourceType}
+                        onChange={(event) => updateFeedField("resourceType", event.target.value as ScheduleResourceType)}
+                        style={inputStyle}
+                      >
+                        {[
+                          ScheduleResourceType.STAGE,
+                          ScheduleResourceType.FOOD_SPOT,
+                          ScheduleResourceType.MARKET_SPOT,
+                          ScheduleResourceType.OTHER,
+                        ].map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Name</span>
+                      <select
+                        value={feedForm.scheduleResourceId}
+                        onChange={(event) => updateFeedField("scheduleResourceId", event.target.value)}
+                        style={inputStyle}
+                      >
+                        <option value="">Select resource</option>
+                        {visibleFeedResources.map((resource) => (
+                          <option key={resource.id} value={resource.id}>
+                            {resource.name} ({resource.locationId})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div style={twoColumnStyle}>
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Participant Type</span>
+                      <select
+                        value={feedForm.participantType}
+                        onChange={(event) => updateFeedField("participantType", event.target.value as ScheduleParticipantType)}
+                        style={inputStyle}
+                      >
+                        {participantTypeOptionsForResourceType(feedForm.resourceType).map((type) => (
+                          <option key={type} value={type}>
+                            {type.replace("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Order By</span>
+                      <select
+                        value={feedForm.orderBy}
+                        onChange={(event) => updateFeedField("orderBy", event.target.value as SchedulePublicFeedOrderBy)}
+                        style={inputStyle}
+                      >
+                        {FEED_ORDER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div style={fieldStyle}>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Weekdays</span>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {FEED_WEEKDAY_OPTIONS.map((day) => {
+                        const selected = feedForm.weekdays.includes(day);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => toggleFeedWeekday(day)}
+                            style={{
+                              ...secondaryButtonStyle,
+                              padding: "10px 12px",
+                              background: selected ? "#fee2e2" : "#ffffff",
+                              borderColor: selected ? "rgba(239,68,68,0.28)" : "rgba(148,163,184,0.34)",
+                              color: selected ? "#991b1b" : "#334155",
+                            }}
+                          >
+                            {day.slice(0, 3)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div style={infoPanelStyle}>
+                    Feed rows always return the configured event's published assignments only. Future event-map work will reuse the resource `locationId`, so keep those identifiers stable.
+                  </div>
+
+                  <div style={actionRowStyle}>
+                    <button type="button" onClick={saveFeed} disabled={!isFeedDirty || savingFeed} style={primaryButtonStyle}>
+                      {savingFeed ? (isNewFeed ? "Creating..." : "Saving...") : isNewFeed ? "Create Feed" : "Save Feed"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (selectedFeed) {
+                          setFeedForm(feedFormFromRecord(selectedFeed));
+                        } else if (selectedSeries) {
+                          setFeedForm(blankFeedForm(selectedSeries, feedResources));
+                        }
+                        setFeedError("");
+                        setFeedNotice("");
+                      }}
+                      disabled={!isFeedDirty || savingFeed}
+                      style={secondaryButtonStyle}
+                    >
+                      Reset
+                    </button>
+                    <button type="button" onClick={() => void deleteFeed()} disabled={!selectedFeed || deletingFeed} style={secondaryButtonStyle}>
+                      {deletingFeed ? "Deleting..." : "Delete Feed"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
 
         <div style={{ ...warningStyle, marginTop: "18px" }}>
           Recurrence changes are intentionally blocked once occurrences have active assignments. That is deliberate; silent occurrence regeneration would be too destructive.

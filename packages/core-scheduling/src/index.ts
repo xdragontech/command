@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./series";
 export * from "./resources";
+export * from "./feeds";
 export * from "./participants";
 export * from "./occurrences";
 export * from "./assignments";
