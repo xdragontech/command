@@ -2,6 +2,7 @@ import Head from "next/head";
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { observeAutofillMitigations } from "../lib/autofillMitigation";
+import { CommandCopyrightNotice, commandShellFooterStyle } from "./CommandCopyrightNotice";
 
 type BackofficeAuthShellProps = {
   pageTitle: string;
@@ -44,6 +45,8 @@ export function BackofficeAuthShell({
       <div
         ref={shellRef}
         style={{
+          display: "flex",
+          flexDirection: "column",
           minHeight: "100vh",
           background: "#f8fafc",
           color: "#0f172a",
@@ -53,6 +56,7 @@ export function BackofficeAuthShell({
       >
         <main
           style={{
+            flex: "1 0 auto",
             margin: "0 auto",
             maxWidth: `${maxWidth}px`,
             padding: "72px 20px 96px",
@@ -152,6 +156,10 @@ export function BackofficeAuthShell({
             ) : null}
           </section>
         </main>
+
+        <footer style={commandShellFooterStyle}>
+          <CommandCopyrightNotice color="#64748b" />
+        </footer>
       </div>
     </>
   );
