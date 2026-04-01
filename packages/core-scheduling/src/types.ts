@@ -7,6 +7,7 @@ import type {
   ScheduleParticipantStatus,
   ScheduleParticipantType,
   SchedulePublicFeedOrderBy,
+  SchedulePublicFeedResourceSelectionMode,
   ScheduleRecurrencePattern,
   ScheduleResourceType,
   ScheduleWeekday,
@@ -155,10 +156,13 @@ export type SchedulePublicFeedRecord = {
   brandName: string;
   seriesId: string;
   seriesName: string;
-  resourceId: string;
-  resourceName: string;
-  resourceLocationId: string;
   resourceType: ScheduleResourceType;
+  resourceSelectionMode: SchedulePublicFeedResourceSelectionMode;
+  selectedResources: Array<{
+    id: string;
+    name: string;
+    locationId: string;
+  }>;
   participantType: ScheduleParticipantType;
   feedId: string;
   startsOn: string;
@@ -334,7 +338,8 @@ export type PublicScheduleEntry = {
 export type CreateSchedulePublicFeedInput = {
   brandId?: string | null;
   scheduleEventSeriesId: string;
-  scheduleResourceId: string;
+  resourceSelectionMode: SchedulePublicFeedResourceSelectionMode;
+  scheduleResourceIds?: string[];
   startsOn: string;
   endsOn: string;
   weekdays: ScheduleWeekday[] | string[];
@@ -345,7 +350,8 @@ export type CreateSchedulePublicFeedInput = {
 };
 
 export type UpdateSchedulePublicFeedInput = {
-  scheduleResourceId?: string;
+  resourceSelectionMode?: SchedulePublicFeedResourceSelectionMode;
+  scheduleResourceIds?: string[];
   startsOn?: string;
   endsOn?: string;
   weekdays?: ScheduleWeekday[] | string[];

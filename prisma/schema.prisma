@@ -228,6 +228,11 @@ enum SchedulePublicFeedOrderBy {
   NAME_DESC
 }
 
+enum SchedulePublicFeedResourceSelectionMode {
+  ALL
+  SELECTED
+}
+
 model Brand {
   id        String      @id @default(cuid())
   brandKey  String      @unique
@@ -387,7 +392,7 @@ model ScheduleResource {
   brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
   series      ScheduleEventSeries? @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: SetNull)
   assignments ScheduleAssignment[]
-  feeds       SchedulePublicFeed[]
+  feedSelections SchedulePublicFeedResource[]
 
   @@index([brandId])
   @@index([scheduleEventSeriesId])
@@ -453,30 +458,43 @@ model ScheduleAssignment {
 }
 
 model SchedulePublicFeed {
-  id                    String                    @id @default(cuid())
+  id                    String                                   @id @default(cuid())
   brandId               String
   scheduleEventSeriesId String
-  scheduleResourceId    String?
-  feedId                String                    @default(cuid()) @unique
+  feedId                String                                   @default(cuid()) @unique
   startsOn              DateTime
   endsOn                DateTime
-  weekdays              ScheduleWeekday[]         @default([])
+  weekdays              ScheduleWeekday[]                        @default([])
   resourceType          ScheduleResourceType
+  resourceSelectionMode SchedulePublicFeedResourceSelectionMode  @default(SELECTED)
   participantType       ScheduleParticipantType
-  orderBy               SchedulePublicFeedOrderBy @default(TIME_ASC)
-  isActive              Boolean                   @default(true)
+  orderBy               SchedulePublicFeedOrderBy                @default(TIME_ASC)
+  isActive              Boolean                                  @default(true)
   metadata              Json?
-  createdAt             DateTime                  @default(now())
-  updatedAt             DateTime                  @updatedAt
+  createdAt             DateTime                                 @default(now())
+  updatedAt             DateTime                                 @updatedAt
 
-  brand    Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  series   ScheduleEventSeries @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
-  resource ScheduleResource?   @relation(fields: [scheduleResourceId], references: [id], onDelete: Restrict)
+  brand     Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series    ScheduleEventSeries        @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  resources SchedulePublicFeedResource[]
 
   @@index([brandId])
   @@index([scheduleEventSeriesId])
-  @@index([scheduleResourceId])
   @@index([isActive])
+}
+
+model SchedulePublicFeedResource {
+  id                  String @id @default(cuid())
+  schedulePublicFeedId String
+  scheduleResourceId   String
+  createdAt            DateTime @default(now())
+
+  feed     SchedulePublicFeed @relation(fields: [schedulePublicFeedId], references: [id], onDelete: Cascade)
+  resource ScheduleResource   @relation(fields: [scheduleResourceId], references: [id], onDelete: Restrict)
+
+  @@index([schedulePublicFeedId])
+  @@index([scheduleResourceId])
+  @@unique([schedulePublicFeedId, scheduleResourceId])
 }
 
 model InstallProfile {

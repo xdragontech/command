@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type ScheduleResourceType } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
   ensureBrand,
@@ -102,6 +102,46 @@ async function assertUniqueLocationId(params: {
   if (existing) {
     throw new Error("Location ID must be unique within the selected event");
   }
+}
+
+async function countActiveFeedReferencesForResource(params: {
+  resourceId: string;
+  scheduleEventSeriesId: string;
+  resourceType: ScheduleResourceType;
+}) {
+  return prisma.schedulePublicFeed.count({
+    where: {
+      isActive: true,
+      OR: [
+        {
+          resourceSelectionMode: "ALL",
+          scheduleEventSeriesId: params.scheduleEventSeriesId,
+          resourceType: params.resourceType,
+        },
+        {
+          resources: {
+            some: {
+              scheduleResourceId: params.resourceId,
+            },
+          },
+        },
+      ],
+    },
+  });
+}
+
+async function countActiveAllFeedsForSeriesType(params: {
+  scheduleEventSeriesId: string;
+  resourceType: ScheduleResourceType;
+}) {
+  return prisma.schedulePublicFeed.count({
+    where: {
+      isActive: true,
+      resourceSelectionMode: "ALL",
+      scheduleEventSeriesId: params.scheduleEventSeriesId,
+      resourceType: params.resourceType,
+    },
+  });
 }
 
 export async function listScheduleResources(params: {
@@ -248,18 +288,29 @@ export async function updateScheduleResource(params: {
   const locationId = normalizeText(params.input.locationId ?? existing.locationId);
   ensureRequired(locationId, "Location ID");
   const nextType = params.input.type === undefined ? existing.type : parseResourceType(params.input.type);
+  const nextIsActive = params.input.isActive === undefined ? existing.isActive : params.input.isActive;
+  const currentSeriesId = existing.scheduleEventSeriesId ?? series.id;
 
-  const activeFeedCount = await prisma.schedulePublicFeed.count({
-    where: {
-      scheduleResourceId: existing.id,
-      isActive: true,
-    },
+  const activeFeedCount = await countActiveFeedReferencesForResource({
+    resourceId: existing.id,
+    scheduleEventSeriesId: currentSeriesId,
+    resourceType: existing.type,
   });
   if (
     activeFeedCount > 0 &&
-    (series.id !== existing.scheduleEventSeriesId || nextType !== existing.type)
+    (series.id !== existing.scheduleEventSeriesId || nextType !== existing.type || nextIsActive === false)
   ) {
-    throw new Error("Cannot change event or resource type while the resource is referenced by an active public feed");
+    throw new Error("Cannot change event, resource type, or active status while the resource is referenced by an active public feed");
+  }
+
+  if (series.id !== existing.scheduleEventSeriesId || nextType !== existing.type) {
+    const targetAllFeedCount = await countActiveAllFeedsForSeriesType({
+      scheduleEventSeriesId: series.id,
+      resourceType: nextType,
+    });
+    if (targetAllFeedCount > 0) {
+      throw new Error("Cannot move a resource into an event/type covered by an active all-resources public feed");
+    }
   }
 
   await assertUniqueLocationId({
@@ -282,7 +333,7 @@ export async function updateScheduleResource(params: {
       description:
         params.input.description === undefined ? existing.description : normalizeNullableText(params.input.description),
       sortOrder: params.input.sortOrder === undefined ? existing.sortOrder : Number(params.input.sortOrder || 0),
-      isActive: params.input.isActive === undefined ? existing.isActive : params.input.isActive,
+      isActive: nextIsActive,
       ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
     },
     include: {
@@ -328,12 +379,24 @@ export async function deleteScheduleResource(params: {
     throw new Error("Cannot delete a resource that still has schedule assignments");
   }
 
-  const feedCount = await prisma.schedulePublicFeed.count({
-    where: {
-      scheduleResourceId: existing.id,
-      isActive: true,
+  const resource = await prisma.scheduleResource.findUnique({
+    where: { id: existing.id },
+    select: {
+      scheduleEventSeriesId: true,
+      type: true,
     },
   });
+  if (!resource) {
+    throw new Error("Resource not found");
+  }
+
+  const feedCount = resource.scheduleEventSeriesId
+    ? await countActiveFeedReferencesForResource({
+        resourceId: existing.id,
+        scheduleEventSeriesId: resource.scheduleEventSeriesId,
+        resourceType: resource.type,
+      })
+    : 0;
   if (feedCount > 0) {
     throw new Error("Cannot delete a resource that is still referenced by an active public feed");
   }
