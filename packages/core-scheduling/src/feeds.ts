@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
+  assertBrandAccess,
   ensureBrand,
   normalizeNullableId,
   normalizeText,
@@ -111,6 +112,35 @@ async function resolveFeedSeries(params: { brandId: string; scheduleEventSeriesI
   if (!series) throw new Error("Event not found");
   if (series.brandId !== params.brandId) throw new Error("Feed event must match the selected brand");
   return series;
+}
+
+async function resolveFeedCreateBrandAndSeries(params: {
+  scope: SchedulingScope;
+  brandId?: string | null;
+  scheduleEventSeriesId: string;
+}) {
+  const scheduleEventSeriesId = normalizeText(params.scheduleEventSeriesId);
+  if (!scheduleEventSeriesId) throw new Error("Event is required");
+
+  const series = await prisma.scheduleEventSeries.findUnique({
+    where: { id: scheduleEventSeriesId },
+    select: { id: true, brandId: true, name: true },
+  });
+  if (!series) throw new Error("Event not found");
+
+  if (params.brandId !== undefined && params.brandId !== null) {
+    const requestedBrandId = resolveWriteBrandId(params.scope, params.brandId);
+    if (requestedBrandId !== series.brandId) {
+      throw new Error("Feed event must match the selected brand");
+    }
+  } else if (params.scope.role !== "SUPERADMIN") {
+    assertBrandAccess(params.scope, series.brandId);
+  }
+
+  return {
+    brandId: series.brandId,
+    series,
+  };
 }
 
 function normalizeResourceIds(value: unknown) {
@@ -281,13 +311,13 @@ export async function createSchedulePublicFeed(params: {
   scope: SchedulingScope;
   input: CreateSchedulePublicFeedInput;
 }) {
-  const brandId = resolveWriteBrandId(params.scope, params.input.brandId);
-  await ensureBrand(brandId);
-  const parsed = parseFeedInput(params.input);
-  const series = await resolveFeedSeries({
-    brandId,
+  const { brandId, series } = await resolveFeedCreateBrandAndSeries({
+    scope: params.scope,
+    brandId: params.input.brandId,
     scheduleEventSeriesId: params.input.scheduleEventSeriesId,
   });
+  await ensureBrand(brandId);
+  const parsed = parseFeedInput(params.input);
   const selectedResources = await validateFeedResourceSelection({
     brandId,
     scheduleEventSeriesId: series.id,
