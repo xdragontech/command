@@ -163,7 +163,6 @@ function normalizeQueryText(value: unknown) {
 
 function buildPublicScheduleFilters(params: {
   scheduleEventSeriesId?: string | null;
-  scheduleResourceId?: string | null;
   eventSeries?: unknown;
   resource?: unknown;
   location?: unknown;
@@ -173,7 +172,6 @@ function buildPublicScheduleFilters(params: {
   const eventSeries = normalizeText(params.eventSeries);
   const resourceOrLocation = normalizeText(params.resource) || normalizeText(params.location);
   const scheduleEventSeriesId = normalizeText(params.scheduleEventSeriesId);
-  const scheduleResourceId = normalizeText(params.scheduleResourceId);
   const participantType = normalizeText(params.participantType)
     ? parseParticipantType(params.participantType)
     : null;
@@ -183,7 +181,6 @@ function buildPublicScheduleFilters(params: {
 
   return {
     scheduleEventSeriesId,
-    scheduleResourceId,
     eventSeries,
     resourceOrLocation,
     participantType,
@@ -301,7 +298,7 @@ async function loadPublishedScheduleAssignments(params: {
   from: Date;
   to: Date;
   scheduleEventSeriesId?: string | null;
-  scheduleResourceId?: string | null;
+  scheduleResourceIds?: string[] | null;
   eventSeries?: unknown;
   resource?: unknown;
   location?: unknown;
@@ -327,9 +324,9 @@ async function loadPublishedScheduleAssignments(params: {
         ...(filters.eventSeries ? buildSlugOrNameFilter(filters.eventSeries) : {}),
       },
     },
-    ...(filters.scheduleResourceId
+    ...(params.scheduleResourceIds && params.scheduleResourceIds.length > 0
       ? {
-          scheduleResourceId: filters.scheduleResourceId,
+          scheduleResourceId: { in: params.scheduleResourceIds },
         }
       : {}),
     ...(filters.resourceOrLocation
@@ -424,7 +421,7 @@ export async function listPublicScheduleCalendar(params: {
     from,
     to,
     scheduleEventSeriesId: null,
-    scheduleResourceId: null,
+    scheduleResourceIds: null,
     eventSeries: params.eventSeries,
     participantType: params.participantType,
     resource: params.resource,
@@ -471,7 +468,7 @@ export async function listPublicScheduleList(params: {
     from,
     to,
     scheduleEventSeriesId: null,
-    scheduleResourceId: null,
+    scheduleResourceIds: null,
     eventSeries: params.eventSeries,
     participantType: params.participantType,
     resource: params.resource,
@@ -520,9 +517,14 @@ export async function getPublicScheduleFeed(params: {
       weekdays: true,
       orderBy: true,
       scheduleEventSeriesId: true,
-      scheduleResourceId: true,
       resourceType: true,
+      resourceSelectionMode: true,
       participantType: true,
+      resources: {
+        select: {
+          scheduleResourceId: true,
+        },
+      },
     },
   });
 
@@ -530,12 +532,17 @@ export async function getPublicScheduleFeed(params: {
     throw new PublicScheduleQueryError("Feed not found");
   }
 
+  const selectedResourceIds =
+    feed.resourceSelectionMode === "SELECTED"
+      ? feed.resources.map((entry) => entry.scheduleResourceId)
+      : null;
+
   const rows = await loadPublishedScheduleAssignments({
     brandId: params.brandId,
     from: feed.startsOn,
     to: feed.endsOn,
     scheduleEventSeriesId: feed.scheduleEventSeriesId,
-    scheduleResourceId: feed.scheduleResourceId,
+    scheduleResourceIds: selectedResourceIds,
     participantType: feed.participantType,
     resourceType: feed.resourceType,
   });

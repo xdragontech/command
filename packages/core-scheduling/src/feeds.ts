@@ -2,6 +2,7 @@ import {
   Prisma,
   type ScheduleParticipantType,
   type SchedulePublicFeedOrderBy,
+  type SchedulePublicFeedResourceSelectionMode,
   type ScheduleResourceType,
 } from "@prisma/client";
 import { prisma } from "@command/core-db";
@@ -13,6 +14,7 @@ import {
   parseIsoDateOnly,
   parseParticipantType,
   parsePublicFeedOrderBy,
+  parsePublicFeedResourceSelectionMode,
   parseResourceType,
   resolveReadableBrandIds,
   resolveWriteBrandId,
@@ -24,6 +26,13 @@ import type {
   SchedulingScope,
   UpdateSchedulePublicFeedInput,
 } from "./types";
+
+type FeedResourceSelection = {
+  id: string;
+  name: string;
+  locationId: string;
+  type: ScheduleResourceType;
+};
 
 type SchedulePublicFeedWithRelations = Prisma.SchedulePublicFeedGetPayload<{
   include: {
@@ -40,18 +49,34 @@ type SchedulePublicFeedWithRelations = Prisma.SchedulePublicFeedGetPayload<{
         name: true;
       };
     };
-    resource: {
-      select: {
-        id: true;
-        name: true;
-        locationId: true;
-        type: true;
+    resources: {
+      include: {
+        resource: {
+          select: {
+            id: true;
+            name: true;
+            locationId: true;
+            type: true;
+          };
+        };
       };
     };
   };
 }>;
 
+function compareText(left: string, right: string) {
+  return left.localeCompare(right, "en", { sensitivity: "base" });
+}
+
 function toSchedulePublicFeedRecord(feed: SchedulePublicFeedWithRelations): SchedulePublicFeedRecord {
+  const selectedResources = feed.resources
+    .map((entry) => ({
+      id: entry.resource.id,
+      name: entry.resource.name,
+      locationId: entry.resource.locationId,
+    }))
+    .sort((left, right) => compareText(left.name, right.name) || compareText(left.locationId, right.locationId));
+
   return {
     id: feed.id,
     brandId: feed.brandId,
@@ -59,10 +84,9 @@ function toSchedulePublicFeedRecord(feed: SchedulePublicFeedWithRelations): Sche
     brandName: feed.brand.name,
     seriesId: feed.scheduleEventSeriesId,
     seriesName: feed.series.name,
-    resourceId: feed.scheduleResourceId || "",
-    resourceName: feed.resource?.name || "",
-    resourceLocationId: feed.resource?.locationId || "",
     resourceType: feed.resourceType,
+    resourceSelectionMode: feed.resourceSelectionMode,
+    selectedResources,
     participantType: feed.participantType,
     feedId: feed.feedId,
     startsOn: toIsoDateOnly(feed.startsOn),
@@ -89,40 +113,77 @@ async function resolveFeedSeries(params: { brandId: string; scheduleEventSeriesI
   return series;
 }
 
-async function resolveFeedResource(params: {
+function normalizeResourceIds(value: unknown) {
+  return Array.from(
+    new Set((Array.isArray(value) ? value : []).map((entry) => normalizeText(entry)).filter(Boolean))
+  );
+}
+
+async function resolveFeedResources(params: {
   brandId: string;
   scheduleEventSeriesId: string;
-  scheduleResourceId: string;
+  scheduleResourceIds: string[];
   resourceType: ScheduleResourceType;
 }) {
-  const scheduleResourceId = normalizeText(params.scheduleResourceId);
-  if (!scheduleResourceId) throw new Error("Resource is required");
+  if (params.scheduleResourceIds.length === 0) return [] as FeedResourceSelection[];
 
-  const resource = await prisma.scheduleResource.findUnique({
-    where: { id: scheduleResourceId },
+  const rows = await prisma.scheduleResource.findMany({
+    where: {
+      id: { in: params.scheduleResourceIds },
+      brandId: params.brandId,
+      scheduleEventSeriesId: params.scheduleEventSeriesId,
+      type: params.resourceType,
+      isActive: true,
+    },
     select: {
       id: true,
-      brandId: true,
-      scheduleEventSeriesId: true,
       name: true,
       locationId: true,
       type: true,
     },
   });
 
-  if (!resource) throw new Error("Resource not found");
-  if (resource.brandId !== params.brandId) throw new Error("Feed resource must match the selected brand");
-  if (resource.scheduleEventSeriesId !== params.scheduleEventSeriesId) {
-    throw new Error("Feed resource must belong to the selected event");
-  }
-  if (resource.type !== params.resourceType) {
-    throw new Error("Feed resource type must match the selected resource");
+  if (rows.length !== params.scheduleResourceIds.length) {
+    throw new Error("Selected resources must be active resources in the selected event and resource type");
   }
 
-  return resource;
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return params.scheduleResourceIds.map((id) => byId.get(id)!).filter(Boolean);
+}
+
+async function validateFeedResourceSelection(params: {
+  brandId: string;
+  scheduleEventSeriesId: string;
+  scheduleResourceIds: string[];
+  resourceType: ScheduleResourceType;
+  resourceSelectionMode: SchedulePublicFeedResourceSelectionMode;
+}) {
+  if (params.resourceSelectionMode === "ALL") {
+    const count = await prisma.scheduleResource.count({
+      where: {
+        brandId: params.brandId,
+        scheduleEventSeriesId: params.scheduleEventSeriesId,
+        type: params.resourceType,
+        isActive: true,
+      },
+    });
+
+    if (count === 0) {
+      throw new Error("No active resources match the selected resource type");
+    }
+
+    return [] as FeedResourceSelection[];
+  }
+
+  const selectedResources = await resolveFeedResources(params);
+  if (selectedResources.length === 0) {
+    throw new Error("Select at least one active resource or choose all resources");
+  }
+  return selectedResources;
 }
 
 function parseFeedInput(input: {
+  resourceSelectionMode?: unknown;
   startsOn?: unknown;
   endsOn?: unknown;
   weekdays?: unknown;
@@ -142,6 +203,7 @@ function parseFeedInput(input: {
   }
 
   const resourceType = parseResourceType(input.resourceType);
+  const resourceSelectionMode = parsePublicFeedResourceSelectionMode(input.resourceSelectionMode);
   const participantType = parseParticipantType(input.participantType);
   const orderBy = parsePublicFeedOrderBy(input.orderBy);
   if (resourceType !== "OTHER") {
@@ -161,6 +223,7 @@ function parseFeedInput(input: {
     endsOn,
     weekdays,
     resourceType,
+    resourceSelectionMode,
     participantType,
     orderBy,
   };
@@ -195,12 +258,16 @@ export async function listSchedulePublicFeeds(params: {
           name: true,
         },
       },
-      resource: {
-        select: {
-          id: true,
-          name: true,
-          locationId: true,
-          type: true,
+      resources: {
+        include: {
+          resource: {
+            select: {
+              id: true,
+              name: true,
+              locationId: true,
+              type: true,
+            },
+          },
         },
       },
     },
@@ -221,26 +288,37 @@ export async function createSchedulePublicFeed(params: {
     brandId,
     scheduleEventSeriesId: params.input.scheduleEventSeriesId,
   });
-  const resource = await resolveFeedResource({
+  const selectedResources = await validateFeedResourceSelection({
     brandId,
     scheduleEventSeriesId: series.id,
-    scheduleResourceId: params.input.scheduleResourceId,
+    scheduleResourceIds: normalizeResourceIds(params.input.scheduleResourceIds),
     resourceType: parsed.resourceType,
+    resourceSelectionMode: parsed.resourceSelectionMode,
   });
 
   const feed = await prisma.schedulePublicFeed.create({
     data: {
       brandId,
       scheduleEventSeriesId: series.id,
-      scheduleResourceId: resource.id,
       startsOn: parsed.startsOn,
       endsOn: parsed.endsOn,
       weekdays: parsed.weekdays,
       resourceType: parsed.resourceType,
+      resourceSelectionMode: parsed.resourceSelectionMode,
       participantType: parsed.participantType,
       orderBy: parsed.orderBy,
       isActive: true,
       metadata: params.input.metadata,
+      resources:
+        parsed.resourceSelectionMode === "SELECTED"
+          ? {
+              createMany: {
+                data: selectedResources.map((resource) => ({
+                  scheduleResourceId: resource.id,
+                })),
+              },
+            }
+          : undefined,
     },
     include: {
       brand: {
@@ -256,12 +334,16 @@ export async function createSchedulePublicFeed(params: {
           name: true,
         },
       },
-      resource: {
-        select: {
-          id: true,
-          name: true,
-          locationId: true,
-          type: true,
+      resources: {
+        include: {
+          resource: {
+            select: {
+              id: true,
+              name: true,
+              locationId: true,
+              type: true,
+            },
+          },
         },
       },
     },
@@ -291,12 +373,16 @@ export async function updateSchedulePublicFeed(params: {
           name: true,
         },
       },
-      resource: {
-        select: {
-          id: true,
-          name: true,
-          locationId: true,
-          type: true,
+      resources: {
+        include: {
+          resource: {
+            select: {
+              id: true,
+              name: true,
+              locationId: true,
+              type: true,
+            },
+          },
         },
       },
     },
@@ -307,6 +393,7 @@ export async function updateSchedulePublicFeed(params: {
   if (brandId !== existing.brandId) throw new Error("Feed brand cannot be reassigned");
 
   const parsed = parseFeedInput({
+    resourceSelectionMode: params.input.resourceSelectionMode ?? existing.resourceSelectionMode,
     startsOn: params.input.startsOn ?? toIsoDateOnly(existing.startsOn),
     endsOn: params.input.endsOn ?? toIsoDateOnly(existing.endsOn),
     weekdays: params.input.weekdays ?? existing.weekdays,
@@ -315,48 +402,74 @@ export async function updateSchedulePublicFeed(params: {
     orderBy: params.input.orderBy ?? existing.orderBy,
   });
 
-  const resource = await resolveFeedResource({
+  const selectedResources = await validateFeedResourceSelection({
     brandId,
     scheduleEventSeriesId: existing.scheduleEventSeriesId,
-    scheduleResourceId: params.input.scheduleResourceId ?? existing.scheduleResourceId ?? "",
+    scheduleResourceIds: normalizeResourceIds(
+      params.input.scheduleResourceIds ?? existing.resources.map((entry) => entry.scheduleResourceId)
+    ),
     resourceType: parsed.resourceType,
+    resourceSelectionMode: parsed.resourceSelectionMode,
   });
 
-  const updated = await prisma.schedulePublicFeed.update({
-    where: { id: existing.id },
-    data: {
-      scheduleResourceId: resource.id,
-      startsOn: parsed.startsOn,
-      endsOn: parsed.endsOn,
-      weekdays: parsed.weekdays,
-      resourceType: parsed.resourceType,
-      participantType: parsed.participantType,
-      orderBy: parsed.orderBy,
-      ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
-    },
-    include: {
-      brand: {
-        select: {
-          id: true,
-          brandKey: true,
-          name: true,
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.schedulePublicFeed.update({
+      where: { id: existing.id },
+      data: {
+        startsOn: parsed.startsOn,
+        endsOn: parsed.endsOn,
+        weekdays: parsed.weekdays,
+        resourceType: parsed.resourceType,
+        resourceSelectionMode: parsed.resourceSelectionMode,
+        participantType: parsed.participantType,
+        orderBy: parsed.orderBy,
+        ...(params.input.metadata !== undefined ? { metadata: params.input.metadata } : {}),
+      },
+    });
+
+    await tx.schedulePublicFeedResource.deleteMany({
+      where: { schedulePublicFeedId: existing.id },
+    });
+
+    if (parsed.resourceSelectionMode === "SELECTED" && selectedResources.length > 0) {
+      await tx.schedulePublicFeedResource.createMany({
+        data: selectedResources.map((resource) => ({
+          schedulePublicFeedId: existing.id,
+          scheduleResourceId: resource.id,
+        })),
+      });
+    }
+
+    return tx.schedulePublicFeed.findUniqueOrThrow({
+      where: { id: existing.id },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            brandKey: true,
+            name: true,
+          },
+        },
+        series: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        resources: {
+          include: {
+            resource: {
+              select: {
+                id: true,
+                name: true,
+                locationId: true,
+                type: true,
+              },
+            },
+          },
         },
       },
-      series: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      resource: {
-        select: {
-          id: true,
-          name: true,
-          locationId: true,
-          type: true,
-        },
-      },
-    },
+    });
   });
 
   return toSchedulePublicFeedRecord(updated as SchedulePublicFeedWithRelations);

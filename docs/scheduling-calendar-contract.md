@@ -217,6 +217,7 @@ Public schedule endpoints should be:
 
 Generated schedule feeds should:
 - be configured in backoffice against one event at a time
+- support either all active resources of a selected type or an explicit multi-select resource subset
 - return flat rows for alternate list/ticker/card surfaces
 - use event-scoped resource `locationId` values as the stable public location identifier
 - preserve room for future event-map rendering instead of inventing a second location key later

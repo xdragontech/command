@@ -2,6 +2,7 @@ import {
   ScheduleEventSeriesStatus,
   ScheduleParticipantType,
   SchedulePublicFeedOrderBy,
+  SchedulePublicFeedResourceSelectionMode,
   ScheduleRecurrencePattern,
   ScheduleResourceType,
   ScheduleWeekday,
@@ -98,7 +99,8 @@ type SeriesForm = {
 };
 
 type FeedForm = {
-  scheduleResourceId: string;
+  resourceSelectionMode: SchedulePublicFeedResourceSelectionMode;
+  scheduleResourceIds: string[];
   startsOn: string;
   endsOn: string;
   weekdays: ScheduleWeekday[];
@@ -234,7 +236,8 @@ function blankFeedForm(series: SeriesRecord, resources: ScheduleResourceRecord[]
   const defaultResource = resources.find((resource) => resource.isActive) || resources[0] || null;
   const resourceType = defaultResource?.type || ScheduleResourceType.STAGE;
   return {
-    scheduleResourceId: defaultResource?.id || "",
+    resourceSelectionMode: SchedulePublicFeedResourceSelectionMode.SELECTED,
+    scheduleResourceIds: defaultResource?.id ? [defaultResource.id] : [],
     startsOn: series.seasonStartsOn,
     endsOn: series.seasonEndsOn,
     weekdays: series.recurrenceDays.length > 0 ? series.recurrenceDays : [ScheduleWeekday.FRIDAY],
@@ -246,7 +249,8 @@ function blankFeedForm(series: SeriesRecord, resources: ScheduleResourceRecord[]
 
 function feedFormFromRecord(feed: SchedulePublicFeedRecord): FeedForm {
   return {
-    scheduleResourceId: feed.resourceId,
+    resourceSelectionMode: feed.resourceSelectionMode,
+    scheduleResourceIds: feed.selectedResources.map((resource) => resource.id),
     startsOn: feed.startsOn,
     endsOn: feed.endsOn,
     weekdays: feed.weekdays,
@@ -258,7 +262,8 @@ function feedFormFromRecord(feed: SchedulePublicFeedRecord): FeedForm {
 
 function normalizeFeedForm(form: FeedForm) {
   return JSON.stringify({
-    scheduleResourceId: form.scheduleResourceId,
+    resourceSelectionMode: form.resourceSelectionMode,
+    scheduleResourceIds: [...form.scheduleResourceIds].sort(),
     startsOn: form.startsOn,
     endsOn: form.endsOn,
     weekdays: [...form.weekdays].sort(),
@@ -266,6 +271,19 @@ function normalizeFeedForm(form: FeedForm) {
     participantType: form.participantType,
     orderBy: form.orderBy,
   });
+}
+
+function describeFeedSelection(feed: SchedulePublicFeedRecord) {
+  if (feed.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL) {
+    return `All ${feed.resourceType.replaceAll("_", " ").toLowerCase()} resources`;
+  }
+
+  if (feed.selectedResources.length === 1) {
+    const [resource] = feed.selectedResources;
+    return `${resource.name} (${resource.locationId})`;
+  }
+
+  return `${feed.selectedResources.length} selected resources`;
 }
 
 export default function SchedulingSeriesPage({
@@ -484,6 +502,16 @@ export default function SchedulingSeriesPage({
     return normalizeFeedForm(feedForm) !== normalizeFeedForm(feedFormFromRecord(selectedFeed));
   }, [feedForm, feedResources, isNewFeed, selectedFeed, selectedSeries]);
 
+  const isFeedValid = useMemo(() => {
+    if (!feedForm || !selectedSeries) return false;
+    if (!feedForm.startsOn || !feedForm.endsOn) return false;
+    if (feedForm.weekdays.length === 0) return false;
+    if (feedForm.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL) {
+      return visibleFeedResources.length > 0;
+    }
+    return feedForm.scheduleResourceIds.length > 0;
+  }, [feedForm, selectedSeries, visibleFeedResources]);
+
   function startNewSeries() {
     setSelectedId(NEW_SERIES_ID);
     setForm(blankSeriesForm(brands, brandFilter));
@@ -538,13 +566,49 @@ export default function SchedulingSeriesPage({
           ...current,
           resourceType: nextResourceType,
           participantType: defaultParticipantTypeForResourceType(nextResourceType),
-          scheduleResourceId: nextResources.some((resource) => resource.id === current.scheduleResourceId)
-            ? current.scheduleResourceId
-            : nextResources[0]?.id || "",
+          scheduleResourceIds:
+            current.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL
+              ? []
+              : current.scheduleResourceIds.filter((resourceId) => nextResources.some((resource) => resource.id === resourceId)).length > 0
+                ? current.scheduleResourceIds.filter((resourceId) => nextResources.some((resource) => resource.id === resourceId))
+                : nextResources[0]?.id
+                  ? [nextResources[0].id]
+                  : [],
+        };
+      }
+
+      if (key === "resourceSelectionMode") {
+        const nextSelectionMode = value as SchedulePublicFeedResourceSelectionMode;
+        const nextResources = feedResources.filter((resource) => resource.isActive && resource.type === current.resourceType);
+        return {
+          ...current,
+          resourceSelectionMode: nextSelectionMode,
+          scheduleResourceIds:
+            nextSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL
+              ? []
+              : current.scheduleResourceIds.length > 0
+                ? current.scheduleResourceIds
+                : nextResources[0]?.id
+                  ? [nextResources[0].id]
+                  : [],
         };
       }
 
       return { ...current, [key]: value };
+    });
+  }
+
+  function toggleFeedResource(resourceId: string) {
+    setFeedForm((current) => {
+      if (!current) return current;
+
+      const hasResource = current.scheduleResourceIds.includes(resourceId);
+      return {
+        ...current,
+        scheduleResourceIds: hasResource
+          ? current.scheduleResourceIds.filter((entry) => entry !== resourceId)
+          : [...current.scheduleResourceIds, resourceId],
+      };
     });
   }
 
@@ -651,7 +715,8 @@ export default function SchedulingSeriesPage({
 
     try {
       const payload = {
-        scheduleResourceId: feedForm.scheduleResourceId,
+        resourceSelectionMode: feedForm.resourceSelectionMode,
+        scheduleResourceIds: feedForm.scheduleResourceIds,
         startsOn: feedForm.startsOn,
         endsOn: feedForm.endsOn,
         weekdays: feedForm.weekdays,
@@ -1084,7 +1149,7 @@ export default function SchedulingSeriesPage({
                       key={feed.id}
                       selected={feed.id === selectedFeedId}
                       onClick={() => selectFeed(feed)}
-                      topLeft={feed.resourceName}
+                      topLeft={describeFeedSelection(feed)}
                       topRight={feed.participantType.replace("_", " ")}
                       bottomLeft={
                         <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>
@@ -1160,21 +1225,93 @@ export default function SchedulingSeriesPage({
                       </select>
                     </label>
 
-                    <label style={fieldStyle}>
-                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Name</span>
-                      <select
-                        value={feedForm.scheduleResourceId}
-                        onChange={(event) => updateFeedField("scheduleResourceId", event.target.value)}
-                        style={inputStyle}
-                      >
-                        <option value="">Select resource</option>
-                        {visibleFeedResources.map((resource) => (
-                          <option key={resource.id} value={resource.id}>
-                            {resource.name} ({resource.locationId})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <div style={fieldStyle}>
+                      <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resources</span>
+                      <div style={{ ...mutedPanelStyle, display: "grid", gap: "12px" }}>
+                        <label
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            color: "var(--admin-text-primary)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={feedForm.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL}
+                            onChange={(event) =>
+                              updateFeedField(
+                                "resourceSelectionMode",
+                                event.target.checked
+                                  ? SchedulePublicFeedResourceSelectionMode.ALL
+                                  : SchedulePublicFeedResourceSelectionMode.SELECTED
+                              )
+                            }
+                          />
+                          All active resources of this type
+                        </label>
+
+                        {feedForm.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.SELECTED ? (
+                          visibleFeedResources.length === 0 ? (
+                            <div style={subtleTextStyle}>No active resources are available for this resource type.</div>
+                          ) : (
+                            <div style={{ display: "grid", gap: "8px", maxHeight: "220px", overflowY: "auto" }}>
+                              {visibleFeedResources.map((resource) => {
+                                const checked = feedForm.scheduleResourceIds.includes(resource.id);
+                                return (
+                                  <label
+                                    key={resource.id}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "space-between",
+                                      gap: "12px",
+                                      padding: "10px 12px",
+                                      borderRadius: "12px",
+                                      border: checked
+                                        ? "1px solid rgba(239,68,68,0.28)"
+                                        : "1px solid rgba(148,163,184,0.24)",
+                                      background: checked ? "#fff1f2" : "#ffffff",
+                                      color: "#0f172a",
+                                    }}
+                                  >
+                                    <span style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => toggleFeedResource(resource.id)}
+                                      />
+                                      <span style={{ display: "grid", gap: "2px", minWidth: 0 }}>
+                                        <span
+                                          style={{
+                                            fontWeight: 700,
+                                            fontSize: "0.92rem",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                          }}
+                                        >
+                                          {resource.name}
+                                        </span>
+                                        <span style={{ ...subtleTextStyle, color: "#475569" }}>{resource.locationId}</span>
+                                      </span>
+                                    </span>
+                                    <span style={{ ...schedulingListPillStyle, ...schedulingListSubtlePillStyle }}>
+                                      {resource.type.replaceAll("_", " ")}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )
+                        ) : (
+                          <div style={subtleTextStyle}>
+                            Every active {feedForm.resourceType.replaceAll("_", " ").toLowerCase()} resource in this event will be included.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div style={twoColumnStyle}>
@@ -1238,8 +1375,21 @@ export default function SchedulingSeriesPage({
                     Feed rows always return the configured event's published assignments only. Future event-map work will reuse the resource `locationId`, so keep those identifiers stable.
                   </div>
 
+                  {!isFeedValid ? (
+                    <div style={warningStyle}>
+                      {feedForm.resourceSelectionMode === SchedulePublicFeedResourceSelectionMode.ALL
+                        ? "Select a resource type that has at least one active resource."
+                        : "Select at least one active resource or switch the feed to all resources."}
+                    </div>
+                  ) : null}
+
                   <div style={actionRowStyle}>
-                    <button type="button" onClick={saveFeed} disabled={!isFeedDirty || savingFeed} style={primaryButtonStyle}>
+                    <button
+                      type="button"
+                      onClick={saveFeed}
+                      disabled={savingFeed || !isFeedValid || (!isNewFeed && !isFeedDirty)}
+                      style={primaryButtonStyle}
+                    >
                       {savingFeed ? (isNewFeed ? "Creating..." : "Saving...") : isNewFeed ? "Create Feed" : "Save Feed"}
                     </button>
                     <button
@@ -1253,7 +1403,7 @@ export default function SchedulingSeriesPage({
                         setFeedError("");
                         setFeedNotice("");
                       }}
-                      disabled={!isFeedDirty || savingFeed}
+                      disabled={savingFeed || (!isNewFeed && !isFeedDirty)}
                       style={secondaryButtonStyle}
                     >
                       Reset
