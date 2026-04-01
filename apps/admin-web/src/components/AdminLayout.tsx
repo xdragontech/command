@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { observeAutofillMitigations } from "../lib/autofillMitigation";
 import { AdminSidebar } from "./AdminSidebar";
+import { CommandCopyrightNotice, commandShellFooterStyle } from "./CommandCopyrightNotice";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 
 type AdminLayoutProps = {
@@ -194,6 +195,8 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
         data-theme={theme}
         style={{
           ...themeVariables(theme),
+          display: "flex",
+          flexDirection: "column",
           minHeight: "100vh",
           background: "var(--admin-page-bg)",
           color: "var(--admin-text-primary)",
@@ -302,6 +305,7 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
 
         <main
           style={{
+            flex: "1 0 auto",
             width: "100%",
             boxSizing: "border-box",
             padding: "24px 20px 72px",
@@ -334,6 +338,10 @@ export function AdminLayout({ title, sectionLabel, active, loggedInAs, role, bra
             <div style={{ display: "grid", gap: "18px" }}>{children}</div>
           </section>
         </main>
+
+        <footer style={commandShellFooterStyle}>
+          <CommandCopyrightNotice color="var(--admin-text-muted)" />
+        </footer>
       </div>
     </>
   );
