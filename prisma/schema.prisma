@@ -220,6 +220,14 @@ enum ScheduleAssignmentStatus {
   CANCELLED
 }
 
+enum SchedulePublicFeedOrderBy {
+  TIME_ASC
+  TIME_DESC
+  LOCATION_ID
+  NAME_ASC
+  NAME_DESC
+}
+
 model Brand {
   id        String      @id @default(cuid())
   brandKey  String      @unique
@@ -242,6 +250,7 @@ model Brand {
   scheduleResources               ScheduleResource[]
   scheduleParticipants            ScheduleParticipant[]
   scheduleAssignments             ScheduleAssignment[]
+  schedulePublicFeeds             SchedulePublicFeed[]
   staffAccesses                   BackofficeUserBrandAccess[]
   externalUsers                   ExternalUser[]
   externalAccounts                ExternalAccount[]
@@ -328,6 +337,7 @@ model ScheduleEventSeries {
   brand       Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
   occurrences ScheduleEventOccurrence[]
   resources   ScheduleResource[]
+  feeds       SchedulePublicFeed[]
 
   @@index([brandId])
   @@index([status])
@@ -365,6 +375,7 @@ model ScheduleResource {
   scheduleEventSeriesId String?
   name                  String
   slug                  String
+  locationId            String
   type                  ScheduleResourceType
   description           String?
   sortOrder             Int                  @default(0)
@@ -376,12 +387,14 @@ model ScheduleResource {
   brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
   series      ScheduleEventSeries? @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: SetNull)
   assignments ScheduleAssignment[]
+  feeds       SchedulePublicFeed[]
 
   @@index([brandId])
   @@index([scheduleEventSeriesId])
   @@index([type, isActive])
   @@unique([brandId, slug])
   @@unique([brandId, name])
+  @@unique([scheduleEventSeriesId, locationId])
 }
 
 model ScheduleParticipant {
@@ -437,6 +450,33 @@ model ScheduleAssignment {
   @@index([scheduleParticipantId])
   @@index([status])
   @@unique([scheduleEventOccurrenceId, scheduleResourceId, scheduleParticipantId, startsAtMinutes, endsAtMinutes])
+}
+
+model SchedulePublicFeed {
+  id                    String                    @id @default(cuid())
+  brandId               String
+  scheduleEventSeriesId String
+  scheduleResourceId    String?
+  feedId                String                    @default(cuid()) @unique
+  startsOn              DateTime
+  endsOn                DateTime
+  weekdays              ScheduleWeekday[]         @default([])
+  resourceType          ScheduleResourceType
+  participantType       ScheduleParticipantType
+  orderBy               SchedulePublicFeedOrderBy @default(TIME_ASC)
+  isActive              Boolean                   @default(true)
+  metadata              Json?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  brand    Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series   ScheduleEventSeries @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  resource ScheduleResource?   @relation(fields: [scheduleResourceId], references: [id], onDelete: Restrict)
+
+  @@index([brandId])
+  @@index([scheduleEventSeriesId])
+  @@index([scheduleResourceId])
+  @@index([isActive])
 }
 
 model InstallProfile {

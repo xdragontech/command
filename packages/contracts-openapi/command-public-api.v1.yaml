@@ -498,6 +498,37 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/schedule/feeds/{feedId}:
+    get:
+      tags: [Scheduling]
+      summary: Fetch a configured public schedule feed by feed ID
+      description: |
+        Returns the active, pre-configured public schedule feed for the integration's brand
+        context. The only input is the generated `feedId`. The BFF remains the caller and should
+        forward the original client identity so `command` can throttle this endpoint by real
+        client IP.
+      parameters:
+        - in: path
+          name: feedId
+          required: true
+          schema:
+            type: string
+          description: Generated feed identifier created in Scheduling / Events.
+      responses:
+        '200':
+          description: Schedule feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScheduleFeedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: Rate limited
   /v1/contact:
     post:
       tags: [Services]
@@ -1365,6 +1396,38 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ScheduleEntry'
+    ScheduleFeedItem:
+      type: object
+      additionalProperties: false
+      required: [occurrenceDate, resourceName, participantName, timeslot, locationId]
+      properties:
+        occurrenceDate:
+          type: string
+          format: date
+        resourceName:
+          type: string
+        participantName:
+          type: string
+        timeslot:
+          type: string
+          description: Human-readable display value such as `Full Day` or `4:30 PM - 6:00 PM`.
+        locationId:
+          type: string
+          description: Event-scoped resource location identifier. Future event-map features should reuse this same identifier.
+    ScheduleFeedResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, feedId, items]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        feedId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduleFeedItem'
     ContactRequest:
       type: object
       additionalProperties: false

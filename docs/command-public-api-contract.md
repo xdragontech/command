@@ -96,6 +96,7 @@ Deferred from this contract:
 **Scheduling**
 - published schedule calendar feed
 - published schedule listing feed
+- generated feed-ID schedule projections for list/ticker/card UIs
 
 **Services**
 - submit contact requests
@@ -127,6 +128,7 @@ Deferred from this contract:
 - generic password-forgot response to avoid account enumeration
 - browsers never call analytics ingest directly; the public-site BFF remains the only caller
 - runtime host resolution is the exception to brand-scoped integration context: it validates the website integration, then resolves install-scoped host routing before brand context exists
+- generated public schedule feeds are configured in backoffice and fetched through the website BFF, not called directly from browser JavaScript
 
 **Why This Contract Is The Right First Cut**
 - it covers the public-site features that already exist today

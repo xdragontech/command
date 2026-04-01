@@ -3,6 +3,7 @@ import type {
   ScheduleAssignmentKind,
   ScheduleEventOccurrenceStatus,
   ScheduleParticipantType,
+  SchedulePublicFeedOrderBy,
   ScheduleResourceType,
   ScheduleEventSeriesStatus,
 } from "@prisma/client";
@@ -13,9 +14,11 @@ import {
   parseParticipantType,
   parseResourceType,
   toIsoDateOnly,
+  weekdayForDate,
 } from "./common";
 import type {
   PublicScheduleEntry,
+  PublicScheduleFeedResponse,
   PublicScheduleFeedRange,
 } from "./types";
 
@@ -39,6 +42,7 @@ type PublicScheduleAssignmentRow = Prisma.ScheduleAssignmentGetPayload<{
         id: true;
         slug: true;
         name: true;
+        locationId: true;
         type: true;
         sortOrder: true;
       };
@@ -158,6 +162,8 @@ function normalizeQueryText(value: unknown) {
 }
 
 function buildPublicScheduleFilters(params: {
+  scheduleEventSeriesId?: string | null;
+  scheduleResourceId?: string | null;
   eventSeries?: unknown;
   resource?: unknown;
   location?: unknown;
@@ -166,6 +172,8 @@ function buildPublicScheduleFilters(params: {
 }) {
   const eventSeries = normalizeText(params.eventSeries);
   const resourceOrLocation = normalizeText(params.resource) || normalizeText(params.location);
+  const scheduleEventSeriesId = normalizeText(params.scheduleEventSeriesId);
+  const scheduleResourceId = normalizeText(params.scheduleResourceId);
   const participantType = normalizeText(params.participantType)
     ? parseParticipantType(params.participantType)
     : null;
@@ -174,6 +182,8 @@ function buildPublicScheduleFilters(params: {
     : null;
 
   return {
+    scheduleEventSeriesId,
+    scheduleResourceId,
     eventSeries,
     resourceOrLocation,
     participantType,
@@ -290,6 +300,8 @@ async function loadPublishedScheduleAssignments(params: {
   brandId: string;
   from: Date;
   to: Date;
+  scheduleEventSeriesId?: string | null;
+  scheduleResourceId?: string | null;
   eventSeries?: unknown;
   resource?: unknown;
   location?: unknown;
@@ -311,9 +323,15 @@ async function loadPublishedScheduleAssignments(params: {
         status: {
           in: ["ACTIVE", "ARCHIVED"] satisfies ScheduleEventSeriesStatus[],
         },
+        ...(filters.scheduleEventSeriesId ? { id: filters.scheduleEventSeriesId } : {}),
         ...(filters.eventSeries ? buildSlugOrNameFilter(filters.eventSeries) : {}),
       },
     },
+    ...(filters.scheduleResourceId
+      ? {
+          scheduleResourceId: filters.scheduleResourceId,
+        }
+      : {}),
     ...(filters.resourceOrLocation
       ? {
           resource: buildSlugOrNameFilter(filters.resourceOrLocation),
@@ -355,6 +373,7 @@ async function loadPublishedScheduleAssignments(params: {
           id: true,
           slug: true,
           name: true,
+          locationId: true,
           type: true,
           sortOrder: true,
         },
@@ -404,6 +423,8 @@ export async function listPublicScheduleCalendar(params: {
     brandId: params.brandId,
     from,
     to,
+    scheduleEventSeriesId: null,
+    scheduleResourceId: null,
     eventSeries: params.eventSeries,
     participantType: params.participantType,
     resource: params.resource,
@@ -449,6 +470,8 @@ export async function listPublicScheduleList(params: {
     brandId: params.brandId,
     from,
     to,
+    scheduleEventSeriesId: null,
+    scheduleResourceId: null,
     eventSeries: params.eventSeries,
     participantType: params.participantType,
     resource: params.resource,
@@ -465,4 +488,97 @@ export async function listPublicScheduleList(params: {
   });
 
   return { range, items };
+}
+
+function compareText(a: string, b: string) {
+  return a.localeCompare(b, "en", { sensitivity: "base" });
+}
+
+function formatFeedTimeslot(kind: ScheduleAssignmentKind, startsAtMinutes: number, endsAtMinutes: number) {
+  return kind === "FULL_DAY" ? "Full Day" : formatTimeRange(startsAtMinutes, endsAtMinutes);
+}
+
+export async function getPublicScheduleFeed(params: {
+  brandId: string;
+  feedId?: unknown;
+}): Promise<PublicScheduleFeedResponse> {
+  const feedId = normalizeText(params.feedId);
+  if (!feedId) {
+    throw new PublicScheduleQueryError("Feed ID is required");
+  }
+
+  const feed = await prisma.schedulePublicFeed.findFirst({
+    where: {
+      brandId: params.brandId,
+      feedId,
+      isActive: true,
+    },
+    select: {
+      feedId: true,
+      startsOn: true,
+      endsOn: true,
+      weekdays: true,
+      orderBy: true,
+      scheduleEventSeriesId: true,
+      scheduleResourceId: true,
+      resourceType: true,
+      participantType: true,
+    },
+  });
+
+  if (!feed) {
+    throw new PublicScheduleQueryError("Feed not found");
+  }
+
+  const rows = await loadPublishedScheduleAssignments({
+    brandId: params.brandId,
+    from: feed.startsOn,
+    to: feed.endsOn,
+    scheduleEventSeriesId: feed.scheduleEventSeriesId,
+    scheduleResourceId: feed.scheduleResourceId,
+    participantType: feed.participantType,
+    resourceType: feed.resourceType,
+  });
+
+  const items = rows
+    .filter((row) => feed.weekdays.includes(weekdayForDate(row.occurrence.occursOn)))
+    .map((row) => ({
+      occurrenceDate: toIsoDateOnly(row.occurrence.occursOn),
+      resourceName: row.resource.name,
+      participantName: row.participant.displayName,
+      timeslot: formatFeedTimeslot(row.kind, row.startsAtMinutes, row.endsAtMinutes),
+      locationId: row.resource.locationId,
+      startsAtMinutes: row.startsAtMinutes,
+    }))
+    .sort((left, right) => {
+      const dateCompare = left.occurrenceDate.localeCompare(right.occurrenceDate);
+      const timeCompare = left.startsAtMinutes - right.startsAtMinutes;
+      const locationCompare = compareText(left.locationId, right.locationId);
+      const nameCompare = compareText(left.participantName, right.participantName);
+
+      switch (feed.orderBy) {
+        case "TIME_DESC":
+          return (
+            right.occurrenceDate.localeCompare(left.occurrenceDate) ||
+            right.startsAtMinutes - left.startsAtMinutes ||
+            locationCompare ||
+            nameCompare
+          );
+        case "LOCATION_ID":
+          return locationCompare || dateCompare || timeCompare || nameCompare;
+        case "NAME_ASC":
+          return nameCompare || dateCompare || timeCompare || locationCompare;
+        case "NAME_DESC":
+          return compareText(right.participantName, left.participantName) || dateCompare || timeCompare || locationCompare;
+        case "TIME_ASC":
+        default:
+          return dateCompare || timeCompare || locationCompare || nameCompare;
+      }
+    })
+    .map(({ startsAtMinutes: _startsAtMinutes, ...item }) => item);
+
+  return {
+    feedId: feed.feedId,
+    items,
+  };
 }

@@ -6,6 +6,7 @@ import type {
   ScheduleEventSeriesStatus,
   ScheduleParticipantStatus,
   ScheduleParticipantType,
+  SchedulePublicFeedOrderBy,
   ScheduleRecurrencePattern,
   ScheduleResourceType,
   ScheduleWeekday,
@@ -48,6 +49,7 @@ export type ScheduleResourceRecord = {
   seriesName: string | null;
   name: string;
   slug: string;
+  locationId: string;
   type: ScheduleResourceType;
   description: string | null;
   sortOrder: number;
@@ -146,6 +148,28 @@ export type ScheduleAssignmentRecord = {
   updatedAt: string;
 };
 
+export type SchedulePublicFeedRecord = {
+  id: string;
+  brandId: string;
+  brandKey: string;
+  brandName: string;
+  seriesId: string;
+  seriesName: string;
+  resourceId: string;
+  resourceName: string;
+  resourceLocationId: string;
+  resourceType: ScheduleResourceType;
+  participantType: ScheduleParticipantType;
+  feedId: string;
+  startsOn: string;
+  endsOn: string;
+  weekdays: ScheduleWeekday[];
+  orderBy: SchedulePublicFeedOrderBy;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ScheduleConflictRecord = {
   type: "RESOURCE_DOUBLE_BOOKED" | "PARTICIPANT_DOUBLE_BOOKED";
   brandId: string;
@@ -201,6 +225,7 @@ export type CreateScheduleResourceInput = {
   scheduleEventSeriesId?: string | null;
   name: string;
   slug?: string;
+  locationId: string;
   type: ScheduleResourceType;
   description?: string | null;
   sortOrder?: number;
@@ -212,6 +237,7 @@ export type UpdateScheduleResourceInput = {
   scheduleEventSeriesId?: string | null;
   name?: string;
   slug?: string;
+  locationId?: string;
   type?: ScheduleResourceType;
   description?: string | null;
   sortOrder?: number;
@@ -303,6 +329,43 @@ export type PublicScheduleEntry = {
     displayName: string;
     type: ScheduleParticipantType;
   };
+};
+
+export type CreateSchedulePublicFeedInput = {
+  brandId?: string | null;
+  scheduleEventSeriesId: string;
+  scheduleResourceId: string;
+  startsOn: string;
+  endsOn: string;
+  weekdays: ScheduleWeekday[] | string[];
+  resourceType: ScheduleResourceType;
+  participantType: ScheduleParticipantType;
+  orderBy: SchedulePublicFeedOrderBy;
+  metadata?: Prisma.InputJsonValue;
+};
+
+export type UpdateSchedulePublicFeedInput = {
+  scheduleResourceId?: string;
+  startsOn?: string;
+  endsOn?: string;
+  weekdays?: ScheduleWeekday[] | string[];
+  resourceType?: ScheduleResourceType;
+  participantType?: ScheduleParticipantType;
+  orderBy?: SchedulePublicFeedOrderBy;
+  metadata?: Prisma.InputJsonValue;
+};
+
+export type PublicScheduleFeedItem = {
+  occurrenceDate: string;
+  resourceName: string;
+  participantName: string;
+  timeslot: string;
+  locationId: string;
+};
+
+export type PublicScheduleFeedResponse = {
+  feedId: string;
+  items: PublicScheduleFeedItem[];
 };
 
 export type UpdateScheduleAssignmentInput = {

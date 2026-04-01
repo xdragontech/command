@@ -44,6 +44,7 @@ type ResourceForm = {
   scheduleEventSeriesId: string;
   name: string;
   slug: string;
+  locationId: string;
   type: ScheduleResourceType;
   description: string;
   sortOrder: string;
@@ -91,6 +92,7 @@ function blankResourceForm(brands: BrandOption[], series: ScheduleEventSeriesRec
     scheduleEventSeriesId: resolveDefaultSeriesId({ brands, series, brandFilter, eventFilter, brandId: defaultBrandId }),
     name: "",
     slug: "",
+    locationId: "",
     type: ScheduleResourceType.STAGE,
     description: "",
     sortOrder: "0",
@@ -104,6 +106,7 @@ function resourceFormFromRecord(resource: ScheduleResourceRecord): ResourceForm 
     scheduleEventSeriesId: resource.seriesId || "",
     name: resource.name,
     slug: resource.slug,
+    locationId: resource.locationId,
     type: resource.type,
     description: resource.description || "",
     sortOrder: String(resource.sortOrder),
@@ -117,6 +120,7 @@ function normalizeResourceForm(form: ResourceForm) {
     scheduleEventSeriesId: form.scheduleEventSeriesId,
     name: form.name.trim(),
     slug: form.slug.trim(),
+    locationId: form.locationId.trim(),
     type: form.type,
     description: form.description.trim(),
     sortOrder: String(form.sortOrder).trim(),
@@ -235,6 +239,7 @@ export default function SchedulingResourcesPage({
         resource.slug,
         resource.brandName,
         resource.seriesName || "",
+        resource.locationId,
         resource.type,
         resource.description || "",
         resource.isActive ? "active" : "inactive",
@@ -314,6 +319,7 @@ export default function SchedulingResourcesPage({
         scheduleEventSeriesId: form.scheduleEventSeriesId || null,
         name: form.name,
         slug: form.slug,
+        locationId: form.locationId,
         type: form.type,
         description: form.description,
         sortOrder: Number(form.sortOrder || 0),
@@ -586,7 +592,7 @@ export default function SchedulingResourcesPage({
                   </label>
                 </div>
 
-                <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Resource Name</span>
                     <input value={form.name} onChange={(event) => updateField("name", event.target.value)} style={inputStyle} />
@@ -595,6 +601,11 @@ export default function SchedulingResourcesPage({
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Slug</span>
                     <input value={form.slug} onChange={(event) => updateField("slug", event.target.value)} placeholder="Auto if blank" style={inputStyle} />
+                  </label>
+
+                  <label style={fieldStyle}>
+                    <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Location ID</span>
+                    <input value={form.locationId} onChange={(event) => updateField("locationId", event.target.value)} style={inputStyle} />
                   </label>
                 </div>
 

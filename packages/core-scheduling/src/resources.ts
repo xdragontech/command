@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
   ensureBrand,
+  ensureRequired,
   normalizeNullableId,
   normalizeNullableText,
   normalizeText,
@@ -45,6 +46,7 @@ function toResourceRecord(resource: ResourceWithBrand): ScheduleResourceRecord {
     seriesName: resource.series?.name || null,
     name: resource.name,
     slug: resource.slug,
+    locationId: resource.locationId,
     type: resource.type,
     description: resource.description || null,
     sortOrder: resource.sortOrder,
@@ -72,7 +74,7 @@ async function buildUniqueResourceSlug(brandId: string, preferred: string, exclu
 
 async function resolveResourceSeries(brandId: string, scheduleEventSeriesId: string | null | undefined) {
   const seriesId = normalizeNullableId(scheduleEventSeriesId);
-  if (!seriesId) return null;
+  if (!seriesId) throw new Error("Event is required");
 
   const series = await prisma.scheduleEventSeries.findUnique({
     where: { id: seriesId },
@@ -81,6 +83,25 @@ async function resolveResourceSeries(brandId: string, scheduleEventSeriesId: str
   if (!series) throw new Error("Event not found");
   if (series.brandId !== brandId) throw new Error("Resource event must match the resource brand");
   return series;
+}
+
+async function assertUniqueLocationId(params: {
+  scheduleEventSeriesId: string;
+  locationId: string;
+  excludeId?: string;
+}) {
+  const existing = await prisma.scheduleResource.findFirst({
+    where: {
+      scheduleEventSeriesId: params.scheduleEventSeriesId,
+      locationId: params.locationId,
+      ...(params.excludeId ? { NOT: { id: params.excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    throw new Error("Location ID must be unique within the selected event");
+  }
 }
 
 export async function listScheduleResources(params: {
@@ -151,13 +172,17 @@ export async function createScheduleResource(params: {
 
   const name = normalizeText(params.input.name);
   if (!name) throw new Error("Resource name is required");
+  const locationId = normalizeText(params.input.locationId);
+  ensureRequired(locationId, "Location ID");
+  await assertUniqueLocationId({ scheduleEventSeriesId: series.id, locationId });
 
   const resource = await prisma.scheduleResource.create({
     data: {
       brandId,
-      scheduleEventSeriesId: series?.id || null,
+      scheduleEventSeriesId: series.id,
       name,
       slug: await buildUniqueResourceSlug(brandId, normalizeText(params.input.slug) || name),
+      locationId,
       type: parseResourceType(params.input.type),
       description: normalizeNullableText(params.input.description),
       sortOrder: Number(params.input.sortOrder || 0),
@@ -216,19 +241,44 @@ export async function updateScheduleResource(params: {
       ? await resolveResourceSeries(brandId, params.input.scheduleEventSeriesId)
       : existing.series;
 
+  if (!series) throw new Error("Event is required");
+
   const name = normalizeText(params.input.name ?? existing.name);
   if (!name) throw new Error("Resource name is required");
+  const locationId = normalizeText(params.input.locationId ?? existing.locationId);
+  ensureRequired(locationId, "Location ID");
+  const nextType = params.input.type === undefined ? existing.type : parseResourceType(params.input.type);
+
+  const activeFeedCount = await prisma.schedulePublicFeed.count({
+    where: {
+      scheduleResourceId: existing.id,
+      isActive: true,
+    },
+  });
+  if (
+    activeFeedCount > 0 &&
+    (series.id !== existing.scheduleEventSeriesId || nextType !== existing.type)
+  ) {
+    throw new Error("Cannot change event or resource type while the resource is referenced by an active public feed");
+  }
+
+  await assertUniqueLocationId({
+    scheduleEventSeriesId: series.id,
+    locationId,
+    excludeId: existing.id,
+  });
 
   const updated = await prisma.scheduleResource.update({
     where: { id: existing.id },
     data: {
-      scheduleEventSeriesId: params.input.scheduleEventSeriesId !== undefined ? series?.id || null : existing.scheduleEventSeriesId,
+      scheduleEventSeriesId: params.input.scheduleEventSeriesId !== undefined ? series.id : existing.scheduleEventSeriesId,
       name,
       slug:
         params.input.slug !== undefined || name !== existing.name
           ? await buildUniqueResourceSlug(brandId, normalizeText(params.input.slug) || name, existing.id)
           : existing.slug,
-      type: params.input.type === undefined ? existing.type : parseResourceType(params.input.type),
+      locationId,
+      type: nextType,
       description:
         params.input.description === undefined ? existing.description : normalizeNullableText(params.input.description),
       sortOrder: params.input.sortOrder === undefined ? existing.sortOrder : Number(params.input.sortOrder || 0),
@@ -276,6 +326,16 @@ export async function deleteScheduleResource(params: {
   });
   if (assignmentCount > 0) {
     throw new Error("Cannot delete a resource that still has schedule assignments");
+  }
+
+  const feedCount = await prisma.schedulePublicFeed.count({
+    where: {
+      scheduleResourceId: existing.id,
+      isActive: true,
+    },
+  });
+  if (feedCount > 0) {
+    throw new Error("Cannot delete a resource that is still referenced by an active public feed");
   }
 
   await prisma.scheduleResource.delete({
