@@ -61,6 +61,16 @@ enum ExternalUserStatus {
   BLOCKED
 }
 
+enum PartnerKind {
+  PARTICIPANT
+  SPONSOR
+}
+
+enum PartnerUserStatus {
+  ACTIVE
+  BLOCKED
+}
+
 enum UserStatus {
   ACTIVE
   BLOCKED
@@ -83,9 +93,9 @@ model User {
   createdAt     DateTime   @default(now())
   lastLoginAt   DateTime?
 
-  accounts      Account[]
-  sessions      Session[]
-  loginEvents   LoginEvent[]
+  accounts    Account[]
+  sessions    Session[]
+  loginEvents LoginEvent[]
 
   @@index([email])
 }
@@ -204,9 +214,58 @@ enum ScheduleParticipantType {
   MARKET_VENDOR
 }
 
+enum ScheduleParticipantSource {
+  MANUAL
+  PARTNER_APPROVED
+}
+
 enum ScheduleParticipantStatus {
   ACTIVE
   INACTIVE
+}
+
+enum PartnerEntertainmentType {
+  LIVE_BAND
+  DJ
+  COMEDY
+  MAGIC
+}
+
+enum PartnerFoodSetupType {
+  TRUCK
+  TRAILER
+  CART
+  STAND
+}
+
+enum PartnerMarketType {
+  APPAREL
+  JEWELRY
+  DECOR
+  SKINCARE
+  FOOD
+  SERVICE
+  OTHER
+}
+
+enum PartnerSponsorType {
+  DIRECT
+  IN_KIND
+  MEDIA
+}
+
+enum PartnerAssetKind {
+  PROFILE_IMAGE
+  DOCUMENT
+}
+
+enum PartnerAssetStorageProvider {
+  CF_R2
+}
+
+enum PartnerAssetStorageBucket {
+  PUBLIC_MEDIA
+  PRIVATE_DOCUMENTS
 }
 
 enum ScheduleAssignmentKind {
@@ -263,6 +322,12 @@ model Brand {
   externalVerificationTokens      ExternalVerificationToken[]
   externalEmailVerificationTokens ExternalEmailVerificationToken[]
   externalPasswordResetTokens     ExternalPasswordResetToken[]
+  partnerUsers                    PartnerUser[]
+  partnerProfiles                 PartnerProfile[]
+  partnerAssets                   PartnerAsset[]
+  partnerLoginEvents              PartnerLoginEvent[]
+  partnerEmailVerificationTokens  PartnerEmailVerificationToken[]
+  partnerPasswordResetTokens      PartnerPasswordResetToken[]
   websiteSessions                 WebsiteSession[]
   websiteAnalyticsEvents          WebsiteAnalyticsEvent[]
 }
@@ -300,7 +365,7 @@ model BrandEmailConfig {
 }
 
 model BrandConsentNotice {
-  id           String                  @id @default(cuid())
+  id           String                   @id @default(cuid())
   brandId      String
   version      Int
   status       BrandConsentNoticeStatus
@@ -309,8 +374,8 @@ model BrandConsentNotice {
   acceptLabel  String
   declineLabel String
   publishedAt  DateTime?
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
 
   brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
@@ -320,58 +385,58 @@ model BrandConsentNotice {
 }
 
 model ScheduleEventSeries {
-  id                         String                    @id @default(cuid())
-  brandId                    String
-  name                       String
-  slug                       String
-  color                      String                    @default("#ef4444")
-  description                String?
-  timezone                   String
-  status                     ScheduleEventSeriesStatus @default(DRAFT)
-  recurrencePattern          ScheduleRecurrencePattern @default(NONE)
-  recurrenceInterval         Int                       @default(1)
-  recurrenceDays             ScheduleWeekday[]         @default([])
-  seasonStartsOn             DateTime
-  seasonEndsOn               DateTime
-  occurrenceDayStartsAtMinutes Int                     @default(0)
-  occurrenceDayEndsAtMinutes Int                       @default(1440)
-  metadata                   Json?
-  createdAt                  DateTime                  @default(now())
-  updatedAt                  DateTime                  @updatedAt
+  id                           String                    @id @default(cuid())
+  brandId                      String
+  name                         String
+  slug                         String
+  color                        String                    @default("#ef4444")
+  description                  String?
+  timezone                     String
+  status                       ScheduleEventSeriesStatus @default(DRAFT)
+  recurrencePattern            ScheduleRecurrencePattern @default(NONE)
+  recurrenceInterval           Int                       @default(1)
+  recurrenceDays               ScheduleWeekday[]         @default([])
+  seasonStartsOn               DateTime
+  seasonEndsOn                 DateTime
+  occurrenceDayStartsAtMinutes Int                       @default(0)
+  occurrenceDayEndsAtMinutes   Int                       @default(1440)
+  metadata                     Json?
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
 
-  brand       Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand       Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
   occurrences ScheduleEventOccurrence[]
   resources   ScheduleResource[]
   feeds       SchedulePublicFeed[]
 
+  @@unique([brandId, slug])
   @@index([brandId])
   @@index([status])
   @@index([seasonStartsOn, seasonEndsOn])
-  @@unique([brandId, slug])
 }
 
 model ScheduleEventOccurrence {
-  id                       String                        @id @default(cuid())
-  brandId                  String
-  scheduleEventSeriesId    String
-  name                     String?
-  occursOn                 DateTime
-  dayStartsAtMinutes       Int
-  dayEndsAtMinutes         Int
-  status                   ScheduleEventOccurrenceStatus @default(SCHEDULED)
-  metadata                 Json?
-  createdAt                DateTime                      @default(now())
-  updatedAt                DateTime                      @updatedAt
+  id                    String                        @id @default(cuid())
+  brandId               String
+  scheduleEventSeriesId String
+  name                  String?
+  occursOn              DateTime
+  dayStartsAtMinutes    Int
+  dayEndsAtMinutes      Int
+  status                ScheduleEventOccurrenceStatus @default(SCHEDULED)
+  metadata              Json?
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
 
-  brand       Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  series      ScheduleEventSeries @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series      ScheduleEventSeries  @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
   assignments ScheduleAssignment[]
 
+  @@unique([scheduleEventSeriesId, occursOn])
   @@index([brandId])
   @@index([scheduleEventSeriesId])
   @@index([occursOn])
   @@index([brandId, occursOn])
-  @@unique([scheduleEventSeriesId, occursOn])
 }
 
 model ScheduleResource {
@@ -389,38 +454,42 @@ model ScheduleResource {
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
-  brand       Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  series      ScheduleEventSeries? @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: SetNull)
-  assignments ScheduleAssignment[]
+  brand          Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series         ScheduleEventSeries?         @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: SetNull)
+  assignments    ScheduleAssignment[]
   feedSelections SchedulePublicFeedResource[]
 
-  @@index([brandId])
-  @@index([scheduleEventSeriesId])
-  @@index([type, isActive])
   @@unique([brandId, slug])
   @@unique([brandId, name])
   @@unique([scheduleEventSeriesId, locationId])
+  @@index([brandId])
+  @@index([scheduleEventSeriesId])
+  @@index([type, isActive])
 }
 
 model ScheduleParticipant {
-  id          String                    @id @default(cuid())
-  brandId     String
-  displayName String
-  slug        String
-  type        ScheduleParticipantType
-  status      ScheduleParticipantStatus @default(ACTIVE)
-  summary     String?
-  metadata    Json?
-  createdAt   DateTime                  @default(now())
-  updatedAt   DateTime                  @updatedAt
+  id               String                    @id @default(cuid())
+  brandId          String
+  partnerProfileId String?                   @unique
+  displayName      String
+  slug             String
+  type             ScheduleParticipantType
+  source           ScheduleParticipantSource @default(MANUAL)
+  status           ScheduleParticipantStatus @default(ACTIVE)
+  summary          String?
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
 
-  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  assignments ScheduleAssignment[]
+  brand          Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  partnerProfile PartnerProfile?      @relation("ScheduleParticipantPartnerProfile", fields: [partnerProfileId], references: [id], onDelete: SetNull)
+  assignments    ScheduleAssignment[]
 
+  @@unique([brandId, slug])
   @@index([brandId])
   @@index([type, status])
+  @@index([source])
   @@index([displayName])
-  @@unique([brandId, slug])
 }
 
 model ScheduleAssignment {
@@ -443,39 +512,39 @@ model ScheduleAssignment {
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
-  brand       Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand       Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
   occurrence  ScheduleEventOccurrence @relation(fields: [scheduleEventOccurrenceId], references: [id], onDelete: Cascade)
   resource    ScheduleResource        @relation(fields: [scheduleResourceId], references: [id], onDelete: Cascade)
   participant ScheduleParticipant     @relation(fields: [scheduleParticipantId], references: [id], onDelete: Cascade)
 
+  @@unique([scheduleEventOccurrenceId, scheduleResourceId, scheduleParticipantId, startsAtMinutes, endsAtMinutes])
   @@index([brandId])
   @@index([scheduleEventOccurrenceId])
   @@index([brandId, scheduleEventOccurrenceId])
   @@index([scheduleResourceId])
   @@index([scheduleParticipantId])
   @@index([status])
-  @@unique([scheduleEventOccurrenceId, scheduleResourceId, scheduleParticipantId, startsAtMinutes, endsAtMinutes])
 }
 
 model SchedulePublicFeed {
-  id                    String                                   @id @default(cuid())
+  id                    String                                  @id @default(cuid())
   brandId               String
   scheduleEventSeriesId String
-  feedId                String                                   @default(cuid()) @unique
+  feedId                String                                  @unique @default(cuid())
   startsOn              DateTime
   endsOn                DateTime
-  weekdays              ScheduleWeekday[]                        @default([])
+  weekdays              ScheduleWeekday[]                       @default([])
   resourceType          ScheduleResourceType
-  resourceSelectionMode SchedulePublicFeedResourceSelectionMode  @default(SELECTED)
+  resourceSelectionMode SchedulePublicFeedResourceSelectionMode @default(SELECTED)
   participantType       ScheduleParticipantType
-  orderBy               SchedulePublicFeedOrderBy                @default(TIME_ASC)
-  isActive              Boolean                                  @default(true)
+  orderBy               SchedulePublicFeedOrderBy               @default(TIME_ASC)
+  isActive              Boolean                                 @default(true)
   metadata              Json?
-  createdAt             DateTime                                 @default(now())
-  updatedAt             DateTime                                 @updatedAt
+  createdAt             DateTime                                @default(now())
+  updatedAt             DateTime                                @updatedAt
 
-  brand     Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  series    ScheduleEventSeries        @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  brand     Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  series    ScheduleEventSeries          @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
   resources SchedulePublicFeedResource[]
 
   @@index([brandId])
@@ -484,7 +553,7 @@ model SchedulePublicFeed {
 }
 
 model SchedulePublicFeedResource {
-  id                  String @id @default(cuid())
+  id                   String   @id @default(cuid())
   schedulePublicFeedId String
   scheduleResourceId   String
   createdAt            DateTime @default(now())
@@ -492,18 +561,18 @@ model SchedulePublicFeedResource {
   feed     SchedulePublicFeed @relation(fields: [schedulePublicFeedId], references: [id], onDelete: Cascade)
   resource ScheduleResource   @relation(fields: [scheduleResourceId], references: [id], onDelete: Restrict)
 
+  @@unique([schedulePublicFeedId, scheduleResourceId])
   @@index([schedulePublicFeedId])
   @@index([scheduleResourceId])
-  @@unique([schedulePublicFeedId, scheduleResourceId])
 }
 
 model InstallProfile {
-  id               String   @id @default("install")
+  id               String    @id @default("install")
   displayName      String?
   setupCompletedAt DateTime?
   primaryBrandId   String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([primaryBrandId])
 }
@@ -720,6 +789,174 @@ model ExternalPasswordResetToken {
   @@index([brandId, identifier])
 }
 
+model PartnerUser {
+  id            String            @id @default(cuid())
+  brandId       String
+  email         String
+  passwordHash  String
+  kind          PartnerKind
+  status        PartnerUserStatus @default(ACTIVE)
+  emailVerified DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  lastLoginAt   DateTime?
+
+  brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  profile     PartnerProfile?
+  sessions    PartnerSession[]
+  loginEvents PartnerLoginEvent[]
+
+  @@unique([brandId, email])
+  @@index([brandId])
+  @@index([email])
+  @@index([kind, status])
+}
+
+model PartnerSession {
+  id            String   @id @default(cuid())
+  sessionToken  String   @unique
+  partnerUserId String
+  expires       DateTime
+
+  user PartnerUser @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  @@index([partnerUserId])
+}
+
+model PartnerLoginEvent {
+  id            String   @id @default(cuid())
+  partnerUserId String
+  brandId       String
+  ip            String
+  countryIso2   String?
+  countryName   String?
+  userAgent     String?
+  createdAt     DateTime @default(now())
+
+  user  PartnerUser @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+  brand Brand       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([partnerUserId])
+  @@index([brandId])
+  @@index([createdAt])
+}
+
+model PartnerEmailVerificationToken {
+  brandId    String
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, identifier])
+}
+
+model PartnerPasswordResetToken {
+  brandId    String
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, identifier])
+}
+
+model PartnerProfile {
+  id                 String    @id @default(cuid())
+  brandId            String
+  partnerUserId      String    @unique
+  slug               String
+  contactName        String
+  contactPhone       String
+  displayName        String
+  summary            String?
+  description        String?
+  profileCompletedAt DateTime?
+  mainImageAssetId   String?   @unique
+  mainWebsiteUrl     String?
+  socialLinks        Json?
+  metadata           Json?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  brand               Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  user                PartnerUser                @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
+  mainImageAsset      PartnerAsset?              @relation("PartnerMainImage", fields: [mainImageAssetId], references: [id], onDelete: SetNull)
+  assets              PartnerAsset[]             @relation("PartnerProfileAssets")
+  participantProfile  ParticipantPartnerProfile?
+  sponsorProfile      SponsorPartnerProfile?
+  scheduleParticipant ScheduleParticipant?       @relation("ScheduleParticipantPartnerProfile")
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([displayName])
+}
+
+model ParticipantPartnerProfile {
+  partnerProfileId    String                    @id
+  participantType     ScheduleParticipantType
+  entertainmentType   PartnerEntertainmentType?
+  entertainmentStyle  String?
+  foodStyle           String?
+  foodSetupType       PartnerFoodSetupType?
+  marketType          PartnerMarketType?
+  specialRequirements String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  profile PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+
+  @@index([participantType])
+}
+
+model SponsorPartnerProfile {
+  partnerProfileId   String              @id
+  productServiceType String
+  audienceProfile    String?
+  marketingGoals     String?
+  onsitePlacement    String?
+  signageInformation String?
+  staffed            Boolean?
+  sponsorType        PartnerSponsorType?
+  requests           String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  profile PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+}
+
+model PartnerAsset {
+  id               String                      @id @default(cuid())
+  brandId          String
+  partnerProfileId String
+  kind             PartnerAssetKind
+  storageProvider  PartnerAssetStorageProvider @default(CF_R2)
+  storageBucket    PartnerAssetStorageBucket
+  objectKey        String
+  fileName         String
+  mimeType         String
+  sizeBytes        Int
+  checksumSha256   String?
+  imageWidth       Int?
+  imageHeight      Int?
+  metadata         Json?
+  createdAt        DateTime                    @default(now())
+  updatedAt        DateTime                    @updatedAt
+
+  brand             Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  profile           PartnerProfile  @relation("PartnerProfileAssets", fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  usedAsMainImageBy PartnerProfile? @relation("PartnerMainImage")
+
+  @@unique([storageBucket, objectKey])
+  @@index([brandId])
+  @@index([partnerProfileId])
+  @@index([kind])
+  @@index([storageBucket])
+}
+
 model Category {
   id        String   @id @default(cuid())
   name      String
@@ -731,9 +968,9 @@ model Category {
   brand   Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
   prompts Prompt[]
 
-  @@index([brandId])
   @@unique([brandId, name])
   @@unique([brandId, slug])
+  @@index([brandId])
 }
 
 model Prompt {
@@ -774,9 +1011,9 @@ model ArticleCategory {
   brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   articles Article[]
 
-  @@index([brandId])
   @@unique([brandId, name])
   @@unique([brandId, slug])
+  @@index([brandId])
 }
 
 model Article {
@@ -798,8 +1035,8 @@ model Article {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([brandId])
   @@unique([brandId, slug])
+  @@index([brandId])
   @@index([status])
   @@index([categoryId])
   @@index([title])
@@ -937,7 +1174,7 @@ model WebsiteSession {
   createdAt       DateTime                       @default(now())
   updatedAt       DateTime                       @updatedAt
 
-  brand  Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand  Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
   events WebsiteAnalyticsEvent[]
 
   @@unique([brandId, sessionId])
@@ -947,7 +1184,7 @@ model WebsiteSession {
 }
 
 model WebsiteAnalyticsEvent {
-  id               String                         @id @default(cuid())
+  id               String                          @id @default(cuid())
   brandId          String
   websiteSessionId String
   eventId          String
@@ -955,9 +1192,9 @@ model WebsiteAnalyticsEvent {
   path             String?
   url              String?
   occurredAt       DateTime
-  sourceCategory   WebsiteAnalyticsSourceCategory @default(UNKNOWN)
+  sourceCategory   WebsiteAnalyticsSourceCategory  @default(UNKNOWN)
   sourcePlatform   String?
-  sourceMedium     WebsiteAnalyticsSourceMedium   @default(UNKNOWN)
+  sourceMedium     WebsiteAnalyticsSourceMedium    @default(UNKNOWN)
   referer          String?
   referrerHost     String?
   countryIso2      String?
@@ -969,7 +1206,7 @@ model WebsiteAnalyticsEvent {
   metricValue      Float?
   engagedSeconds   Int?
   raw              Json?
-  createdAt        DateTime                       @default(now())
+  createdAt        DateTime                        @default(now())
 
   brand   Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
   session WebsiteSession @relation(fields: [websiteSessionId], references: [id], onDelete: Cascade)
