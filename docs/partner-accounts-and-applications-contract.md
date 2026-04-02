@@ -258,6 +258,10 @@ Owns:
 - submitted at
 - approved at / rejected at
 
+Recommendation:
+- one durable application row per partner profile + event
+- review history should live in review rows, not duplicate application rows for the same event
+
 Recommended status examples:
 - `DRAFT`
 - `SUBMITTED`
@@ -273,6 +277,12 @@ Owns:
 - decision
 - notes
 - created at
+
+Recommended decision examples:
+- `NOTE`
+- `MARK_IN_REVIEW`
+- `APPROVE`
+- `REJECT`
 
 Reason:
 - review history should be durable and auditable, not overwritten into one mutable notes field
@@ -351,6 +361,7 @@ Owns:
 
 Important rule:
 - sponsor event association is event-level only in v1
+- tier is stored on the event assignment in v1, not as a separate sponsor-profile-global field
 
 ## Media And Upload Storage Policy
 

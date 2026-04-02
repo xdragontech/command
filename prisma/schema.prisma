@@ -268,6 +268,36 @@ enum PartnerAssetStorageBucket {
   PRIVATE_DOCUMENTS
 }
 
+enum PartnerApplicationStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PartnerApplicationReviewDecision {
+  NOTE
+  MARK_IN_REVIEW
+  APPROVE
+  REJECT
+}
+
+enum ParticipantRequirementType {
+  BUSINESS_LICENSE
+  HEALTH_PERMIT
+  BUSINESS_INSURANCE
+  FIRE_PERMIT
+}
+
+enum ParticipantRequirementReviewerState {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
 enum ScheduleAssignmentKind {
   TIMED_SLOT
   FULL_DAY
@@ -325,6 +355,10 @@ model Brand {
   partnerUsers                    PartnerUser[]
   partnerProfiles                 PartnerProfile[]
   partnerAssets                   PartnerAsset[]
+  partnerApplications             PartnerApplication[]
+  participantRequirements         ParticipantRequirement[]
+  sponsorTiers                    SponsorTier[]
+  sponsorEventAssignments         SponsorEventAssignment[]
   partnerLoginEvents              PartnerLoginEvent[]
   partnerEmailVerificationTokens  PartnerEmailVerificationToken[]
   partnerPasswordResetTokens      PartnerPasswordResetToken[]
@@ -404,10 +438,12 @@ model ScheduleEventSeries {
   createdAt                    DateTime                  @default(now())
   updatedAt                    DateTime                  @updatedAt
 
-  brand       Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  occurrences ScheduleEventOccurrence[]
-  resources   ScheduleResource[]
-  feeds       SchedulePublicFeed[]
+  brand                   Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  occurrences             ScheduleEventOccurrence[]
+  resources               ScheduleResource[]
+  feeds                   SchedulePublicFeed[]
+  partnerApplications     PartnerApplication[]
+  sponsorEventAssignments SponsorEventAssignment[]
 
   @@unique([brandId, slug])
   @@index([brandId])
@@ -595,10 +631,12 @@ model BackofficeUser {
   updatedAt                   DateTime             @updatedAt
   lastLoginAt                 DateTime?
 
-  brandAccesses BackofficeUserBrandAccess[]
-  accounts      BackofficeAccount[]
-  sessions      BackofficeSession[]
-  loginEvents   BackofficeLoginEvent[]
+  brandAccesses                   BackofficeUserBrandAccess[]
+  accounts                        BackofficeAccount[]
+  sessions                        BackofficeSession[]
+  loginEvents                     BackofficeLoginEvent[]
+  partnerApplicationReviews       PartnerApplicationReview[]  @relation("PartnerApplicationReviewReviewer")
+  reviewedParticipantRequirements ParticipantRequirement[]    @relation("ParticipantRequirementReviewer")
 
   @@index([email])
 }
@@ -886,6 +924,7 @@ model PartnerProfile {
   user                PartnerUser                @relation(fields: [partnerUserId], references: [id], onDelete: Cascade)
   mainImageAsset      PartnerAsset?              @relation("PartnerMainImage", fields: [mainImageAssetId], references: [id], onDelete: SetNull)
   assets              PartnerAsset[]             @relation("PartnerProfileAssets")
+  applications        PartnerApplication[]
   participantProfile  ParticipantPartnerProfile?
   sponsorProfile      SponsorPartnerProfile?
   scheduleParticipant ScheduleParticipant?       @relation("ScheduleParticipantPartnerProfile")
@@ -907,7 +946,8 @@ model ParticipantPartnerProfile {
   createdAt           DateTime                  @default(now())
   updatedAt           DateTime                  @updatedAt
 
-  profile PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  profile      PartnerProfile           @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  requirements ParticipantRequirement[]
 
   @@index([participantType])
 }
@@ -925,7 +965,8 @@ model SponsorPartnerProfile {
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
 
-  profile PartnerProfile @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  profile          PartnerProfile           @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  eventAssignments SponsorEventAssignment[]
 }
 
 model PartnerAsset {
@@ -946,15 +987,128 @@ model PartnerAsset {
   createdAt        DateTime                    @default(now())
   updatedAt        DateTime                    @updatedAt
 
-  brand             Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  profile           PartnerProfile  @relation("PartnerProfileAssets", fields: [partnerProfileId], references: [id], onDelete: Cascade)
-  usedAsMainImageBy PartnerProfile? @relation("PartnerMainImage")
+  brand                   Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  profile                 PartnerProfile           @relation("PartnerProfileAssets", fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  usedAsMainImageBy       PartnerProfile?          @relation("PartnerMainImage")
+  participantRequirements ParticipantRequirement[] @relation("ParticipantRequirementAsset")
 
   @@unique([storageBucket, objectKey])
   @@index([brandId])
   @@index([partnerProfileId])
   @@index([kind])
   @@index([storageBucket])
+}
+
+model PartnerApplication {
+  id                       String                   @id @default(cuid())
+  brandId                  String
+  partnerProfileId         String
+  scheduleEventSeriesId    String
+  applicationKind          PartnerKind
+  submittedProfileSnapshot Json?
+  status                   PartnerApplicationStatus @default(DRAFT)
+  submittedAt              DateTime?
+  approvedAt               DateTime?
+  rejectedAt               DateTime?
+  withdrawnAt              DateTime?
+  metadata                 Json?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  brand       Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  profile     PartnerProfile             @relation(fields: [partnerProfileId], references: [id], onDelete: Cascade)
+  eventSeries ScheduleEventSeries        @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  reviews     PartnerApplicationReview[]
+
+  @@unique([partnerProfileId, scheduleEventSeriesId])
+  @@index([brandId])
+  @@index([scheduleEventSeriesId])
+  @@index([status])
+  @@index([applicationKind, status])
+}
+
+model PartnerApplicationReview {
+  id                   String                           @id @default(cuid())
+  partnerApplicationId String
+  reviewerUserId       String?
+  decision             PartnerApplicationReviewDecision
+  notes                String?
+  metadata             Json?
+  createdAt            DateTime                         @default(now())
+
+  application PartnerApplication @relation(fields: [partnerApplicationId], references: [id], onDelete: Cascade)
+  reviewer    BackofficeUser?    @relation("PartnerApplicationReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+
+  @@index([partnerApplicationId])
+  @@index([reviewerUserId])
+  @@index([decision])
+  @@index([createdAt])
+}
+
+model ParticipantRequirement {
+  id                   String                              @id @default(cuid())
+  brandId              String
+  partnerProfileId     String
+  requirementType      ParticipantRequirementType
+  partnerAssetId       String?                             @unique
+  expiresAt            DateTime?
+  reviewerState        ParticipantRequirementReviewerState @default(PENDING_REVIEW)
+  reviewerNotes        String?
+  lastReviewedAt       DateTime?
+  lastReviewedByUserId String?
+  createdAt            DateTime                            @default(now())
+  updatedAt            DateTime                            @updatedAt
+
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  profile        ParticipantPartnerProfile @relation(fields: [partnerProfileId], references: [partnerProfileId], onDelete: Cascade)
+  asset          PartnerAsset?             @relation("ParticipantRequirementAsset", fields: [partnerAssetId], references: [id], onDelete: SetNull)
+  lastReviewedBy BackofficeUser?           @relation("ParticipantRequirementReviewer", fields: [lastReviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([partnerProfileId, requirementType])
+  @@index([brandId])
+  @@index([reviewerState])
+  @@index([expiresAt])
+  @@index([lastReviewedByUserId])
+}
+
+model SponsorTier {
+  id          String   @id @default(cuid())
+  brandId     String
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  brand            Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  eventAssignments SponsorEventAssignment[]
+
+  @@unique([brandId, name])
+  @@index([brandId])
+  @@index([brandId, isActive, sortOrder])
+}
+
+model SponsorEventAssignment {
+  id                      String   @id @default(cuid())
+  brandId                 String
+  sponsorPartnerProfileId String
+  scheduleEventSeriesId   String
+  sponsorTierId           String?
+  notes                   String?
+  metadata                Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  brand          Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  sponsorProfile SponsorPartnerProfile @relation(fields: [sponsorPartnerProfileId], references: [partnerProfileId], onDelete: Cascade)
+  eventSeries    ScheduleEventSeries   @relation(fields: [scheduleEventSeriesId], references: [id], onDelete: Cascade)
+  tier           SponsorTier?          @relation(fields: [sponsorTierId], references: [id], onDelete: SetNull)
+
+  @@unique([sponsorPartnerProfileId, scheduleEventSeriesId])
+  @@index([brandId])
+  @@index([scheduleEventSeriesId])
+  @@index([sponsorTierId])
 }
 
 model Category {
