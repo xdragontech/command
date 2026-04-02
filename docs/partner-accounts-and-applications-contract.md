@@ -106,6 +106,7 @@ Recommended models:
 - `PartnerProfile`
 - `ParticipantPartnerProfile`
 - `SponsorPartnerProfile`
+- `PartnerAsset`
 
 ### 3. Application Domain
 
@@ -176,21 +177,17 @@ Owns:
 Owns:
 - `brandId`
 - `partnerUserId`
-- `partnerKind`
+- slug
 - contact name
 - contact phone
 - display name
 - summary
+- description
 - profile completion state
 - main image asset ref
 - main website URL
 - social links JSON
-- status
-
-Recommended status examples:
-- `ACTIVE`
-- `BLOCKED`
-- `PENDING_REVIEW`
+- metadata
 
 ### Participant Profile Subtype
 
@@ -282,24 +279,26 @@ Reason:
 
 ### Documents / Requirements / Discrepancies
 
-#### `PartnerDocument`
+#### `PartnerAsset`
 Owns:
 - `partnerProfileId`
-- document type
-- storage mode
+- asset kind
+- storage bucket class
+- storage provider
 - storage key
 - mime type
 - file name
 - file size
 - checksum
-- uploaded by
+- uploaded actor linkage or metadata
+- optional image dimensions
 - uploaded at
 
 #### `ParticipantRequirement`
 Owns:
 - `partnerProfileId`
 - requirement type
-- linked document
+- linked uploaded asset/document
 - expiry date
 - reviewer state
 - reviewer notes
