@@ -113,6 +113,28 @@ Recommendation:
 9. Configure brand email settings in admin-web if the brand is not already ready.
 10. Point the public site BFF at the deployed `public-api`.
 
+## Database Migration Apply Rule
+
+Use the repo-owned scripts:
+- `npm run db:deploy:preview`
+- `npm run db:deploy:production`
+
+Important:
+- preview uses the normal Prisma deploy path
+- production first tries `prisma migrate deploy`
+- if production hits the known opaque Prisma schema-engine failure, the wrapper falls back to:
+  - applying pending migration SQL with `psql`
+  - recording matching `_prisma_migrations` rows using the local migration checksums
+  - finishing with `prisma migrate status`
+
+Reason:
+- this install has a recurring production-only Prisma deploy failure mode
+- the wrapper keeps migration application deterministic and removes ad hoc manual repair as the operator workflow
+
+Operational rule:
+- do not bypass the repo script with raw `prisma migrate deploy` on production
+- if the fallback path itself fails, stop and inspect the database state before retrying
+
 ## Bootstrap Superadmin Rule
 
 `COMMAND_BOOTSTRAP_SUPERADMIN_EMAIL` is the protected bootstrap identity source for the install.
