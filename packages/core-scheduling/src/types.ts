@@ -4,6 +4,7 @@ import type {
   ScheduleAssignmentStatus,
   ScheduleEventOccurrenceStatus,
   ScheduleEventSeriesStatus,
+  ScheduleParticipantSource,
   ScheduleParticipantStatus,
   ScheduleParticipantType,
   SchedulePublicFeedOrderBy,
@@ -64,11 +65,32 @@ export type ScheduleParticipantRecord = {
   brandId: string;
   brandKey: string;
   brandName: string;
+  partnerProfileId: string | null;
   displayName: string;
   slug: string;
   type: ScheduleParticipantType;
   status: ScheduleParticipantStatus;
+  source: ScheduleParticipantSource;
   summary: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ScheduleParticipantAdoptionCandidateRecord = {
+  id: string;
+  brandId: string;
+  brandKey: string;
+  brandName: string;
+  partnerProfileId: string | null;
+  displayName: string;
+  slug: string;
+  type: ScheduleParticipantType;
+  status: ScheduleParticipantStatus;
+  source: ScheduleParticipantSource;
+  summary: string | null;
+  assignmentCount: number;
+  exactSlugMatch: boolean;
+  exactDisplayNameMatch: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -271,6 +293,7 @@ export type UpdateScheduleParticipantInput = {
 export type UpsertApprovedPartnerScheduleParticipantInput = {
   brandId: string;
   partnerProfileId: string;
+  scheduleParticipantId?: string | null;
   displayName: string;
   slug?: string | null;
   type: ScheduleParticipantType;

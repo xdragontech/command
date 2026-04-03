@@ -102,8 +102,43 @@ export type PartnerApplicationRecord = {
   participantType: ScheduleParticipantType | null;
   sponsorProductServiceType: string | null;
   sponsorType: PartnerSponsorType | null;
+  linkedScheduleParticipant:
+    | {
+        id: string;
+        displayName: string;
+        slug: string;
+        status: ScheduleParticipantStatus;
+        source: ScheduleParticipantSource;
+      }
+    | null;
   submittedProfileSnapshot: unknown;
   reviews: PartnerApplicationReviewRecord[];
+};
+
+export type PartnerApplicationParticipantMergeCandidateRecord = {
+  id: string;
+  displayName: string;
+  slug: string;
+  status: ScheduleParticipantStatus;
+  source: ScheduleParticipantSource;
+  assignmentCount: number;
+  exactSlugMatch: boolean;
+  exactDisplayNameMatch: boolean;
+};
+
+export type PartnerApplicationParticipantMergePayload = {
+  linkedScheduleParticipant:
+    | {
+        id: string;
+        displayName: string;
+        slug: string;
+        status: ScheduleParticipantStatus;
+        source: ScheduleParticipantSource;
+      }
+    | null;
+  recommendedScheduleParticipantId: string | null;
+  requiresExplicitSelection: boolean;
+  candidates: PartnerApplicationParticipantMergeCandidateRecord[];
 };
 
 export type PartnerDiscrepancyState = "MISSING" | "PENDING_REVIEW" | "REJECTED" | "EXPIRED";

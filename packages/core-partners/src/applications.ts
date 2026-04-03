@@ -1,8 +1,12 @@
 import { PartnerKind, PartnerUserStatus, Prisma, ScheduleParticipantStatus } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import { normalizeNullableId, normalizeNullableText, normalizeText, resolveReadableBrandIds, toIsoString } from "./common";
-import { upsertPartnerScheduleParticipantProjection } from "./projection";
-import type { PartnerAdminScope, PartnerApplicationRecord } from "./types";
+import { listPartnerScheduleParticipantAdoptionCandidates, upsertPartnerScheduleParticipantProjection } from "./projection";
+import type {
+  PartnerAdminScope,
+  PartnerApplicationParticipantMergePayload,
+  PartnerApplicationRecord,
+} from "./types";
 
 type PartnerApplicationWithRelations = Prisma.PartnerApplicationGetPayload<{
   include: {
@@ -30,6 +34,15 @@ type PartnerApplicationWithRelations = Prisma.PartnerApplicationGetPayload<{
         };
         participantProfile: true;
         sponsorProfile: true;
+        scheduleParticipant: {
+          select: {
+            id: true;
+            displayName: true;
+            slug: true;
+            status: true;
+            source: true;
+          };
+        };
       };
     };
     reviews: {
@@ -76,6 +89,15 @@ function toPartnerApplicationRecord(application: PartnerApplicationWithRelations
     participantType: application.profile.participantProfile?.participantType || null,
     sponsorProductServiceType: application.profile.sponsorProfile?.productServiceType || null,
     sponsorType: application.profile.sponsorProfile?.sponsorType || null,
+    linkedScheduleParticipant: application.profile.scheduleParticipant
+      ? {
+          id: application.profile.scheduleParticipant.id,
+          displayName: application.profile.scheduleParticipant.displayName,
+          slug: application.profile.scheduleParticipant.slug,
+          status: application.profile.scheduleParticipant.status,
+          source: application.profile.scheduleParticipant.source,
+        }
+      : null,
     submittedProfileSnapshot: application.submittedProfileSnapshot,
     reviews: application.reviews.map((review) => ({
       id: review.id,
@@ -164,6 +186,15 @@ export async function listPartnerApplications(params: {
           },
           participantProfile: true,
           sponsorProfile: true,
+          scheduleParticipant: {
+            select: {
+              id: true,
+              displayName: true,
+              slug: true,
+              status: true,
+              source: true,
+            },
+          },
         },
       },
       reviews: {
@@ -191,6 +222,7 @@ export async function reviewPartnerApplication(params: {
   reviewerUserId: string;
   decision: "MARK_IN_REVIEW" | "APPROVE" | "REJECT" | "NOTE";
   notes?: string | null;
+  scheduleParticipantId?: string | null;
 }) {
   const existing = await prisma.partnerApplication.findUnique({
     where: { id: params.partnerApplicationId },
@@ -260,6 +292,7 @@ export async function reviewPartnerApplication(params: {
         db: tx,
         brandId: existing.brandId,
         partnerProfileId: existing.partnerProfileId,
+        scheduleParticipantId: params.scheduleParticipantId,
         displayName: existing.profile.displayName,
         slug: existing.profile.slug,
         type: existing.profile.participantProfile.participantType,
@@ -298,6 +331,15 @@ export async function reviewPartnerApplication(params: {
             },
             participantProfile: true,
             sponsorProfile: true,
+            scheduleParticipant: {
+              select: {
+                id: true,
+                displayName: true,
+                slug: true,
+                status: true,
+                source: true,
+              },
+            },
           },
         },
         reviews: {
@@ -318,4 +360,81 @@ export async function reviewPartnerApplication(params: {
 
   if (!updated) throw new Error("Partner application not found after review");
   return toPartnerApplicationRecord(updated as PartnerApplicationWithRelations);
+}
+
+export async function getPartnerApplicationParticipantMergePayload(params: {
+  scope: PartnerAdminScope;
+  partnerApplicationId: string;
+}): Promise<PartnerApplicationParticipantMergePayload> {
+  const application = await prisma.partnerApplication.findUnique({
+    where: { id: params.partnerApplicationId },
+    include: {
+      profile: {
+        include: {
+          participantProfile: true,
+          scheduleParticipant: {
+            select: {
+              id: true,
+              displayName: true,
+              slug: true,
+              status: true,
+              source: true,
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!application) throw new Error("Partner application not found");
+
+  const brandIds = resolveReadableBrandIds(params.scope, application.brandId);
+  if (Array.isArray(brandIds) && brandIds.length === 0) {
+    throw new Error("Partner application is not available for this backoffice user");
+  }
+  if (application.applicationKind !== PartnerKind.PARTICIPANT || !application.profile.participantProfile) {
+    throw new Error("Only participant applications can link to schedulable participants");
+  }
+
+  const linkedScheduleParticipant = application.profile.scheduleParticipant
+    ? {
+        id: application.profile.scheduleParticipant.id,
+        displayName: application.profile.scheduleParticipant.displayName,
+        slug: application.profile.scheduleParticipant.slug,
+        status: application.profile.scheduleParticipant.status,
+        source: application.profile.scheduleParticipant.source,
+      }
+    : null;
+
+  const candidates = await listPartnerScheduleParticipantAdoptionCandidates({
+    brandId: application.brandId,
+    type: application.profile.participantProfile.participantType,
+    displayName: application.profile.displayName,
+    slug: application.profile.slug,
+  });
+
+  const exactSlugMatches = candidates.filter((candidate) => candidate.exactSlugMatch);
+  const exactNameMatches = candidates.filter((candidate) => candidate.exactDisplayNameMatch);
+  const recommendedScheduleParticipantId =
+    exactSlugMatches.length === 1
+      ? exactSlugMatches[0]?.id || null
+      : exactNameMatches.length === 1
+        ? exactNameMatches[0]?.id || null
+        : null;
+
+  return {
+    linkedScheduleParticipant,
+    recommendedScheduleParticipantId,
+    requiresExplicitSelection:
+      !linkedScheduleParticipant && !recommendedScheduleParticipantId && exactSlugMatches.length + exactNameMatches.length > 1,
+    candidates: candidates.map((candidate) => ({
+      id: candidate.id,
+      displayName: candidate.displayName,
+      slug: candidate.slug,
+      status: candidate.status,
+      source: candidate.source,
+      assignmentCount: candidate.assignmentCount,
+      exactSlugMatch: candidate.exactSlugMatch,
+      exactDisplayNameMatch: candidate.exactDisplayNameMatch,
+    })),
+  };
 }

@@ -1,7 +1,7 @@
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import { PartnerApplicationStatus, PartnerKind } from "@prisma/client";
-import type { PartnerApplicationRecord } from "@command/core-partners";
+import type { PartnerApplicationParticipantMergePayload, PartnerApplicationRecord } from "@command/core-partners";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
 import {
@@ -84,6 +84,10 @@ export default function PendingApplicationsPage({
   const [reviewNotes, setReviewNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [reviewing, setReviewing] = useState<"MARK_IN_REVIEW" | "APPROVE" | "REJECT" | null>(null);
+  const [mergePayload, setMergePayload] = useState<PartnerApplicationParticipantMergePayload | null>(null);
+  const [mergeLoading, setMergeLoading] = useState(false);
+  const [mergeError, setMergeError] = useState("");
+  const [selectedScheduleParticipantId, setSelectedScheduleParticipantId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -137,6 +141,9 @@ export default function PendingApplicationsPage({
         (nextSelectedId && nextApplications.find((entry) => entry.id === nextSelectedId)) || nextApplications[0] || null;
       setSelectedId(nextSelected?.id || null);
       setReviewNotes("");
+      setMergePayload(null);
+      setMergeError("");
+      setSelectedScheduleParticipantId("");
     } catch (nextError: any) {
       setError(nextError?.message || "Failed to load partner applications");
       setNotice("");
@@ -174,8 +181,57 @@ export default function PendingApplicationsPage({
 
   const selectedApplication = selectedId ? applications.find((entry) => entry.id === selectedId) || null : null;
 
+  useEffect(() => {
+    if (!selectedApplication || selectedApplication.applicationKind !== PartnerKind.PARTICIPANT) {
+      setMergePayload(null);
+      setMergeError("");
+      setSelectedScheduleParticipantId("");
+      return;
+    }
+
+    let active = true;
+    const partnerApplicationId = selectedApplication.id;
+    async function loadMergePayload() {
+      setMergeLoading(true);
+      setMergeError("");
+      try {
+        const res = await fetch(`/api/admin/partners/applications/${partnerApplicationId}/participant-candidates`);
+        const payload = await res.json().catch(() => null);
+        if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to load participant merge candidates");
+        if (!active) return;
+        const nextMerge = payload.merge as PartnerApplicationParticipantMergePayload;
+        setMergePayload(nextMerge);
+        setSelectedScheduleParticipantId(
+          nextMerge.linkedScheduleParticipant?.id || nextMerge.recommendedScheduleParticipantId || ""
+        );
+      } catch (nextError: any) {
+        if (!active) return;
+        setMergePayload(null);
+        setSelectedScheduleParticipantId("");
+        setMergeError(nextError?.message || "Failed to load participant merge candidates");
+      } finally {
+        if (active) setMergeLoading(false);
+      }
+    }
+
+    void loadMergePayload();
+    return () => {
+      active = false;
+    };
+  }, [selectedApplication?.id, selectedApplication?.applicationKind]);
+
   async function submitReview(decision: "MARK_IN_REVIEW" | "APPROVE" | "REJECT") {
     if (!selectedApplication) return;
+    if (
+      decision === "APPROVE" &&
+      selectedApplication.applicationKind === PartnerKind.PARTICIPANT &&
+      mergePayload?.requiresExplicitSelection &&
+      !selectedScheduleParticipantId
+    ) {
+      setError("Select the existing schedulable participant to preserve current assignments before approval.");
+      setNotice("");
+      return;
+    }
     setReviewing(decision);
     setError("");
     setNotice("");
@@ -186,6 +242,10 @@ export default function PendingApplicationsPage({
         body: JSON.stringify({
           decision,
           notes: reviewNotes,
+          scheduleParticipantId:
+            decision === "APPROVE" && selectedApplication.applicationKind === PartnerKind.PARTICIPANT
+              ? selectedScheduleParticipantId || null
+              : null,
         }),
       });
       const payload = await res.json().catch(() => null);
@@ -344,6 +404,59 @@ export default function PendingApplicationsPage({
                     </div>
                   </div>
 
+                  {selectedApplication.applicationKind === PartnerKind.PARTICIPANT ? (
+                    <div style={fieldStyle}>
+                      <span style={labelStyle}>Schedulable Participant Merge</span>
+                      {mergeLoading ? (
+                        <div style={subtleTextStyle}>Loading merge options…</div>
+                      ) : mergeError ? (
+                        <div style={errorStyle}>{mergeError}</div>
+                      ) : mergePayload?.linkedScheduleParticipant ? (
+                        <div style={{ display: "grid", gap: "6px" }}>
+                          <div style={paragraphStyle}>
+                            Already linked to {mergePayload.linkedScheduleParticipant.displayName} ({mergePayload.linkedScheduleParticipant.slug})
+                          </div>
+                          <div style={subtleTextStyle}>
+                            Existing assignments stay on that participant record. Source: {mergePayload.linkedScheduleParticipant.source}.
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ display: "grid", gap: "10px" }}>
+                          <select
+                            value={selectedScheduleParticipantId}
+                            onChange={(event) => setSelectedScheduleParticipantId(event.target.value)}
+                            style={inputStyle}
+                          >
+                            <option value="">
+                              {mergePayload?.requiresExplicitSelection
+                                ? "Select the existing schedulable participant"
+                                : "Create a new schedulable participant"}
+                            </option>
+                            {(mergePayload?.candidates || []).map((candidate) => (
+                              <option key={candidate.id} value={candidate.id}>
+                                {candidate.displayName} · {candidate.slug} · {candidate.assignmentCount} assignments
+                                {candidate.exactSlugMatch ? " · exact slug" : candidate.exactDisplayNameMatch ? " · exact name" : ""}
+                              </option>
+                            ))}
+                          </select>
+                          {mergePayload?.requiresExplicitSelection ? (
+                            <div style={subtleTextStyle}>
+                              Multiple existing participants match this application. Select the correct participant so current assignments stay on the existing record.
+                            </div>
+                          ) : mergePayload?.recommendedScheduleParticipantId ? (
+                            <div style={subtleTextStyle}>
+                              A recommended existing participant match was found. Leaving that selection in place preserves the current schedulable record and assignments.
+                            </div>
+                          ) : (
+                            <div style={subtleTextStyle}>
+                              Leave the selection blank to create a new schedulable participant. Select an existing participant when this account should adopt a legacy participant record instead.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+
                   <div style={fieldStyle}>
                     <span style={labelStyle}>Reviewer Notes</span>
                     <textarea
@@ -358,7 +471,17 @@ export default function PendingApplicationsPage({
                     <button type="button" onClick={() => void submitReview("MARK_IN_REVIEW")} style={primaryButtonStyle} disabled={reviewing !== null}>
                       {reviewing === "MARK_IN_REVIEW" ? "Saving…" : "Mark In Review"}
                     </button>
-                    <button type="button" onClick={() => void submitReview("APPROVE")} style={primaryButtonStyle} disabled={reviewing !== null}>
+                    <button
+                      type="button"
+                      onClick={() => void submitReview("APPROVE")}
+                      style={primaryButtonStyle}
+                      disabled={
+                        reviewing !== null ||
+                        (selectedApplication.applicationKind === PartnerKind.PARTICIPANT &&
+                          Boolean(mergePayload?.requiresExplicitSelection) &&
+                          !selectedScheduleParticipantId)
+                      }
+                    >
                       {reviewing === "APPROVE" ? "Saving…" : "Approve"}
                     </button>
                     <button
