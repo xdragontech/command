@@ -134,11 +134,6 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             active: pathname === "/admin/scheduling/resources",
           },
           {
-            label: "Participants",
-            href: "/admin/scheduling/participants",
-            active: pathname === "/admin/scheduling/participants",
-          },
-          {
             label: "Pending Applications",
             href: "/admin/scheduling/pending-applications",
             active: pathname === "/admin/scheduling/pending-applications",

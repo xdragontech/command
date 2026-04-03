@@ -1,5 +1,6 @@
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import type { PartnerAccountRecord, SponsorEventAssignmentRecord, SponsorTierRecord } from "@command/core-partners";
 import { AdminCard } from "../../../components/AdminCard";
 import { AdminLayout } from "../../../components/AdminLayout";
@@ -15,7 +16,6 @@ import {
   paragraphStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
-  splitLayoutStyle,
   subtleTextStyle,
   successStyle,
 } from "../../../components/adminScheduling";
@@ -57,6 +57,31 @@ type AssignmentForm = {
 
 const NEW_TIER_ID = "__new_tier__";
 const NEW_ASSIGNMENT_ID = "__new_assignment__";
+
+const managementFilterGridStyle: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  alignItems: "end",
+};
+
+const managementCardStackStyle: CSSProperties = {
+  display: "grid",
+  gap: "18px",
+};
+
+const managementSectionLayoutStyle: CSSProperties = {
+  display: "grid",
+  gap: "18px",
+  gridTemplateColumns: "minmax(260px, 340px) minmax(0, 1fr)",
+  alignItems: "start",
+};
+
+const managementEditorStyle: CSSProperties = {
+  display: "grid",
+  gap: "14px",
+  minWidth: 0,
+};
 
 function blankTierForm(brands: BrandOption[], brandFilter: string): TierForm {
   return {
@@ -360,7 +385,7 @@ export default function SponsorsManagementPage({
         {notice ? <div style={successStyle}>{notice}</div> : null}
 
         <AdminCard title="Management Filters" description={loading ? "Loading…" : "Scope sponsor tiers and event assignments by brand and event"}>
-          <div style={{ display: "grid", gap: "14px", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+          <div style={managementFilterGridStyle}>
             <label style={fieldStyle}>
               <span style={labelStyle}>Brand</span>
               <select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)} style={inputStyle}>
@@ -392,9 +417,9 @@ export default function SponsorsManagementPage({
           </div>
         </AdminCard>
 
-        <div style={splitLayoutStyle}>
+        <div style={managementCardStackStyle}>
           <AdminCard title="Sponsor Tiers" description="Configure assignable sponsorship tiers per brand">
-            <div style={splitLayoutStyle}>
+            <div style={managementSectionLayoutStyle}>
               <div style={panelStyle}>
                 <div style={{ display: "grid", gap: "12px" }}>
                   <button
@@ -428,7 +453,7 @@ export default function SponsorsManagementPage({
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: "14px" }}>
+              <div style={managementEditorStyle}>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Brand</span>
                   <select value={tierForm.brandId} onChange={(event) => setTierForm((current) => ({ ...current, brandId: event.target.value }))} style={inputStyle}>
@@ -473,7 +498,7 @@ export default function SponsorsManagementPage({
           </AdminCard>
 
           <AdminCard title="Sponsor Event Assignments" description="Assign approved sponsor profiles to events and tiers">
-            <div style={splitLayoutStyle}>
+            <div style={managementSectionLayoutStyle}>
               <div style={panelStyle}>
                 <div style={{ display: "grid", gap: "12px" }}>
                   <button
@@ -507,7 +532,7 @@ export default function SponsorsManagementPage({
                 </div>
               </div>
 
-              <div style={{ display: "grid", gap: "14px" }}>
+              <div style={managementEditorStyle}>
                 <label style={fieldStyle}>
                   <span style={labelStyle}>Sponsor</span>
                   <select
