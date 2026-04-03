@@ -9,11 +9,13 @@
     "typecheck": "tsc --pretty false --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@command/core-auth-partner": "*",
     "@command/core-auth-external": "*",
     "@command/core-brand-runtime": "^0.1.0",
     "@command/core-content": "*",
     "@command/core-db": "^0.1.0",
     "@command/core-email": "^0.1.0",
+    "@command/core-partners": "*",
     "@command/core-website-analytics": "*",
     "@prisma/client": "^6.19.2",
     "next": "^14.2.35",

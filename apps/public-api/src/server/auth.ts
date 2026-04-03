@@ -1,11 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
+  PartnerAuthServiceError,
+  getPartnerSessionState,
+  type PartnerSessionState,
+} from "@command/core-auth-partner";
+import {
   ExternalAuthServiceError,
   getExternalSessionState,
   resolveExternalBrandContext,
   type ExternalBrandContext,
   type ExternalSessionState,
 } from "@command/core-auth-external";
+import { PartnerPortalServiceError } from "@command/core-partners";
+import { PartnerKind } from "@prisma/client";
 import {
   resolveIntegrationFromRequest,
   type PublicIntegrationConfig,
@@ -20,8 +27,16 @@ export type PublicApiSessionContext = PublicApiContext & {
   session: ExternalSessionState;
 };
 
+export type PublicApiPartnerSessionContext = PublicApiContext & {
+  session: PartnerSessionState;
+};
+
 export function sendPublicApiError(res: NextApiResponse, error: unknown) {
-  if (error instanceof ExternalAuthServiceError) {
+  if (
+    error instanceof ExternalAuthServiceError ||
+    error instanceof PartnerAuthServiceError ||
+    error instanceof PartnerPortalServiceError
+  ) {
     return res.status(error.status).json({ ok: false, error: error.message });
   }
 
@@ -92,6 +107,38 @@ export async function requirePublicApiSession(
       brandKey: context.brand.brandKey,
       publicOrigin: context.brand.publicOrigin,
       sessionToken,
+    });
+
+    return {
+      ...context,
+      session,
+    };
+  } catch (error) {
+    sendPublicApiError(res, error);
+    return null;
+  }
+}
+
+export async function requirePublicApiPartnerSession(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  kind: PartnerKind
+): Promise<PublicApiPartnerSessionContext | null> {
+  const context = await requirePublicApiContext(req, res);
+  if (!context) return null;
+
+  const sessionToken = getSessionHeader(req);
+  if (!sessionToken) {
+    res.status(401).json({ ok: false, error: "Missing session token" });
+    return null;
+  }
+
+  try {
+    const session = await getPartnerSessionState({
+      brandKey: context.brand.brandKey,
+      publicOrigin: context.brand.publicOrigin,
+      sessionToken,
+      kind,
     });
 
     return {
