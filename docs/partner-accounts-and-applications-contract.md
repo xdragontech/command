@@ -146,6 +146,11 @@ Transitional note for Wave 4:
   - manual schedulable participant entry is still required
   - partner account creation is not yet exposed publicly in Wave 4
 
+Follow-up debt:
+- the participant projection helper currently lives in [projection.ts](/Users/grantr/Projects/command/packages/core-partners/src/projection.ts)
+- this is a temporary package-boundary shortcut
+- long-term, that helper should move back under `core-scheduling` once package export/reference friction is normalized
+
 ### 5. Sponsor Domain
 
 Sponsors are not schedulable participants in v1.
@@ -593,12 +598,14 @@ Important rule:
 - replace account placeholders
 
 ### Wave 5: Participant Public Portal v1
-- partner signup/signin/profile/application pages on `xdragon-site`
+- partner and sponsor signup/signin/profile/application pages on `xdragon-site`
 - BFF integration into `command/public-api`
 - approval creates/updates linked `ScheduleParticipant`
+- uploads remain deferred in this wave; profile editing is text-field only
+- application target selection uses **all active events in the current brand** for v1
+- website analytics conversion/event instrumentation for partner portal flows is deferred until the analytics taxonomy is expanded to include partner-specific conversion types
 
-### Wave 6: Sponsor Public Portal v1
-- sponsor signup/signin/profile/application pages
+### Wave 6: Sponsor Review And Assignment
 - sponsor review and tier/event assignment
 
 ### Wave 7: Documents + Discrepancy Workflow

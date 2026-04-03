@@ -31,6 +31,9 @@
       "@command/core-auth-external": [
         "packages/core-auth-external/src/index.ts"
       ],
+      "@command/core-auth-partner": [
+        "packages/core-auth-partner/src/index.ts"
+      ],
       "@command/core-email": [
         "packages/core-email/src/index.ts"
       ],

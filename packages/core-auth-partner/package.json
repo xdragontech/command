@@ -1,0 +1,13 @@
+{
+  "name": "@command/core-auth-partner",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@command/core-db": "*",
+    "@command/core-email": "*",
+    "@prisma/client": "6.19.2",
+    "bcryptjs": "^3.0.3"
+  }
+}

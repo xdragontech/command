@@ -15,6 +15,9 @@ Implementation/extraction companion:
 **Scope Of This First Contract**
 - external auth
 - external account read/update
+- partner and sponsor portal auth/session
+- partner and sponsor portal profile read/update
+- partner and sponsor per-event application submit/list
 - password reset
 - install-scoped runtime host resolution for website entrypoints
 - brand-scoped prompt feed
@@ -88,6 +91,19 @@ Deferred from this contract:
 - password change while logged in
 - social account linking
 
+**Partner Portal**
+- participant partner register, login, logout, session introspection, and verify email
+- sponsor register, login, logout, session introspection, and verify email
+- participant and sponsor profile read/update
+- participant and sponsor application list/submit
+
+Important v1 boundary:
+- the public website still calls these routes only through its BFF
+- partner uploads/documents are deferred
+- partner portal analytics/performance instrumentation is deferred
+- application targets are all active events in the current brand
+- partner and sponsor route namespaces stay separate even though the underlying auth domain is shared
+
 **Resources**
 - list prompts
 - list guides
@@ -132,6 +148,7 @@ Deferred from this contract:
 
 **Why This Contract Is The Right First Cut**
 - it covers the public-site features that already exist today
+- it now includes the first partner-portal flows needed for participant and sponsor intake demos
 - it adds the first-party analytics foundation without exposing internal services directly to browsers
 - it removes duplicate live brand-host registry ownership from the public website runtime
 - it avoids freezing internal admin or backoffice-only concerns into the external API
@@ -140,7 +157,10 @@ Deferred from this contract:
 **What Is Explicitly Not In v1**
 - admin APIs
 - analytics/leads ingestion APIs for third-party websites
-- partner accounts
+- partner uploads/documents
+- partner media/feed delivery
+- partner interaction statistics
+- partner reminder/notification scheduling controls
 - feature-permission APIs
 
 Important boundary:

@@ -2,6 +2,9 @@ import type {
   PartnerApplicationReviewDecision,
   PartnerApplicationStatus,
   PartnerKind,
+  PartnerEntertainmentType,
+  PartnerFoodSetupType,
+  PartnerMarketType,
   PartnerSponsorType,
   PartnerUserStatus,
   ParticipantRequirementReviewerState,
@@ -153,4 +156,93 @@ export type SponsorEventAssignmentRecord = {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PartnerPortalAccountRecord = {
+  id: string;
+  partnerProfileId: string;
+  brandId: string;
+  brandKey: string;
+  brandName: string;
+  email: string;
+  kind: PartnerKind;
+  status: PartnerUserStatus;
+  emailVerifiedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt: string | null;
+  displayName: string;
+  slug: string;
+};
+
+export type PartnerPortalSocialLinks = Record<string, string> | null;
+
+export type PartnerPortalEventOption = {
+  id: string;
+  slug: string;
+  name: string;
+  seasonStartsOn: string;
+  seasonEndsOn: string;
+};
+
+export type PartnerPortalApplicationRecord = {
+  id: string;
+  status: PartnerApplicationStatus;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  withdrawnAt: string | null;
+  event: PartnerPortalEventOption;
+};
+
+export type ParticipantPortalProfileRecord = {
+  kind: "PARTICIPANT";
+  account: PartnerPortalAccountRecord;
+  contactName: string;
+  contactPhone: string;
+  displayName: string;
+  slug: string;
+  summary: string | null;
+  description: string | null;
+  mainWebsiteUrl: string | null;
+  socialLinks: PartnerPortalSocialLinks;
+  profileCompletedAt: string | null;
+  participantType: ScheduleParticipantType;
+  entertainmentType: PartnerEntertainmentType | null;
+  entertainmentStyle: string | null;
+  foodStyle: string | null;
+  foodSetupType: PartnerFoodSetupType | null;
+  marketType: PartnerMarketType | null;
+  specialRequirements: string | null;
+};
+
+export type SponsorPortalProfileRecord = {
+  kind: "SPONSOR";
+  account: PartnerPortalAccountRecord;
+  contactName: string;
+  contactPhone: string;
+  displayName: string;
+  slug: string;
+  description: string | null;
+  mainWebsiteUrl: string | null;
+  socialLinks: PartnerPortalSocialLinks;
+  profileCompletedAt: string | null;
+  productServiceType: string;
+  audienceProfile: string | null;
+  marketingGoals: string | null;
+  onsitePlacement: string | null;
+  signageInformation: string | null;
+  staffed: boolean | null;
+  sponsorType: PartnerSponsorType | null;
+  requests: string | null;
+};
+
+export type PartnerPortalProfileRecord =
+  | ParticipantPortalProfileRecord
+  | SponsorPortalProfileRecord;
+
+export type PartnerPortalApplicationsPayload = {
+  account: PartnerPortalAccountRecord;
+  applications: PartnerPortalApplicationRecord[];
+  availableEvents: PartnerPortalEventOption[];
 };

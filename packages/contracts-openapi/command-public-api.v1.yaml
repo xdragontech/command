@@ -6,9 +6,10 @@ info:
   description: |
     This is the initial external API contract that brand-specific public websites will consume
     through a server-side BFF/proxy. It is intentionally limited to the current live needs:
-    external auth, account access, password reset, brand-scoped resource feeds, and the current
-    public contact/chat service flows. It now also includes consent-gated first-party website
-    analytics ingestion for branded public sites.
+    external auth, account access, password reset, partner portal auth/profile/application
+    flows, brand-scoped resource feeds, and the current public contact/chat service flows. It
+    now also includes consent-gated first-party website analytics ingestion for branded public
+    sites.
 servers:
   - url: https://command.example.com
     description: Example Command install base URL
@@ -17,6 +18,8 @@ tags:
     description: External user authentication and session lifecycle
   - name: Account
     description: Authenticated external account profile operations
+  - name: Partner Portal
+    description: Participant and sponsor portal auth, profile, and per-event application flows
   - name: Runtime
     description: Install-scoped runtime host resolution for website/BFF entrypoints
   - name: Resources
@@ -234,6 +237,418 @@ paths:
                 $ref: '#/components/schemas/AccountResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/partners/auth/register:
+    post:
+      tags: [Partner Portal]
+      summary: Register a new participant partner portal account
+      description: |
+        Creates a participant partner account in the integration's brand context and starts the
+        email-verification flow. This endpoint is called by the public-site BFF, not directly by
+        the browser.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantPartnerRegisterRequest'
+      responses:
+        '201':
+          description: Registration accepted and verification is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/partners/auth/login:
+    post:
+      tags: [Partner Portal]
+      summary: Authenticate a participant partner portal user
+      description: |
+        Authenticates the participant partner and returns an opaque Command session token for the
+        BFF to store and forward on subsequent requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerLoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/partners/auth/logout:
+    post:
+      tags: [Partner Portal]
+      summary: Invalidate the current participant partner session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '204':
+          description: Session invalidated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/partners/auth/session:
+    get:
+      tags: [Partner Portal]
+      summary: Inspect the current participant partner session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current authenticated participant partner session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/partners/auth/verify-email:
+    post:
+      tags: [Partner Portal]
+      summary: Verify a participant partner email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/partners/profile:
+    get:
+      tags: [Partner Portal]
+      summary: Fetch the current participant partner profile
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current participant partner profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantPortalProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Partner Portal]
+      summary: Update the current participant partner profile
+      description: |
+        Updates text/profile metadata only. Image and document uploads are intentionally deferred
+        from this wave.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParticipantPortalProfileUpdateRequest'
+      responses:
+        '200':
+          description: Updated participant profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipantPortalProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/partners/applications:
+    get:
+      tags: [Partner Portal]
+      summary: List participant partner applications and available events
+      description: |
+        Returns the current participant partner's applications plus the current brand's active
+        events. In v1, all active events for the current brand are application targets.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Participant partner applications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerApplicationsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Partner Portal]
+      summary: Submit a participant partner application for an event
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerApplicationSubmitRequest'
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerApplicationSubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/sponsors/auth/register:
+    post:
+      tags: [Partner Portal]
+      summary: Register a new sponsor portal account
+      description: |
+        Creates a sponsor account in the integration's brand context and starts the
+        email-verification flow. This endpoint is called by the public-site BFF, not directly by
+        the browser.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SponsorRegisterRequest'
+      responses:
+        '201':
+          description: Registration accepted and verification is required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/sponsors/auth/login:
+    post:
+      tags: [Partner Portal]
+      summary: Authenticate a sponsor portal user
+      description: |
+        Authenticates the sponsor and returns an opaque Command session token for the BFF to
+        store and forward on subsequent requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerLoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/sponsors/auth/logout:
+    post:
+      tags: [Partner Portal]
+      summary: Invalidate the current sponsor session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '204':
+          description: Session invalidated
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/sponsors/auth/session:
+    get:
+      tags: [Partner Portal]
+      summary: Inspect the current sponsor session
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current authenticated sponsor session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerSessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/sponsors/auth/verify-email:
+    post:
+      tags: [Partner Portal]
+      summary: Verify a sponsor email address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmailResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/sponsors/profile:
+    get:
+      tags: [Partner Portal]
+      summary: Fetch the current sponsor profile
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Current sponsor profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SponsorPortalProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Partner Portal]
+      summary: Update the current sponsor profile
+      description: |
+        Updates text/profile metadata only. Image and document uploads are intentionally deferred
+        from this wave.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SponsorPortalProfileUpdateRequest'
+      responses:
+        '200':
+          description: Updated sponsor profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SponsorPortalProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/sponsors/applications:
+    get:
+      tags: [Partner Portal]
+      summary: List sponsor applications and available events
+      description: |
+        Returns the current sponsor's applications plus the current brand's active events. In v1,
+        all active events for the current brand are application targets.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      responses:
+        '200':
+          description: Sponsor applications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerApplicationsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Partner Portal]
+      summary: Submit a sponsor application for an event
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerApplicationSubmitRequest'
+      responses:
+        '201':
+          description: Application submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerApplicationSubmitResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
   /v1/resources/prompts:
@@ -1135,6 +1550,468 @@ components:
         name:
           type: string
           nullable: true
+    PartnerKind:
+      type: string
+      enum: [PARTICIPANT, SPONSOR]
+    PartnerUserStatus:
+      type: string
+      enum: [ACTIVE, BLOCKED]
+    PartnerParticipantType:
+      type: string
+      enum: [ENTERTAINMENT, FOOD_VENDOR, MARKET_VENDOR]
+    PartnerEntertainmentType:
+      type: string
+      enum: [LIVE_BAND, DJ, COMEDY, MAGIC]
+    PartnerFoodSetupType:
+      type: string
+      enum: [TRUCK, TRAILER, CART, STAND]
+    PartnerMarketType:
+      type: string
+      enum: [APPAREL, JEWELRY, DECOR, SKINCARE, FOOD, SERVICE, OTHER]
+    PartnerSponsorType:
+      type: string
+      enum: [DIRECT, IN_KIND, MEDIA]
+    PartnerPortalAccount:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - partnerProfileId
+        - brandId
+        - brandKey
+        - brandName
+        - email
+        - kind
+        - status
+        - createdAt
+        - updatedAt
+        - displayName
+        - slug
+      properties:
+        id:
+          type: string
+        partnerProfileId:
+          type: string
+        brandId:
+          type: string
+        brandKey:
+          type: string
+        brandName:
+          type: string
+        email:
+          type: string
+          format: email
+        kind:
+          $ref: '#/components/schemas/PartnerKind'
+        status:
+          $ref: '#/components/schemas/PartnerUserStatus'
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        displayName:
+          type: string
+        slug:
+          type: string
+    PartnerLoginResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, session, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        session:
+          $ref: '#/components/schemas/Session'
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+    PartnerSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+    ParticipantPartnerRegisterRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+        - displayName
+        - contactName
+        - contactPhone
+        - participantType
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        displayName:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        participantType:
+          $ref: '#/components/schemas/PartnerParticipantType'
+    SponsorRegisterRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+        - displayName
+        - contactName
+        - contactPhone
+        - productServiceType
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        displayName:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        productServiceType:
+          type: string
+    PartnerPortalSocialLinks:
+      type: object
+      nullable: true
+      additionalProperties:
+        type: string
+        format: uri
+    PartnerPortalEventOption:
+      type: object
+      additionalProperties: false
+      required: [id, slug, name, seasonStartsOn, seasonEndsOn]
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        seasonStartsOn:
+          type: string
+          format: date-time
+        seasonEndsOn:
+          type: string
+          format: date-time
+    PartnerPortalApplication:
+      type: object
+      additionalProperties: false
+      required: [id, status, event]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, IN_REVIEW, APPROVED, REJECTED, WITHDRAWN]
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        approvedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        withdrawnAt:
+          type: string
+          format: date-time
+          nullable: true
+        event:
+          $ref: '#/components/schemas/PartnerPortalEventOption'
+    ParticipantPortalProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - account
+        - contactName
+        - contactPhone
+        - displayName
+        - slug
+        - participantType
+      properties:
+        kind:
+          type: string
+          const: PARTICIPANT
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        displayName:
+          type: string
+        slug:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        mainWebsiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        socialLinks:
+          $ref: '#/components/schemas/PartnerPortalSocialLinks'
+        profileCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        participantType:
+          $ref: '#/components/schemas/PartnerParticipantType'
+        entertainmentType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerEntertainmentType'
+          nullable: true
+        entertainmentStyle:
+          type: string
+          nullable: true
+        foodStyle:
+          type: string
+          nullable: true
+        foodSetupType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerFoodSetupType'
+          nullable: true
+        marketType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerMarketType'
+          nullable: true
+        specialRequirements:
+          type: string
+          nullable: true
+    SponsorPortalProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - account
+        - contactName
+        - contactPhone
+        - displayName
+        - slug
+        - productServiceType
+      properties:
+        kind:
+          type: string
+          const: SPONSOR
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        displayName:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+          nullable: true
+        mainWebsiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        socialLinks:
+          $ref: '#/components/schemas/PartnerPortalSocialLinks'
+        profileCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        productServiceType:
+          type: string
+        audienceProfile:
+          type: string
+          nullable: true
+        marketingGoals:
+          type: string
+          nullable: true
+        onsitePlacement:
+          type: string
+          nullable: true
+        signageInformation:
+          type: string
+          nullable: true
+        staffed:
+          type: boolean
+          nullable: true
+        sponsorType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerSponsorType'
+          nullable: true
+        requests:
+          type: string
+          nullable: true
+    ParticipantPortalProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, profile]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        profile:
+          $ref: '#/components/schemas/ParticipantPortalProfile'
+    SponsorPortalProfileResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, profile]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        profile:
+          $ref: '#/components/schemas/SponsorPortalProfile'
+    ParticipantPortalProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        summary:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        mainWebsiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        socialLinks:
+          $ref: '#/components/schemas/PartnerPortalSocialLinks'
+        entertainmentType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerEntertainmentType'
+          nullable: true
+        entertainmentStyle:
+          type: string
+          nullable: true
+        foodStyle:
+          type: string
+          nullable: true
+        foodSetupType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerFoodSetupType'
+          nullable: true
+        marketType:
+          allOf:
+            - $ref: '#/components/schemas/PartnerMarketType'
+          nullable: true
+        specialRequirements:
+          type: string
+          nullable: true
+    SponsorPortalProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          type: string
+        contactName:
+          type: string
+        contactPhone:
+          type: string
+        description:
+          type: string
+          nullable: true
+        mainWebsiteUrl:
+          type: string
+          format: uri
+          nullable: true
+        socialLinks:
+          $ref: '#/components/schemas/PartnerPortalSocialLinks'
+        productServiceType:
+          type: string
+        audienceProfile:
+          type: string
+          nullable: true
+        marketingGoals:
+          type: string
+          nullable: true
+        onsitePlacement:
+          type: string
+          nullable: true
+        signageInformation:
+          type: string
+          nullable: true
+        staffed:
+          type: boolean
+          nullable: true
+        requests:
+          type: string
+          nullable: true
+    PartnerApplicationsResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, account, applications, availableEvents]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerPortalApplication'
+        availableEvents:
+          type: array
+          items:
+            $ref: '#/components/schemas/PartnerPortalEventOption'
+    PartnerApplicationSubmitRequest:
+      type: object
+      additionalProperties: false
+      required: [scheduleEventSeriesId]
+      properties:
+        scheduleEventSeriesId:
+          type: string
+    PartnerApplicationSubmitResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, application]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        application:
+          $ref: '#/components/schemas/PartnerPortalApplication'
     PromptItem:
       type: object
       additionalProperties: false

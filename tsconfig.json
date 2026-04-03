@@ -20,6 +20,9 @@
       "path": "./packages/core-auth-external"
     },
     {
+      "path": "./packages/core-auth-partner"
+    },
+    {
       "path": "./packages/core-leads"
     },
     {
