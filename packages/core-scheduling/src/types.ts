@@ -268,6 +268,17 @@ export type UpdateScheduleParticipantInput = {
   metadata?: Prisma.InputJsonValue;
 };
 
+export type UpsertApprovedPartnerScheduleParticipantInput = {
+  brandId: string;
+  partnerProfileId: string;
+  displayName: string;
+  slug?: string | null;
+  type: ScheduleParticipantType;
+  status: ScheduleParticipantStatus;
+  summary?: string | null;
+  metadata?: Prisma.InputJsonValue;
+};
+
 export type CreateScheduleAssignmentInput = {
   brandId?: string | null;
   occurrenceId: string;

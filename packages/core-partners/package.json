@@ -1,0 +1,12 @@
+{
+  "name": "@command/core-partners",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@command/core-db": "*",
+    "@command/core-scheduling": "*",
+    "@prisma/client": "6.19.2"
+  }
+}
