@@ -301,18 +301,18 @@
 
   <h2>16. Scheduling Participants</h2>
   <h3>What It Is</h3>
-  <p>The phase-1 schedulable roster of entertainers, food vendors, and market vendors.</p>
+  <p>The schedulable participant projection used by planner and assignments for entertainers, food vendors, and market vendors.</p>
   <h3>What It Does</h3>
   <ul>
-    <li>Creates schedule participants before the future application-review module exists</li>
-    <li>Classifies participants by type</li>
-    <li>Stores display names, summaries, and active state</li>
+    <li>Represents approved partner accounts as schedulable records</li>
+    <li>Preserves the roster used by planner, calendar, and assignment workflows</li>
+    <li>Separates scheduling projection from partner account/profile management</li>
   </ul>
   <h3>How To Use It</h3>
   <ol>
-    <li>Open <code>Scheduling / Participants</code>.</li>
-    <li>Create or edit the schedulable records you want to place on the schedule.</li>
-    <li>Use participant type correctly because assignment rules depend on it.</li>
+    <li>Use <code>Accounts / Partners</code> and <code>Event Mgmt / Pending Applications</code> to manage participant accounts and approvals.</li>
+    <li>Use <code>Event Mgmt / Planner</code> or <code>Event Mgmt / Assignments</code> to place the resulting schedulable participants.</li>
+    <li>The old standalone <code>Event Mgmt / Participants</code> page is retired.</li>
   </ol>
 
   <h2>17. Scheduling Assignments</h2>

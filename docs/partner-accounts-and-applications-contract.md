@@ -143,11 +143,10 @@ Recommended extension to `ScheduleParticipant`:
 
 This keeps the current scheduling system intact while allowing approved partner accounts to merge into it rather than create a second participant model.
 
-Transitional note for Wave 4:
-- the existing manual `Participants` admin page remains temporarily in place until the public partner signup/application flow is live
-- reason:
-  - manual schedulable participant entry is still required
-  - partner account creation is not yet exposed publicly in Wave 4
+Wave 5 update:
+- the legacy `Events > Participants` page is retired
+- approved participant partners now appear and are managed through `Accounts > Partners`
+- the schedulable participant projection still exists behind planner and assignment workflows; only the standalone legacy editor surface is removed
 
 Follow-up debt:
 - the participant projection helper currently lives in [projection.ts](/Users/grantr/Projects/command/packages/core-partners/src/projection.ts)
@@ -519,8 +518,8 @@ This replaces the current placeholder entries:
 - `Events > Sponsors Mgmt`
 
 ### Scheduling
-- `Events > Participants` transitions from a manual-only page into the merged schedulable participant projection
-- manual participant creation remains supported
+- the schedulable participant projection remains a scheduling-domain record used by planner and assignments
+- there is no longer a separate standalone `Events > Participants` management page
 
 ## Workflow Contract
 

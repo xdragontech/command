@@ -172,8 +172,8 @@ export default function PartnerAccountsPage({
     >
       <div style={{ display: "grid", gap: "18px" }}>
         <div style={mutedPanelStyle}>
-          Approved participant partners now live under partner accounts. Manual scheduling-only entries still remain on
-          the Participants page until the public partner intake/profile wave is live.
+          Approved participant partners now live under partner accounts. Approval creates the schedulable participant
+          projection used by planner and assignments; there is no longer a separate legacy participant management page.
         </div>
         {error ? <div style={errorStyle}>{error}</div> : null}
         {notice ? <div style={successStyle}>{notice}</div> : null}
