@@ -14,6 +14,9 @@ Historical X Dragon extraction notes live separately in the migration-history do
 Future first-run app onboarding is defined in:
 - [`setup-onboarding-contract.md`](./setup-onboarding-contract.md)
 
+Staging-instance planning for the X Dragon install lives in:
+- [`command-staging-instance-plan.md`](./command-staging-instance-plan.md)
+
 Current state:
 - the v1 `/setup` route is implemented for uninitialized installs
 - env/deployment secrets and public integration registry values remain operator-owned
