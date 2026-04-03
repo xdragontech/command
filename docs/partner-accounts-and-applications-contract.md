@@ -9,6 +9,9 @@ This document exists to keep the partner feature from becoming:
 - a second overlapping public auth model
 - a file-upload shortcut that creates long-term storage debt
 
+Related follow-up planning:
+- [participant-partner-merge-plan.md](./participant-partner-merge-plan.md)
+
 This is a contract and implementation-shaping document, not an implementation claim.
 
 ## Current Verified State
