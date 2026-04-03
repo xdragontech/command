@@ -120,7 +120,6 @@ export default function SchedulingParticipantsPage({
       ? participants.find((participant) => participant.id === selectedId) || null
       : null;
   const isNewParticipant = selectedId === NEW_PARTICIPANT_ID;
-  const isPartnerManagedParticipant = Boolean(selectedParticipant?.partnerProfileId);
 
   async function loadData(options?: {
     nextSelectedId?: string | null;
@@ -445,23 +444,11 @@ export default function SchedulingParticipantsPage({
                     selected={participant.id === selectedId}
                     onClick={() => selectParticipant(participant)}
                     topLeft={participant.displayName}
-                    topRight={
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
-                        <span>{participant.type}</span>
-                        <span
-                          style={{
-                            ...schedulingListPillStyle,
-                            ...(participant.partnerProfileId ? schedulingListSuccessPillStyle : schedulingListSubtlePillStyle),
-                          }}
-                        >
-                          {participant.partnerProfileId ? "PARTNER LINKED" : participant.source}
-                        </span>
-                      </div>
-                    }
+                    topRight={participant.type}
                     bottomLeft={
-                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                        <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>{participant.brandName}</span>
-                      </div>
+                      <span style={{ ...schedulingListPillStyle, ...schedulingListSlatePillStyle }}>
+                        {participant.brandName}
+                      </span>
                     }
                     bottomRight={
                       <span
@@ -494,11 +481,6 @@ export default function SchedulingParticipantsPage({
               <div style={mutedPanelStyle}>Select a participant to edit it.</div>
             ) : (
               <div style={{ display: "grid", gap: "18px" }}>
-                {isPartnerManagedParticipant ? (
-                  <div style={warningStyle}>
-                    This participant is linked to a partner account. Profile fields are now managed from Accounts &gt; Partners and cannot be edited or deleted here. Existing assignments remain intact on this schedulable record.
-                  </div>
-                ) : null}
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Brand</span>
@@ -522,7 +504,6 @@ export default function SchedulingParticipantsPage({
                       value={form.type}
                       onChange={(event) => updateField("type", event.target.value as ScheduleParticipantType)}
                       style={inputStyle}
-                      disabled={isPartnerManagedParticipant}
                     >
                       {PARTICIPANT_TYPES.map((type) => (
                         <option key={type} value={type}>
@@ -536,23 +517,12 @@ export default function SchedulingParticipantsPage({
                 <div style={twoColumnStyle}>
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Display Name</span>
-                    <input
-                      value={form.displayName}
-                      onChange={(event) => updateField("displayName", event.target.value)}
-                      style={inputStyle}
-                      disabled={isPartnerManagedParticipant}
-                    />
+                    <input value={form.displayName} onChange={(event) => updateField("displayName", event.target.value)} style={inputStyle} />
                   </label>
 
                   <label style={fieldStyle}>
                     <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Slug</span>
-                    <input
-                      value={form.slug}
-                      onChange={(event) => updateField("slug", event.target.value)}
-                      placeholder="Auto if blank"
-                      style={inputStyle}
-                      disabled={isPartnerManagedParticipant}
-                    />
+                    <input value={form.slug} onChange={(event) => updateField("slug", event.target.value)} placeholder="Auto if blank" style={inputStyle} />
                   </label>
                 </div>
 
@@ -563,7 +533,6 @@ export default function SchedulingParticipantsPage({
                       value={form.status}
                       onChange={(event) => updateField("status", event.target.value as ScheduleParticipantStatus)}
                       style={inputStyle}
-                      disabled={isPartnerManagedParticipant}
                     >
                       {PARTICIPANT_STATUSES.map((status) => (
                         <option key={status} value={status}>
@@ -576,16 +545,11 @@ export default function SchedulingParticipantsPage({
 
                 <label style={fieldStyle}>
                   <span style={{ fontWeight: 700, color: "var(--admin-text-primary)", fontSize: "0.86rem" }}>Summary</span>
-                  <textarea
-                    value={form.summary}
-                    onChange={(event) => updateField("summary", event.target.value)}
-                    style={textAreaStyle}
-                    disabled={isPartnerManagedParticipant}
-                  />
+                  <textarea value={form.summary} onChange={(event) => updateField("summary", event.target.value)} style={textAreaStyle} />
                 </label>
 
                 <div style={actionRowStyle}>
-                  <button type="button" onClick={saveParticipant} disabled={!isDirty || saving || isPartnerManagedParticipant} style={primaryButtonStyle}>
+                  <button type="button" onClick={saveParticipant} disabled={!isDirty || saving} style={primaryButtonStyle}>
                     {saving ? (isNewParticipant ? "Creating..." : "Saving...") : isNewParticipant ? "Create Participant" : "Save Changes"}
                   </button>
                   <button
@@ -599,17 +563,12 @@ export default function SchedulingParticipantsPage({
                       setError("");
                       setNotice("");
                     }}
-                    disabled={!isDirty || saving || isPartnerManagedParticipant}
+                    disabled={!isDirty || saving}
                     style={secondaryButtonStyle}
                   >
                     Reset
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void deleteParticipant()}
-                    disabled={!selectedParticipant || deleting || isPartnerManagedParticipant}
-                    style={secondaryButtonStyle}
-                  >
+                  <button type="button" onClick={() => void deleteParticipant()} disabled={!selectedParticipant || deleting} style={secondaryButtonStyle}>
                     {deleting ? "Deleting..." : "Delete Participant"}
                   </button>
                 </div>
