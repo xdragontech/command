@@ -13,7 +13,6 @@ import {
 } from "./common";
 import type {
   CreateScheduleParticipantInput,
-  ScheduleParticipantAdoptionCandidateRecord,
   ScheduleParticipantRecord,
   SchedulingScope,
   UpsertApprovedPartnerScheduleParticipantInput,
@@ -38,102 +37,22 @@ function toParticipantRecord(participant: ParticipantWithBrand): SchedulePartici
     brandId: participant.brandId,
     brandKey: participant.brand.brandKey,
     brandName: participant.brand.name,
-    partnerProfileId: participant.partnerProfileId,
     displayName: participant.displayName,
     slug: participant.slug,
     type: participant.type,
     status: participant.status,
-    source: participant.source,
     summary: participant.summary || null,
     createdAt: participant.createdAt.toISOString(),
     updatedAt: participant.updatedAt.toISOString(),
   };
 }
 
-type ParticipantCandidateWithCounts = Prisma.ScheduleParticipantGetPayload<{
-  include: {
-    brand: {
-      select: {
-        id: true;
-        brandKey: true;
-        name: true;
-      };
-    };
-    _count: {
-      select: {
-        assignments: true;
-      };
-    };
-  };
-}>;
-
-function normalizeDisplayNameKey(value: string) {
-  return normalizeText(value).toLocaleLowerCase();
-}
-
-function toAdoptionCandidateRecord(
-  participant: ParticipantCandidateWithCounts,
-  params: { displayName: string; slug: string }
-): ScheduleParticipantAdoptionCandidateRecord {
-  return {
-    id: participant.id,
-    brandId: participant.brandId,
-    brandKey: participant.brand.brandKey,
-    brandName: participant.brand.name,
-    partnerProfileId: participant.partnerProfileId,
-    displayName: participant.displayName,
-    slug: participant.slug,
-    type: participant.type,
-    status: participant.status,
-    source: participant.source,
-    summary: participant.summary || null,
-    assignmentCount: participant._count.assignments,
-    exactSlugMatch: participant.slug === params.slug,
-    exactDisplayNameMatch: normalizeDisplayNameKey(participant.displayName) === normalizeDisplayNameKey(params.displayName),
-    createdAt: participant.createdAt.toISOString(),
-    updatedAt: participant.updatedAt.toISOString(),
-  };
-}
-
-function compareAdoptionCandidates(
-  left: ScheduleParticipantAdoptionCandidateRecord,
-  right: ScheduleParticipantAdoptionCandidateRecord
-) {
-  if (left.exactSlugMatch !== right.exactSlugMatch) return left.exactSlugMatch ? -1 : 1;
-  if (left.exactDisplayNameMatch !== right.exactDisplayNameMatch) return left.exactDisplayNameMatch ? -1 : 1;
-  if (left.assignmentCount !== right.assignmentCount) return right.assignmentCount - left.assignmentCount;
-  return left.displayName.localeCompare(right.displayName);
-}
-
-function resolveAutoAdoptionCandidate(
-  candidates: ScheduleParticipantAdoptionCandidateRecord[]
-): ScheduleParticipantAdoptionCandidateRecord | null {
-  const exactSlugMatches = candidates.filter((candidate) => candidate.exactSlugMatch);
-  if (exactSlugMatches.length > 1) {
-    throw new Error("Multiple existing schedulable participants match this partner by slug. Select the correct participant before approval.");
-  }
-  if (exactSlugMatches.length === 1) return exactSlugMatches[0];
-
-  const exactNameMatches = candidates.filter((candidate) => candidate.exactDisplayNameMatch);
-  if (exactNameMatches.length > 1) {
-    throw new Error("Multiple existing schedulable participants match this partner by name. Select the correct participant before approval.");
-  }
-  if (exactNameMatches.length === 1) return exactNameMatches[0];
-
-  return null;
-}
-
-async function buildUniqueParticipantSlug(
-  db: Prisma.TransactionClient | typeof prisma,
-  brandId: string,
-  preferred: string,
-  excludeId?: string
-) {
+async function buildUniqueParticipantSlug(brandId: string, preferred: string, excludeId?: string) {
   const base = slugify(preferred) || "participant";
   let slug = base;
 
   for (let index = 2; index < 100; index += 1) {
-    const existing = await db.scheduleParticipant.findFirst({
+    const existing = await prisma.scheduleParticipant.findFirst({
       where: { brandId, slug, ...(excludeId ? { NOT: { id: excludeId } } : {}) },
       select: { id: true },
     });
@@ -142,59 +61,6 @@ async function buildUniqueParticipantSlug(
   }
 
   throw new Error("Unable to allocate a unique participant slug");
-}
-
-export async function listScheduleParticipantAdoptionCandidates(params: {
-  db?: Prisma.TransactionClient;
-  brandId: string;
-  type: UpsertApprovedPartnerScheduleParticipantInput["type"];
-  displayName: string;
-  slug?: string | null;
-}) {
-  const db = params.db ?? prisma;
-  const brandId = normalizeText(params.brandId);
-  const displayName = normalizeText(params.displayName);
-  if (!brandId) throw new Error("Partner participant brand is required");
-  if (!displayName) throw new Error("Participant display name is required");
-
-  const slugInput = normalizeText(params.slug) || displayName;
-  const normalizedSlug = slugify(slugInput) || "participant";
-
-  const rows = await db.scheduleParticipant.findMany({
-    where: {
-      brandId,
-      type: params.type,
-      partnerProfileId: null,
-    },
-    include: {
-      brand: {
-        select: {
-          id: true,
-          brandKey: true,
-          name: true,
-        },
-      },
-      _count: {
-        select: {
-          assignments: {
-            where: {
-              status: { not: "CANCELLED" },
-            },
-          },
-        },
-      },
-    },
-    orderBy: [{ displayName: "asc" }],
-  });
-
-  return rows
-    .map((row) =>
-      toAdoptionCandidateRecord(row as ParticipantCandidateWithCounts, {
-        displayName,
-        slug: normalizedSlug,
-      })
-    )
-    .sort(compareAdoptionCandidates);
 }
 
 export async function listScheduleParticipants(params: {
@@ -273,7 +139,7 @@ export async function createScheduleParticipant(params: {
     data: {
       brandId,
       displayName,
-      slug: await buildUniqueParticipantSlug(prisma, brandId, normalizeText(params.input.slug) || displayName),
+      slug: await buildUniqueParticipantSlug(brandId, normalizeText(params.input.slug) || displayName),
       type: parseParticipantType(params.input.type),
       status: parseParticipantStatus(params.input.status),
       summary: normalizeNullableText(params.input.summary),
@@ -314,9 +180,6 @@ export async function updateScheduleParticipant(params: {
 
   const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
   if (brandId !== existing.brandId) throw new Error("Participant brand cannot be reassigned");
-  if (existing.partnerProfileId) {
-    throw new Error("Partner-linked participants are managed from the partner account and cannot be edited here");
-  }
 
   const displayName = normalizeText(params.input.displayName ?? existing.displayName);
   if (!displayName) throw new Error("Participant display name is required");
@@ -327,7 +190,7 @@ export async function updateScheduleParticipant(params: {
       displayName,
       slug:
         params.input.slug !== undefined || displayName !== existing.displayName
-          ? await buildUniqueParticipantSlug(prisma, brandId, normalizeText(params.input.slug) || displayName, existing.id)
+          ? await buildUniqueParticipantSlug(brandId, normalizeText(params.input.slug) || displayName, existing.id)
           : existing.slug,
       type: params.input.type === undefined ? existing.type : parseParticipantType(params.input.type),
       status: params.input.status === undefined ? existing.status : parseParticipantStatus(params.input.status),
@@ -353,7 +216,6 @@ export async function upsertApprovedPartnerScheduleParticipant(params: {
   input?: never;
   brandId: string;
   partnerProfileId: string;
-  scheduleParticipantId?: string | null;
   displayName: string;
   slug?: string | null;
   type: UpsertApprovedPartnerScheduleParticipantInput["type"];
@@ -369,8 +231,8 @@ export async function upsertApprovedPartnerScheduleParticipant(params: {
 
   const displayName = normalizeText(params.displayName);
   if (!displayName) throw new Error("Participant display name is required");
-  const requestedScheduleParticipantId = normalizeNullableId(params.scheduleParticipantId);
-  const linked = await db.scheduleParticipant.findUnique({
+
+  const existing = await db.scheduleParticipant.findUnique({
     where: { partnerProfileId },
     include: {
       brand: {
@@ -383,36 +245,27 @@ export async function upsertApprovedPartnerScheduleParticipant(params: {
     },
   });
 
-  if (linked && linked.brandId !== brandId) {
+  if (existing && existing.brandId !== brandId) {
     throw new Error("Partner-linked participant brand cannot be reassigned");
   }
 
-  if (linked && requestedScheduleParticipantId && linked.id !== requestedScheduleParticipantId) {
-    throw new Error("This partner is already linked to a different schedulable participant");
-  }
-
   const slugInput = normalizeText(params.slug) || displayName;
-  const updateParticipant = async (participant: {
-    id: string;
-    brandId: string;
-    slug: string;
-    source: ScheduleParticipantSource;
-  }) => {
-    const resolvedSlug =
-      participant.slug === slugInput
-        ? participant.slug
-        : await buildUniqueParticipantSlug(db, brandId, slugInput, participant.id);
+  const resolvedSlug = existing
+    ? existing.slug === slugInput
+      ? existing.slug
+      : await buildUniqueParticipantSlug(brandId, slugInput, existing.id)
+    : await buildUniqueParticipantSlug(brandId, slugInput);
 
+  if (existing) {
     const updated = await db.scheduleParticipant.update({
-      where: { id: participant.id },
+      where: { id: existing.id },
       data: {
-        partnerProfileId,
         displayName,
         slug: resolvedSlug,
         type: params.type,
         status: params.status,
         summary: normalizeNullableText(params.summary),
-        source: participant.source,
+        source: ScheduleParticipantSource.PARTNER_APPROVED,
         ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
       },
       include: {
@@ -427,74 +280,6 @@ export async function upsertApprovedPartnerScheduleParticipant(params: {
     });
 
     return toParticipantRecord(updated as ParticipantWithBrand);
-  };
-
-  if (linked) {
-    return updateParticipant({
-      id: linked.id,
-      brandId: linked.brandId,
-      slug: linked.slug,
-      source: linked.source,
-    });
-  }
-
-  let participantToAdopt:
-    | {
-        id: string;
-        brandId: string;
-        slug: string;
-        source: ScheduleParticipantSource;
-        type: UpsertApprovedPartnerScheduleParticipantInput["type"];
-        partnerProfileId: string | null;
-      }
-    | null = null;
-
-  if (requestedScheduleParticipantId) {
-    const requested = await db.scheduleParticipant.findUnique({
-      where: { id: requestedScheduleParticipantId },
-      select: {
-        id: true,
-        brandId: true,
-        slug: true,
-        source: true,
-        type: true,
-        partnerProfileId: true,
-      },
-    });
-    if (!requested) throw new Error("Selected schedulable participant was not found");
-    if (requested.brandId !== brandId) {
-      throw new Error("Selected schedulable participant belongs to a different brand");
-    }
-    if (requested.type !== params.type) {
-      throw new Error("Selected schedulable participant must match the participant type before it can be linked");
-    }
-    if (requested.partnerProfileId && requested.partnerProfileId !== partnerProfileId) {
-      throw new Error("Selected schedulable participant is already linked to a different partner");
-    }
-    participantToAdopt = requested;
-  } else {
-    const candidates = await listScheduleParticipantAdoptionCandidates({
-      db,
-      brandId,
-      type: params.type,
-      displayName,
-      slug: params.slug,
-    });
-    const autoCandidate = resolveAutoAdoptionCandidate(candidates);
-    if (autoCandidate) {
-      participantToAdopt = {
-        id: autoCandidate.id,
-        brandId: autoCandidate.brandId,
-        slug: autoCandidate.slug,
-        source: autoCandidate.source,
-        type: autoCandidate.type,
-        partnerProfileId: autoCandidate.partnerProfileId,
-      };
-    }
-  }
-
-  if (participantToAdopt) {
-    return updateParticipant(participantToAdopt);
   }
 
   const created = await db.scheduleParticipant.create({
@@ -502,7 +287,7 @@ export async function upsertApprovedPartnerScheduleParticipant(params: {
       brandId,
       partnerProfileId,
       displayName,
-      slug: await buildUniqueParticipantSlug(db, brandId, slugInput),
+      slug: resolvedSlug,
       type: params.type,
       status: params.status,
       summary: normalizeNullableText(params.summary),
@@ -529,15 +314,12 @@ export async function deleteScheduleParticipant(params: {
 }) {
   const existing = await prisma.scheduleParticipant.findUnique({
     where: { id: params.id },
-    select: { id: true, brandId: true, partnerProfileId: true },
+    select: { id: true, brandId: true },
   });
   if (!existing) throw new Error("Participant not found");
 
   const brandId = resolveWriteBrandId(params.scope, existing.brandId, { allowSingleBrandFallback: false });
   if (brandId !== existing.brandId) throw new Error("Participant brand cannot be reassigned");
-  if (existing.partnerProfileId) {
-    throw new Error("Partner-linked participants cannot be deleted from the scheduling participants page");
-  }
 
   const assignmentCount = await prisma.scheduleAssignment.count({
     where: {

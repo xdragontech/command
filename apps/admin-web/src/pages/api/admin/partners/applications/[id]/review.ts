@@ -23,7 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reviewerUserId: auth.principal.id,
         decision: String(body.decision || "NOTE") as "MARK_IN_REVIEW" | "APPROVE" | "REJECT" | "NOTE",
         notes: body.notes,
-        scheduleParticipantId: body.scheduleParticipantId,
       });
       return json(res, 200, { ok: true, application });
     }
