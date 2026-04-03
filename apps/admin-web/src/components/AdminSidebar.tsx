@@ -68,16 +68,14 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             active: pathname === "/admin/accounts/clients",
           },
           {
-            label: "Vendors",
-            disabled: true,
-          },
-          {
-            label: "Entertainment",
-            disabled: true,
+            label: "Partners",
+            href: "/admin/accounts/partners",
+            active: pathname === "/admin/accounts/partners",
           },
           {
             label: "Sponsors",
-            disabled: true,
+            href: "/admin/accounts/sponsors",
+            active: pathname === "/admin/accounts/sponsors",
           },
         ],
       },
@@ -139,6 +137,21 @@ export function AdminSidebar({ active, collapsed }: AdminSidebarProps) {
             label: "Participants",
             href: "/admin/scheduling/participants",
             active: pathname === "/admin/scheduling/participants",
+          },
+          {
+            label: "Pending Applications",
+            href: "/admin/scheduling/pending-applications",
+            active: pathname === "/admin/scheduling/pending-applications",
+          },
+          {
+            label: "Discrepancies",
+            href: "/admin/scheduling/discrepancies",
+            active: pathname === "/admin/scheduling/discrepancies",
+          },
+          {
+            label: "Sponsors Mgmt",
+            href: "/admin/scheduling/sponsors",
+            active: pathname === "/admin/scheduling/sponsors",
           },
           {
             label: "Planner",

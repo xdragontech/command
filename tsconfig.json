@@ -26,6 +26,9 @@
       "path": "./packages/core-scheduling"
     },
     {
+      "path": "./packages/core-partners"
+    },
+    {
       "path": "./packages/core-content"
     },
     {

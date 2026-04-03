@@ -140,6 +140,12 @@ Recommended extension to `ScheduleParticipant`:
 
 This keeps the current scheduling system intact while allowing approved partner accounts to merge into it rather than create a second participant model.
 
+Transitional note for Wave 4:
+- the existing manual `Participants` admin page remains temporarily in place until the public partner signup/application flow is live
+- reason:
+  - manual schedulable participant entry is still required
+  - partner account creation is not yet exposed publicly in Wave 4
+
 ### 5. Sponsor Domain
 
 Sponsors are not schedulable participants in v1.
@@ -208,6 +214,9 @@ Owns:
   - `COMEDY`
   - `MAGIC`
 - `style` text
+- v1 post-approval requirements:
+  - none defined yet
+  - the discrepancy model must still remain extensible so entertainment requirements can be added later without redesigning the report surface
 
 #### Food fields
 - `foodStyle` text

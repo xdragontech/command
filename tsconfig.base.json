@@ -40,6 +40,12 @@
       "@command/core-scheduling": [
         "packages/core-scheduling/src/index.ts"
       ],
+      "@command/core-scheduling/participants": [
+        "packages/core-scheduling/src/participants.ts"
+      ],
+      "@command/core-partners": [
+        "packages/core-partners/src/index.ts"
+      ],
       "@command/core-content": [
         "packages/core-content/src/index.ts"
       ],

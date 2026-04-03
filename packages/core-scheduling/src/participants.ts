@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, ScheduleParticipantSource } from "@prisma/client";
 import { prisma } from "@command/core-db";
 import {
   ensureBrand,
@@ -15,6 +15,7 @@ import type {
   CreateScheduleParticipantInput,
   ScheduleParticipantRecord,
   SchedulingScope,
+  UpsertApprovedPartnerScheduleParticipantInput,
   UpdateScheduleParticipantInput,
 } from "./types";
 
@@ -208,6 +209,103 @@ export async function updateScheduleParticipant(params: {
   });
 
   return toParticipantRecord(updated as ParticipantWithBrand);
+}
+
+export async function upsertApprovedPartnerScheduleParticipant(params: {
+  db?: Prisma.TransactionClient;
+  input?: never;
+  brandId: string;
+  partnerProfileId: string;
+  displayName: string;
+  slug?: string | null;
+  type: UpsertApprovedPartnerScheduleParticipantInput["type"];
+  status: UpsertApprovedPartnerScheduleParticipantInput["status"];
+  summary?: string | null;
+  metadata?: Prisma.InputJsonValue;
+}) {
+  const db = params.db ?? prisma;
+  const brandId = normalizeText(params.brandId);
+  const partnerProfileId = normalizeText(params.partnerProfileId);
+  if (!brandId) throw new Error("Partner participant brand is required");
+  if (!partnerProfileId) throw new Error("Partner profile linkage is required");
+
+  const displayName = normalizeText(params.displayName);
+  if (!displayName) throw new Error("Participant display name is required");
+
+  const existing = await db.scheduleParticipant.findUnique({
+    where: { partnerProfileId },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (existing && existing.brandId !== brandId) {
+    throw new Error("Partner-linked participant brand cannot be reassigned");
+  }
+
+  const slugInput = normalizeText(params.slug) || displayName;
+  const resolvedSlug = existing
+    ? existing.slug === slugInput
+      ? existing.slug
+      : await buildUniqueParticipantSlug(brandId, slugInput, existing.id)
+    : await buildUniqueParticipantSlug(brandId, slugInput);
+
+  if (existing) {
+    const updated = await db.scheduleParticipant.update({
+      where: { id: existing.id },
+      data: {
+        displayName,
+        slug: resolvedSlug,
+        type: params.type,
+        status: params.status,
+        summary: normalizeNullableText(params.summary),
+        source: ScheduleParticipantSource.PARTNER_APPROVED,
+        ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+      },
+      include: {
+        brand: {
+          select: {
+            id: true,
+            brandKey: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return toParticipantRecord(updated as ParticipantWithBrand);
+  }
+
+  const created = await db.scheduleParticipant.create({
+    data: {
+      brandId,
+      partnerProfileId,
+      displayName,
+      slug: resolvedSlug,
+      type: params.type,
+      status: params.status,
+      summary: normalizeNullableText(params.summary),
+      source: ScheduleParticipantSource.PARTNER_APPROVED,
+      metadata: params.metadata,
+    },
+    include: {
+      brand: {
+        select: {
+          id: true,
+          brandKey: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  return toParticipantRecord(created as ParticipantWithBrand);
 }
 
 export async function deleteScheduleParticipant(params: {
