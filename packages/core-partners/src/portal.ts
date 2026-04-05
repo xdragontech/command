@@ -37,18 +37,19 @@ type PortalProfileRecord = Prisma.PartnerProfileGetPayload<{
         name: true;
       };
     };
-    user: {
-      select: {
-        id: true;
-        email: true;
-        kind: true;
-        status: true;
-        emailVerified: true;
-        createdAt: true;
-        updatedAt: true;
-        lastLoginAt: true;
+      user: {
+        select: {
+          id: true;
+          email: true;
+          kind: true;
+          status: true;
+          emailVerified: true;
+          passwordChangeRequiredAt: true;
+          createdAt: true;
+          updatedAt: true;
+          lastLoginAt: true;
+        };
       };
-    };
     participantProfile: true;
     sponsorProfile: {
       include: {
@@ -126,6 +127,7 @@ function toPortalAccountRecord(profile: PortalProfileRecord): PartnerPortalAccou
     createdAt: profile.user.createdAt.toISOString(),
     updatedAt: profile.user.updatedAt.toISOString(),
     lastLoginAt: toIsoString(profile.user.lastLoginAt),
+    passwordChangeRequired: Boolean(profile.user.passwordChangeRequiredAt),
     displayName: profile.displayName,
     slug: profile.slug,
   };
@@ -240,6 +242,7 @@ async function requirePortalProfile(params: {
           kind: true,
           status: true,
           emailVerified: true,
+          passwordChangeRequiredAt: true,
           createdAt: true,
           updatedAt: true,
           lastLoginAt: true,
@@ -507,6 +510,7 @@ export async function updatePartnerPortalProfile(params: {
             kind: true,
             status: true,
             emailVerified: true,
+            passwordChangeRequiredAt: true,
             createdAt: true,
             updatedAt: true,
             lastLoginAt: true,

@@ -12,6 +12,9 @@
       "path": "../core-db"
     },
     {
+      "path": "../core-email"
+    },
+    {
       "path": "../core-scheduling"
     }
   ],

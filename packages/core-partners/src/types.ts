@@ -41,6 +41,7 @@ export type PartnerAccountRecord = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
+  passwordChangeRequired: boolean;
   displayName: string;
   slug: string;
   contactName: string;
@@ -171,6 +172,7 @@ export type PartnerPortalAccountRecord = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
+  passwordChangeRequired: boolean;
   displayName: string;
   slug: string;
 };

@@ -322,6 +322,36 @@ paths:
                 $ref: '#/components/schemas/PartnerSessionResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/partners/auth/change-password:
+    post:
+      tags: [Partner Portal]
+      summary: Change the current participant partner password
+      description: |
+        Changes the password for the current authenticated participant partner. This is used both
+        for normal in-portal password changes and for the forced password-update flow after
+        backoffice issues a temporary password.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerPasswordChangeRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerPasswordChangeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
   /v1/partners/auth/verify-email:
     post:
       tags: [Partner Portal]
@@ -528,6 +558,36 @@ paths:
                 $ref: '#/components/schemas/PartnerSessionResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /v1/sponsors/auth/change-password:
+    post:
+      tags: [Partner Portal]
+      summary: Change the current sponsor password
+      description: |
+        Changes the password for the current authenticated sponsor. This is used both for normal
+        in-portal password changes and for the forced password-update flow after backoffice
+        issues a temporary password.
+      security:
+        - IntegrationKeyAuth: []
+          CommandSessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CommandSessionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerPasswordChangeRequest'
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerPasswordChangeResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
   /v1/sponsors/auth/verify-email:
     post:
       tags: [Partner Portal]
@@ -1585,6 +1645,7 @@ components:
         - status
         - createdAt
         - updatedAt
+        - passwordChangeRequired
         - displayName
         - slug
       properties:
@@ -1619,6 +1680,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        passwordChangeRequired:
+          type: boolean
         displayName:
           type: string
         slug:
@@ -1636,6 +1699,24 @@ components:
         account:
           $ref: '#/components/schemas/PartnerPortalAccount'
     PartnerSessionResponse:
+      type: object
+      additionalProperties: false
+      required: [ok, account]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        account:
+          $ref: '#/components/schemas/PartnerPortalAccount'
+    PartnerPasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 8
+    PartnerPasswordChangeResponse:
       type: object
       additionalProperties: false
       required: [ok, account]

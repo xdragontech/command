@@ -1,4 +1,4 @@
-import { PartnerUserStatus } from "@prisma/client";
+import { PartnerSponsorType, PartnerUserStatus } from "@prisma/client";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
@@ -26,6 +26,7 @@ import {
   secondaryButtonStyle,
   subtleTextStyle,
   successStyle,
+  warningStyle,
 } from "../../../components/adminScheduling";
 import { formatAdminDateTime } from "../../../lib/adminDates";
 import { requireBackofficePage } from "../../../server/backofficeAuth";
@@ -43,6 +44,24 @@ type PageProps = {
   principalBrands: string[];
 };
 
+type SponsorForm = {
+  brandId: string;
+  displayName: string;
+  email: string;
+  contactName: string;
+  contactPhone: string;
+  mainWebsiteUrl: string;
+  summary: string;
+  description: string;
+  productServiceType: string;
+  sponsorType: PartnerSponsorType | "";
+  status: PartnerUserStatus;
+  password: string;
+  confirmPassword: string;
+};
+
+const NEW_SPONSOR_ID = "__new_sponsor__";
+
 function statusToneStyle(status: PartnerUserStatus): CSSProperties {
   return status === PartnerUserStatus.ACTIVE
     ? { background: "rgba(34,197,94,0.16)", color: "#166534" }
@@ -58,6 +77,58 @@ function formatDateTime(value: string | null) {
   return formatAdminDateTime(value);
 }
 
+function blankSponsorForm(brands: BrandOption[], brandFilter: string): SponsorForm {
+  return {
+    brandId: brandFilter !== "ALL" ? brandFilter : brands[0]?.id || "",
+    displayName: "",
+    email: "",
+    contactName: "",
+    contactPhone: "",
+    mainWebsiteUrl: "",
+    summary: "",
+    description: "",
+    productServiceType: "",
+    sponsorType: "",
+    status: PartnerUserStatus.ACTIVE,
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function cloneSponsorForm(account: PartnerAccountRecord): SponsorForm {
+  return {
+    brandId: account.brandId,
+    displayName: account.displayName,
+    email: account.email,
+    contactName: account.contactName,
+    contactPhone: account.contactPhone,
+    mainWebsiteUrl: account.mainWebsiteUrl || "",
+    summary: account.summary || "",
+    description: account.description || "",
+    productServiceType: account.sponsorProductServiceType || "",
+    sponsorType: account.sponsorType || "",
+    status: account.userStatus,
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function normalizeSponsorForm(form: SponsorForm) {
+  return JSON.stringify({
+    brandId: form.brandId,
+    displayName: form.displayName.trim(),
+    email: form.email.trim().toLowerCase(),
+    contactName: form.contactName.trim(),
+    contactPhone: form.contactPhone.trim(),
+    mainWebsiteUrl: form.mainWebsiteUrl.trim(),
+    summary: form.summary.trim(),
+    description: form.description.trim(),
+    productServiceType: form.productServiceType.trim(),
+    sponsorType: form.sponsorType,
+    status: form.status,
+  });
+}
+
 export default function SponsorAccountsPage({
   loggedInAs,
   principalRole,
@@ -66,10 +137,12 @@ export default function SponsorAccountsPage({
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const [accounts, setAccounts] = useState<PartnerAccountRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [form, setForm] = useState<SponsorForm | null>(null);
   const [brandFilter, setBrandFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -96,9 +169,22 @@ export default function SponsorAccountsPage({
       setBrands(nextBrands);
       setAccounts(nextAccounts);
 
-      const nextSelected =
-        (nextSelectedId && nextAccounts.find((entry) => entry.id === nextSelectedId)) || nextAccounts[0] || null;
-      setSelectedId(nextSelected?.id || null);
+      const desiredId = nextSelectedId ?? selectedId;
+      if (desiredId === NEW_SPONSOR_ID) {
+        setSelectedId(NEW_SPONSOR_ID);
+        setForm(blankSponsorForm(nextBrands, resolvedBrandFilter));
+        return;
+      }
+
+      const selected =
+        (desiredId && nextAccounts.find((entry) => entry.id === desiredId)) || nextAccounts[0] || null;
+      if (selected) {
+        setSelectedId(selected.id);
+        setForm(cloneSponsorForm(selected));
+      } else {
+        setSelectedId(NEW_SPONSOR_ID);
+        setForm(blankSponsorForm(nextBrands, resolvedBrandFilter));
+      }
     } catch (nextError: any) {
       setError(nextError?.message || "Failed to load sponsor accounts");
       setNotice("");
@@ -131,28 +217,151 @@ export default function SponsorAccountsPage({
     );
   }, [accounts, search]);
 
-  const selectedAccount = selectedId ? accounts.find((account) => account.id === selectedId) || null : null;
+  const selectedAccount =
+    selectedId && selectedId !== NEW_SPONSOR_ID
+      ? accounts.find((account) => account.id === selectedId) || null
+      : null;
+  const isNewSponsor = selectedId === NEW_SPONSOR_ID;
 
-  async function updateAccountStatus(nextStatus: PartnerUserStatus) {
-    if (!selectedAccount) return;
+  const isDirty = useMemo(() => {
+    if (!form) return false;
+    if (isNewSponsor) {
+      return normalizeSponsorForm(form) !== normalizeSponsorForm(blankSponsorForm(brands, brandFilter)) || Boolean(form.password);
+    }
+    if (!selectedAccount) return false;
+    return normalizeSponsorForm(form) !== normalizeSponsorForm(cloneSponsorForm(selectedAccount)) || Boolean(form.password);
+  }, [brandFilter, brands, form, isNewSponsor, selectedAccount]);
+
+  function updateField<K extends keyof SponsorForm>(key: K, value: SponsorForm[K]) {
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  function startNewSponsor() {
+    setSelectedId(NEW_SPONSOR_ID);
+    setForm(blankSponsorForm(brands, brandFilter));
+    setError("");
+    setNotice("");
+  }
+
+  function selectAccount(account: PartnerAccountRecord) {
+    setSelectedId(account.id);
+    setForm(cloneSponsorForm(account));
+    setError("");
+    setNotice("");
+  }
+
+  async function saveAccount() {
+    if (!form) return;
+
+    if (!form.displayName.trim()) {
+      setError("Name is required");
+      setNotice("");
+      return;
+    }
+    if (!form.email.trim()) {
+      setError("Email is required");
+      setNotice("");
+      return;
+    }
+    if (!form.contactName.trim()) {
+      setError("Contact is required");
+      setNotice("");
+      return;
+    }
+    if (!form.contactPhone.trim()) {
+      setError("Phone is required");
+      setNotice("");
+      return;
+    }
+    if (!form.brandId) {
+      setError("Brand selection is required");
+      setNotice("");
+      return;
+    }
+    if (!form.productServiceType.trim()) {
+      setError("Product / service type is required");
+      setNotice("");
+      return;
+    }
+    if (isNewSponsor && !form.password) {
+      setError("Password is required for new sponsor accounts");
+      setNotice("");
+      return;
+    }
+    if (form.password && form.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setNotice("");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Password confirmation does not match");
+      setNotice("");
+      return;
+    }
+
     setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const url = isNewSponsor
+        ? "/api/admin/partners/sponsor-accounts"
+        : `/api/admin/partners/sponsor-accounts/${selectedAccount?.id}`;
+      const method = isNewSponsor ? "POST" : "PATCH";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: form.brandId,
+          displayName: form.displayName,
+          email: form.email,
+          contactName: form.contactName,
+          contactPhone: form.contactPhone,
+          mainWebsiteUrl: form.mainWebsiteUrl || null,
+          summary: form.summary || null,
+          description: form.description || null,
+          productServiceType: form.productServiceType,
+          sponsorType: form.sponsorType || null,
+          status: form.status,
+          password: form.password || undefined,
+        }),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to save sponsor account");
+
+      const savedId = payload?.account?.id || selectedAccount?.id || NEW_SPONSOR_ID;
+      setNotice(isNewSponsor ? "Sponsor account created." : "Sponsor account updated.");
+      await loadData(savedId);
+    } catch (nextError: any) {
+      setError(nextError?.message || "Failed to save sponsor account");
+      setNotice("");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function emailTemporaryPassword() {
+    if (!selectedAccount) return;
+    const ok = window.confirm(`Email a temporary password to ${selectedAccount.email}? Existing sponsor sessions will be signed out.`);
+    if (!ok) return;
+
+    setResettingPassword(true);
     setError("");
     setNotice("");
     try {
       const res = await fetch(`/api/admin/partners/sponsor-accounts/${selectedAccount.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        method: "POST",
       });
       const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to update sponsor account");
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to email temporary password");
+      setNotice("Temporary password emailed. The sponsor will be required to change it at next login.");
       await loadData(selectedAccount.id);
-      setNotice(nextStatus === PartnerUserStatus.ACTIVE ? "Sponsor account activated." : "Sponsor account blocked.");
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to update sponsor account");
+      setError(nextError?.message || "Failed to email temporary password");
       setNotice("");
     } finally {
-      setSaving(false);
+      setResettingPassword(false);
     }
   }
 
@@ -167,8 +376,8 @@ export default function SponsorAccountsPage({
     >
       <div style={{ display: "grid", gap: "18px" }}>
         <div style={mutedPanelStyle}>
-          Sponsor accounts are separate from scheduling in v1. Event-level sponsor assignment and tier selection live on the
-          Sponsors Mgmt page under Event Mgmt.
+          Sponsor accounts are managed here directly. Backoffice-created sponsor accounts are treated as verified, and
+          any admin-set password requires a change at next sponsor login.
         </div>
         {error ? <div style={errorStyle}>{error}</div> : null}
         {notice ? <div style={successStyle}>{notice}</div> : null}
@@ -177,9 +386,12 @@ export default function SponsorAccountsPage({
             <div style={accountListHeaderStackStyle}>
               <div style={{ display: "grid", gap: "6px" }}>
                 <strong style={{ fontSize: "1rem", color: "var(--admin-text-primary)" }}>Sponsor Accounts</strong>
-                <span style={subtleTextStyle}>Read-only account inventory plus account status control for sponsor partners.</span>
+                <span style={subtleTextStyle}>Sponsors are event-level in v1. Scheduling and placement remain on Sponsors Mgmt.</span>
               </div>
               <div style={{ display: "grid", gap: "10px" }}>
+                <button type="button" onClick={startNewSponsor} style={primaryButtonStyle}>
+                  New Sponsor
+                </button>
                 <select
                   value={brandFilter}
                   onChange={(event) => {
@@ -214,14 +426,16 @@ export default function SponsorAccountsPage({
                   <AccountListRow
                     key={account.id}
                     selected={account.id === selectedId}
-                    onClick={() => setSelectedId(account.id)}
+                    onClick={() => selectAccount(account)}
                     title={account.displayName}
                     topRight={
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
                         <span style={{ ...accountListDensePillStyle, ...sponsorToneStyle(account.sponsorType) }}>
                           {account.sponsorType || "SPONSOR"}
                         </span>
-                        <span style={{ ...accountListDensePillStyle, ...statusToneStyle(account.userStatus) }}>{account.userStatus}</span>
+                        <span style={{ ...accountListDensePillStyle, ...statusToneStyle(account.userStatus) }}>
+                          {account.userStatus}
+                        </span>
                       </div>
                     }
                     bottomLeft={`${account.email} · ${account.contactName}`}
@@ -234,59 +448,158 @@ export default function SponsorAccountsPage({
 
           <div style={{ display: "grid", gap: "18px" }}>
             <AdminCard
-              title={selectedAccount ? selectedAccount.displayName : "Sponsor Details"}
-              description={selectedAccount ? `${selectedAccount.brandName} · ${selectedAccount.email}` : "Select a sponsor account"}
+              title={isNewSponsor ? "New Sponsor Account" : selectedAccount ? selectedAccount.displayName : "Sponsor Details"}
+              description={
+                isNewSponsor
+                  ? "Create a sponsor account without email verification."
+                  : selectedAccount
+                    ? `${selectedAccount.brandName} · ${selectedAccount.email}`
+                    : "Select a sponsor account"
+              }
             >
-              {!selectedAccount ? (
+              {!form ? (
                 <div style={subtleTextStyle}>Select a sponsor account from the list to inspect details.</div>
               ) : (
                 <div style={{ display: "grid", gap: "18px" }}>
+                  {selectedAccount?.passwordChangeRequired ? (
+                    <div style={warningStyle}>This sponsor is currently required to change their password at next login.</div>
+                  ) : null}
+
                   <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                    <div style={fieldStyle}>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Brand</span>
+                      <select
+                        value={form.brandId}
+                        onChange={(event) => updateField("brandId", event.target.value)}
+                        style={inputStyle}
+                        disabled={!isNewSponsor}
+                      >
+                        <option value="">Select a brand</option>
+                        {brands.map((brand) => (
+                          <option key={brand.id} value={brand.id}>
+                            {brand.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Status</span>
+                      <select
+                        value={form.status}
+                        onChange={(event) => updateField("status", event.target.value as PartnerUserStatus)}
+                        style={inputStyle}
+                      >
+                        {Object.values(PartnerUserStatus).map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Name</span>
+                      <input value={form.displayName} onChange={(event) => updateField("displayName", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Email</span>
+                      <input value={form.email} onChange={(event) => updateField("email", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
                       <span style={labelStyle}>Contact</span>
-                      <div style={paragraphStyle}>{selectedAccount.contactName}</div>
-                      <div style={subtleTextStyle}>{selectedAccount.contactPhone}</div>
-                    </div>
-                    <div style={fieldStyle}>
-                      <span style={labelStyle}>Sponsor Type</span>
-                      <div style={paragraphStyle}>{selectedAccount.sponsorType || "Not assigned yet"}</div>
-                      <div style={subtleTextStyle}>{selectedAccount.sponsorProductServiceType || "No product/service type provided"}</div>
-                    </div>
-                    <div style={fieldStyle}>
+                      <input value={form.contactName} onChange={(event) => updateField("contactName", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Phone</span>
+                      <input value={form.contactPhone} onChange={(event) => updateField("contactPhone", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
                       <span style={labelStyle}>Website</span>
-                      <div style={paragraphStyle}>{selectedAccount.mainWebsiteUrl || "No website configured"}</div>
-                    </div>
-                    <div style={fieldStyle}>
-                      <span style={labelStyle}>Verification / Login</span>
-                      <div style={paragraphStyle}>
-                        {selectedAccount.emailVerifiedAt ? `Verified ${formatDateTime(selectedAccount.emailVerifiedAt)}` : "Email not verified"}
-                      </div>
-                      <div style={subtleTextStyle}>
-                        Last login {selectedAccount.lastLoginAt ? formatDateTime(selectedAccount.lastLoginAt) : "never"}
-                      </div>
-                    </div>
+                      <input value={form.mainWebsiteUrl} onChange={(event) => updateField("mainWebsiteUrl", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Product / Service Type</span>
+                      <input
+                        value={form.productServiceType}
+                        onChange={(event) => updateField("productServiceType", event.target.value)}
+                        style={inputStyle}
+                      />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Sponsor Type</span>
+                      <select
+                        value={form.sponsorType}
+                        onChange={(event) => updateField("sponsorType", event.target.value as SponsorForm["sponsorType"])}
+                        style={inputStyle}
+                      >
+                        <option value="">Not assigned</option>
+                        {Object.values(PartnerSponsorType).map((type) => (
+                          <option key={type} value={type}>
+                            {type.replaceAll("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
-                  <div style={fieldStyle}>
+                  <label style={fieldStyle}>
                     <span style={labelStyle}>Summary</span>
-                    <div style={paragraphStyle}>{selectedAccount.summary || "No summary provided yet."}</div>
+                    <textarea
+                      value={form.summary}
+                      onChange={(event) => updateField("summary", event.target.value)}
+                      style={{ ...inputStyle, minHeight: "110px", resize: "vertical" }}
+                    />
+                  </label>
+
+                  <label style={fieldStyle}>
+                    <span style={labelStyle}>Description</span>
+                    <textarea
+                      value={form.description}
+                      onChange={(event) => updateField("description", event.target.value)}
+                      style={{ ...inputStyle, minHeight: "140px", resize: "vertical" }}
+                    />
+                  </label>
+
+                  <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>{isNewSponsor ? "Password" : "New Password"}</span>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(event) => updateField("password", event.target.value)}
+                        style={inputStyle}
+                        placeholder={isNewSponsor ? "Minimum 8 characters" : "Leave blank to keep current password"}
+                      />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Confirm Password</span>
+                      <input
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={(event) => updateField("confirmPassword", event.target.value)}
+                        style={inputStyle}
+                        placeholder="Repeat password"
+                      />
+                    </label>
                   </div>
 
-                  <div style={fieldStyle}>
-                    <span style={labelStyle}>Description</span>
-                    <div style={paragraphStyle}>{selectedAccount.description || "No sponsor profile description provided yet."}</div>
+                  <div style={mutedPanelStyle}>
+                    Admin-created sponsor accounts do not need email verification. Any password set here signs out existing sponsor sessions and forces a new password at next login.
                   </div>
 
                   <div style={actionRowStyle}>
-                    {selectedAccount.userStatus === PartnerUserStatus.ACTIVE ? (
-                      <button type="button" onClick={() => void updateAccountStatus(PartnerUserStatus.BLOCKED)} style={secondaryButtonStyle} disabled={saving}>
-                        {saving ? "Saving…" : "Block Account"}
+                    {!isNewSponsor && selectedAccount ? (
+                      <button
+                        type="button"
+                        onClick={() => void emailTemporaryPassword()}
+                        style={secondaryButtonStyle}
+                        disabled={resettingPassword}
+                      >
+                        {resettingPassword ? "Emailing…" : "Email Temporary Password"}
                       </button>
-                    ) : (
-                      <button type="button" onClick={() => void updateAccountStatus(PartnerUserStatus.ACTIVE)} style={primaryButtonStyle} disabled={saving}>
-                        {saving ? "Saving…" : "Activate Account"}
-                      </button>
-                    )}
+                    ) : null}
+                    <button type="button" onClick={() => void saveAccount()} style={primaryButtonStyle} disabled={saving || !isDirty}>
+                      {saving ? "Saving…" : isNewSponsor ? "Create Sponsor" : "Save Changes"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -294,9 +607,15 @@ export default function SponsorAccountsPage({
 
             <AdminCard title="Event Assignments" description="Sponsor event-level placement overview">
               {!selectedAccount ? (
-                <div style={subtleTextStyle}>Select a sponsor account to inspect current event assignments.</div>
+                <div style={subtleTextStyle}>Create or select a sponsor account to inspect event assignments.</div>
               ) : selectedAccount.sponsorAssignments.length === 0 ? (
-                <div style={subtleTextStyle}>No sponsor event assignments yet.</div>
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <div style={subtleTextStyle}>No sponsor event assignments yet.</div>
+                  <div style={subtleTextStyle}>
+                    Last login {selectedAccount.lastLoginAt ? formatDateTime(selectedAccount.lastLoginAt) : "never"} ·{" "}
+                    {selectedAccount.emailVerifiedAt ? `Verified ${formatDateTime(selectedAccount.emailVerifiedAt)}` : "Verified by backoffice only"}
+                  </div>
+                </div>
               ) : (
                 <div style={{ display: "grid", gap: "12px" }}>
                   {selectedAccount.sponsorAssignments.map((assignment) => (
