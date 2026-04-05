@@ -6,7 +6,9 @@
   "types": "dist/index.d.ts",
   "dependencies": {
     "@command/core-db": "*",
+    "@command/core-email": "*",
     "@command/core-scheduling": "*",
-    "@prisma/client": "6.19.2"
+    "@prisma/client": "6.19.2",
+    "bcryptjs": "^3.0.3"
   }
 }
