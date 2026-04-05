@@ -152,6 +152,10 @@ main() {
   fi
 
   local prisma_exit_code=$?
+  local saw_schema_engine_error="no"
+  if grep -Fq "Schema engine error:" "${prisma_output}"; then
+    saw_schema_engine_error="yes"
+  fi
   cat "${prisma_output}" >&2
   rm -f "${prisma_output}"
 
@@ -159,7 +163,7 @@ main() {
     return "${prisma_exit_code}"
   fi
 
-  if ! grep -Fq "Schema engine error:" "${prisma_output}"; then
+  if [[ "${saw_schema_engine_error}" != "yes" ]]; then
     echo "Prisma migrate deploy failed without the known schema-engine signature. Not attempting psql fallback." >&2
     return "${prisma_exit_code}"
   fi
