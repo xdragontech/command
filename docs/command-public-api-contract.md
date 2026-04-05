@@ -94,6 +94,7 @@ Deferred from this contract:
 **Partner Portal**
 - participant partner register, login, logout, session introspection, and verify email
 - sponsor register, login, logout, session introspection, and verify email
+- participant and sponsor in-session password change
 - participant and sponsor profile read/update
 - participant and sponsor application list/submit
 
@@ -103,6 +104,7 @@ Important v1 boundary:
 - partner portal analytics/performance instrumentation is deferred
 - application targets are all active events in the current brand
 - partner and sponsor route namespaces stay separate even though the underlying auth domain is shared
+- session/account payloads may require a forced password change after backoffice-issued temporary passwords; the BFF should redirect those users into an on-site password-update page before allowing normal portal navigation
 
 **Resources**
 - list prompts

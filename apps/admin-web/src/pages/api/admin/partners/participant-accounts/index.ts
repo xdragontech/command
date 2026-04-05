@@ -1,6 +1,6 @@
 import { PartnerKind } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { listPartnerAccounts } from "@command/core-partners";
+import { createParticipantPartnerAccount, listPartnerAccounts } from "@command/core-partners";
 import { requireBackofficeApi } from "../../../../../server/backofficeAuth";
 import { toPartnerScope } from "../../../../../server/partnerScope";
 
@@ -25,7 +25,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return json(res, 200, { ok: true, accounts });
     }
 
-    res.setHeader("Allow", "GET");
+    if (req.method === "POST") {
+      const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+      const account = await createParticipantPartnerAccount({
+        scope: toPartnerScope(auth.principal),
+        brandId: body.brandId,
+        email: body.email,
+        displayName: body.displayName,
+        contactName: body.contactName,
+        contactPhone: body.contactPhone,
+        mainWebsiteUrl: body.mainWebsiteUrl,
+        summary: body.summary,
+        description: body.description,
+        participantType: body.participantType,
+        status: body.status,
+        password: body.password,
+      });
+      return json(res, 201, { ok: true, account });
+    }
+
+    res.setHeader("Allow", "GET, POST");
     return json(res, 405, { ok: false, error: "Method not allowed" });
   } catch (error: any) {
     return json(res, 400, { ok: false, error: error?.message || "Failed to load partner accounts" });

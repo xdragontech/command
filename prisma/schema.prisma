@@ -828,16 +828,17 @@ model ExternalPasswordResetToken {
 }
 
 model PartnerUser {
-  id            String            @id @default(cuid())
-  brandId       String
-  email         String
-  passwordHash  String
-  kind          PartnerKind
-  status        PartnerUserStatus @default(ACTIVE)
-  emailVerified DateTime?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  lastLoginAt   DateTime?
+  id                       String            @id @default(cuid())
+  brandId                  String
+  email                    String
+  passwordHash             String
+  kind                     PartnerKind
+  status                   PartnerUserStatus @default(ACTIVE)
+  emailVerified            DateTime?
+  passwordChangeRequiredAt DateTime?
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  lastLoginAt              DateTime?
 
   brand       Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
   profile     PartnerProfile?

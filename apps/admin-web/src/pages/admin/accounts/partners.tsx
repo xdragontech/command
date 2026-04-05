@@ -26,6 +26,7 @@ import {
   secondaryButtonStyle,
   subtleTextStyle,
   successStyle,
+  warningStyle,
 } from "../../../components/adminScheduling";
 import { formatAdminDateTime } from "../../../lib/adminDates";
 import { requireBackofficePage } from "../../../server/backofficeAuth";
@@ -42,6 +43,23 @@ type PageProps = {
   principalRole: string;
   principalBrands: string[];
 };
+
+type PartnerForm = {
+  brandId: string;
+  displayName: string;
+  email: string;
+  contactName: string;
+  contactPhone: string;
+  mainWebsiteUrl: string;
+  summary: string;
+  description: string;
+  participantType: ScheduleParticipantType;
+  status: PartnerUserStatus;
+  password: string;
+  confirmPassword: string;
+};
+
+const NEW_PARTNER_ID = "__new_partner__";
 
 function statusToneStyle(status: PartnerUserStatus): CSSProperties {
   return status === PartnerUserStatus.ACTIVE
@@ -64,6 +82,55 @@ function formatDateTime(value: string | null) {
   return formatAdminDateTime(value);
 }
 
+function blankPartnerForm(brands: BrandOption[], brandFilter: string): PartnerForm {
+  return {
+    brandId: brandFilter !== "ALL" ? brandFilter : brands[0]?.id || "",
+    displayName: "",
+    email: "",
+    contactName: "",
+    contactPhone: "",
+    mainWebsiteUrl: "",
+    summary: "",
+    description: "",
+    participantType: ScheduleParticipantType.ENTERTAINMENT,
+    status: PartnerUserStatus.ACTIVE,
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function clonePartnerForm(account: PartnerAccountRecord): PartnerForm {
+  return {
+    brandId: account.brandId,
+    displayName: account.displayName,
+    email: account.email,
+    contactName: account.contactName,
+    contactPhone: account.contactPhone,
+    mainWebsiteUrl: account.mainWebsiteUrl || "",
+    summary: account.summary || "",
+    description: account.description || "",
+    participantType: account.participantType || ScheduleParticipantType.ENTERTAINMENT,
+    status: account.userStatus,
+    password: "",
+    confirmPassword: "",
+  };
+}
+
+function normalizePartnerForm(form: PartnerForm) {
+  return JSON.stringify({
+    brandId: form.brandId,
+    displayName: form.displayName.trim(),
+    email: form.email.trim().toLowerCase(),
+    contactName: form.contactName.trim(),
+    contactPhone: form.contactPhone.trim(),
+    mainWebsiteUrl: form.mainWebsiteUrl.trim(),
+    summary: form.summary.trim(),
+    description: form.description.trim(),
+    participantType: form.participantType,
+    status: form.status,
+  });
+}
+
 export default function PartnerAccountsPage({
   loggedInAs,
   principalRole,
@@ -72,10 +139,12 @@ export default function PartnerAccountsPage({
   const [brands, setBrands] = useState<BrandOption[]>([]);
   const [accounts, setAccounts] = useState<PartnerAccountRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [form, setForm] = useState<PartnerForm | null>(null);
   const [brandFilter, setBrandFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -102,9 +171,22 @@ export default function PartnerAccountsPage({
       setBrands(nextBrands);
       setAccounts(nextAccounts);
 
-      const nextSelected =
-        (nextSelectedId && nextAccounts.find((entry) => entry.id === nextSelectedId)) || nextAccounts[0] || null;
-      setSelectedId(nextSelected?.id || null);
+      const desiredId = nextSelectedId ?? selectedId;
+      if (desiredId === NEW_PARTNER_ID) {
+        setSelectedId(NEW_PARTNER_ID);
+        setForm(blankPartnerForm(nextBrands, resolvedBrandFilter));
+        return;
+      }
+
+      const selected =
+        (desiredId && nextAccounts.find((entry) => entry.id === desiredId)) || nextAccounts[0] || null;
+      if (selected) {
+        setSelectedId(selected.id);
+        setForm(clonePartnerForm(selected));
+      } else {
+        setSelectedId(NEW_PARTNER_ID);
+        setForm(blankPartnerForm(nextBrands, resolvedBrandFilter));
+      }
     } catch (nextError: any) {
       setError(nextError?.message || "Failed to load partner accounts");
       setNotice("");
@@ -136,28 +218,145 @@ export default function PartnerAccountsPage({
     );
   }, [accounts, search]);
 
-  const selectedAccount = selectedId ? accounts.find((account) => account.id === selectedId) || null : null;
+  const selectedAccount =
+    selectedId && selectedId !== NEW_PARTNER_ID
+      ? accounts.find((account) => account.id === selectedId) || null
+      : null;
+  const isNewPartner = selectedId === NEW_PARTNER_ID;
 
-  async function updateAccountStatus(nextStatus: PartnerUserStatus) {
-    if (!selectedAccount) return;
+  const isDirty = useMemo(() => {
+    if (!form) return false;
+    if (isNewPartner) {
+      return normalizePartnerForm(form) !== normalizePartnerForm(blankPartnerForm(brands, brandFilter)) || Boolean(form.password);
+    }
+    if (!selectedAccount) return false;
+    return normalizePartnerForm(form) !== normalizePartnerForm(clonePartnerForm(selectedAccount)) || Boolean(form.password);
+  }, [brandFilter, brands, form, isNewPartner, selectedAccount]);
+
+  function updateField<K extends keyof PartnerForm>(key: K, value: PartnerForm[K]) {
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+  }
+
+  function startNewPartner() {
+    setSelectedId(NEW_PARTNER_ID);
+    setForm(blankPartnerForm(brands, brandFilter));
+    setError("");
+    setNotice("");
+  }
+
+  function selectAccount(account: PartnerAccountRecord) {
+    setSelectedId(account.id);
+    setForm(clonePartnerForm(account));
+    setError("");
+    setNotice("");
+  }
+
+  async function saveAccount() {
+    if (!form) return;
+
+    if (!form.displayName.trim()) {
+      setError("Name is required");
+      setNotice("");
+      return;
+    }
+    if (!form.email.trim()) {
+      setError("Email is required");
+      setNotice("");
+      return;
+    }
+    if (!form.contactName.trim()) {
+      setError("Contact is required");
+      setNotice("");
+      return;
+    }
+    if (!form.contactPhone.trim()) {
+      setError("Phone is required");
+      setNotice("");
+      return;
+    }
+    if (!form.brandId) {
+      setError("Brand selection is required");
+      setNotice("");
+      return;
+    }
+    if (isNewPartner && !form.password) {
+      setError("Password is required for new partner accounts");
+      setNotice("");
+      return;
+    }
+    if (form.password && form.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      setNotice("");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      setError("Password confirmation does not match");
+      setNotice("");
+      return;
+    }
+
     setSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const url = isNewPartner
+        ? "/api/admin/partners/participant-accounts"
+        : `/api/admin/partners/participant-accounts/${selectedAccount?.id}`;
+      const method = isNewPartner ? "POST" : "PATCH";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brandId: form.brandId,
+          displayName: form.displayName,
+          email: form.email,
+          contactName: form.contactName,
+          contactPhone: form.contactPhone,
+          mainWebsiteUrl: form.mainWebsiteUrl || null,
+          summary: form.summary || null,
+          description: form.description || null,
+          participantType: form.participantType,
+          status: form.status,
+          password: form.password || undefined,
+        }),
+      });
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to save partner account");
+
+      const savedId = payload?.account?.id || selectedAccount?.id || NEW_PARTNER_ID;
+      setNotice(isNewPartner ? "Partner account created." : "Partner account updated.");
+      await loadData(savedId);
+    } catch (nextError: any) {
+      setError(nextError?.message || "Failed to save partner account");
+      setNotice("");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function emailTemporaryPassword() {
+    if (!selectedAccount) return;
+    const ok = window.confirm(`Email a temporary password to ${selectedAccount.email}? Existing partner sessions will be signed out.`);
+    if (!ok) return;
+
+    setResettingPassword(true);
     setError("");
     setNotice("");
     try {
       const res = await fetch(`/api/admin/partners/participant-accounts/${selectedAccount.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        method: "POST",
       });
       const payload = await res.json().catch(() => null);
-      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to update partner account");
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error || "Failed to email temporary password");
+      setNotice("Temporary password emailed. The partner will be required to change it at next login.");
       await loadData(selectedAccount.id);
-      setNotice(nextStatus === PartnerUserStatus.ACTIVE ? "Partner account activated." : "Partner account blocked.");
     } catch (nextError: any) {
-      setError(nextError?.message || "Failed to update partner account");
+      setError(nextError?.message || "Failed to email temporary password");
       setNotice("");
     } finally {
-      setSaving(false);
+      setResettingPassword(false);
     }
   }
 
@@ -172,8 +371,8 @@ export default function PartnerAccountsPage({
     >
       <div style={{ display: "grid", gap: "18px" }}>
         <div style={mutedPanelStyle}>
-          Approved participant partners now live under partner accounts. Approval creates the schedulable participant
-          projection used by planner and assignments; there is no longer a separate legacy participant management page.
+          Partner accounts are now managed here directly. Accounts created from backoffice are treated as verified, and
+          any admin-set password requires the partner to choose a new one at next login.
         </div>
         {error ? <div style={errorStyle}>{error}</div> : null}
         {notice ? <div style={successStyle}>{notice}</div> : null}
@@ -187,6 +386,9 @@ export default function PartnerAccountsPage({
                 </span>
               </div>
               <div style={{ display: "grid", gap: "10px" }}>
+                <button type="button" onClick={startNewPartner} style={primaryButtonStyle}>
+                  New Partner
+                </button>
                 <select
                   value={brandFilter}
                   onChange={(event) => {
@@ -221,7 +423,7 @@ export default function PartnerAccountsPage({
                   <AccountListRow
                     key={account.id}
                     selected={account.id === selectedId}
-                    onClick={() => setSelectedId(account.id)}
+                    onClick={() => selectAccount(account)}
                     title={account.displayName}
                     topRight={
                       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -230,7 +432,9 @@ export default function PartnerAccountsPage({
                             {account.participantType.replaceAll("_", " ")}
                           </span>
                         ) : null}
-                        <span style={{ ...accountListDensePillStyle, ...statusToneStyle(account.userStatus) }}>{account.userStatus}</span>
+                        <span style={{ ...accountListDensePillStyle, ...statusToneStyle(account.userStatus) }}>
+                          {account.userStatus}
+                        </span>
                       </div>
                     }
                     bottomLeft={`${account.email} · ${account.contactName}`}
@@ -243,80 +447,149 @@ export default function PartnerAccountsPage({
 
           <div style={{ display: "grid", gap: "18px" }}>
             <AdminCard
-              title={selectedAccount ? selectedAccount.displayName : "Partner Details"}
-              description={selectedAccount ? `${selectedAccount.brandName} · ${selectedAccount.email}` : "Select a partner account"}
+              title={isNewPartner ? "New Partner Account" : selectedAccount ? selectedAccount.displayName : "Partner Details"}
+              description={
+                isNewPartner
+                  ? "Create a participant partner account without email verification."
+                  : selectedAccount
+                    ? `${selectedAccount.brandName} · ${selectedAccount.email}`
+                    : "Select a partner account"
+              }
             >
-              {!selectedAccount ? (
+              {!form ? (
                 <div style={subtleTextStyle}>Select a participant partner account from the list to inspect details.</div>
               ) : (
                 <div style={{ display: "grid", gap: "18px" }}>
+                  {selectedAccount?.passwordChangeRequired ? (
+                    <div style={warningStyle}>This partner is currently required to change their password at next login.</div>
+                  ) : null}
+
                   <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                    <div style={fieldStyle}>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Brand</span>
+                      <select
+                        value={form.brandId}
+                        onChange={(event) => updateField("brandId", event.target.value)}
+                        style={inputStyle}
+                        disabled={!isNewPartner}
+                      >
+                        <option value="">Select a brand</option>
+                        {brands.map((brand) => (
+                          <option key={brand.id} value={brand.id}>
+                            {brand.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Type</span>
+                      <select
+                        value={form.participantType}
+                        onChange={(event) => updateField("participantType", event.target.value as ScheduleParticipantType)}
+                        style={inputStyle}
+                      >
+                        {Object.values(ScheduleParticipantType).map((type) => (
+                          <option key={type} value={type}>
+                            {type.replaceAll("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Name</span>
+                      <input value={form.displayName} onChange={(event) => updateField("displayName", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Email</span>
+                      <input value={form.email} onChange={(event) => updateField("email", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
                       <span style={labelStyle}>Contact</span>
-                      <div style={paragraphStyle}>{selectedAccount.contactName}</div>
-                      <div style={subtleTextStyle}>{selectedAccount.contactPhone}</div>
-                    </div>
-                    <div style={fieldStyle}>
-                      <span style={labelStyle}>Participant Type</span>
-                      <div style={paragraphStyle}>{selectedAccount.participantType?.replaceAll("_", " ") || "Not set"}</div>
-                      <div style={subtleTextStyle}>{linkedParticipantText(selectedAccount)}</div>
-                    </div>
-                    <div style={fieldStyle}>
+                      <input value={form.contactName} onChange={(event) => updateField("contactName", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Phone</span>
+                      <input value={form.contactPhone} onChange={(event) => updateField("contactPhone", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
                       <span style={labelStyle}>Website</span>
-                      <div style={paragraphStyle}>{selectedAccount.mainWebsiteUrl || "No website configured"}</div>
-                    </div>
-                    <div style={fieldStyle}>
-                      <span style={labelStyle}>Verification / Login</span>
-                      <div style={paragraphStyle}>
-                        {selectedAccount.emailVerifiedAt ? `Verified ${formatDateTime(selectedAccount.emailVerifiedAt)}` : "Email not verified"}
-                      </div>
-                      <div style={subtleTextStyle}>
-                        Last login {selectedAccount.lastLoginAt ? formatDateTime(selectedAccount.lastLoginAt) : "never"}
-                      </div>
-                    </div>
+                      <input value={form.mainWebsiteUrl} onChange={(event) => updateField("mainWebsiteUrl", event.target.value)} style={inputStyle} />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Status</span>
+                      <select
+                        value={form.status}
+                        onChange={(event) => updateField("status", event.target.value as PartnerUserStatus)}
+                        style={inputStyle}
+                      >
+                        {Object.values(PartnerUserStatus).map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
 
-                  <div style={fieldStyle}>
+                  <label style={fieldStyle}>
                     <span style={labelStyle}>Summary</span>
-                    <div style={paragraphStyle}>{selectedAccount.summary || "No summary provided yet."}</div>
-                  </div>
+                    <textarea
+                      value={form.summary}
+                      onChange={(event) => updateField("summary", event.target.value)}
+                      style={{ ...inputStyle, minHeight: "110px", resize: "vertical" }}
+                    />
+                  </label>
 
-                  <div style={fieldStyle}>
+                  <label style={fieldStyle}>
                     <span style={labelStyle}>Description</span>
-                    <div style={paragraphStyle}>{selectedAccount.description || "No profile description provided yet."}</div>
+                    <textarea
+                      value={form.description}
+                      onChange={(event) => updateField("description", event.target.value)}
+                      style={{ ...inputStyle, minHeight: "140px", resize: "vertical" }}
+                    />
+                  </label>
+
+                  <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>{isNewPartner ? "Password" : "New Password"}</span>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(event) => updateField("password", event.target.value)}
+                        style={inputStyle}
+                        placeholder={isNewPartner ? "Minimum 8 characters" : "Leave blank to keep current password"}
+                      />
+                    </label>
+                    <label style={fieldStyle}>
+                      <span style={labelStyle}>Confirm Password</span>
+                      <input
+                        type="password"
+                        value={form.confirmPassword}
+                        onChange={(event) => updateField("confirmPassword", event.target.value)}
+                        style={inputStyle}
+                        placeholder="Repeat password"
+                      />
+                    </label>
                   </div>
 
-                  <div style={fieldStyle}>
-                    <span style={labelStyle}>Application History</span>
-                    <div style={paragraphStyle}>
-                      {selectedAccount.applicationCounts.approved} approved · {selectedAccount.applicationCounts.submitted} submitted ·{" "}
-                      {selectedAccount.applicationCounts.inReview} in review · {selectedAccount.applicationCounts.rejected} rejected
-                    </div>
-                    <div style={subtleTextStyle}>
-                      {selectedAccount.approvedEventNames.length > 0
-                        ? `Approved events: ${selectedAccount.approvedEventNames.join(", ")}`
-                        : "No approved event applications yet."}
-                    </div>
-                  </div>
-
-                  <div style={fieldStyle}>
-                    <span style={labelStyle}>Account Status</span>
-                    <div style={paragraphStyle}>{selectedAccount.userStatus}</div>
-                    <div style={subtleTextStyle}>
-                      Blocking a partner account also moves the linked schedulable participant to inactive when one exists.
-                    </div>
+                  <div style={mutedPanelStyle}>
+                    Admin-created accounts do not need email verification. Any password set here signs out existing portal sessions and forces the partner to choose a new password at next login.
                   </div>
 
                   <div style={actionRowStyle}>
-                    {selectedAccount.userStatus === PartnerUserStatus.ACTIVE ? (
-                      <button type="button" onClick={() => void updateAccountStatus(PartnerUserStatus.BLOCKED)} style={secondaryButtonStyle} disabled={saving}>
-                        {saving ? "Saving…" : "Block Account"}
+                    {!isNewPartner && selectedAccount ? (
+                      <button
+                        type="button"
+                        onClick={() => void emailTemporaryPassword()}
+                        style={secondaryButtonStyle}
+                        disabled={resettingPassword}
+                      >
+                        {resettingPassword ? "Emailing…" : "Email Temporary Password"}
                       </button>
-                    ) : (
-                      <button type="button" onClick={() => void updateAccountStatus(PartnerUserStatus.ACTIVE)} style={primaryButtonStyle} disabled={saving}>
-                        {saving ? "Saving…" : "Activate Account"}
-                      </button>
-                    )}
+                    ) : null}
+                    <button type="button" onClick={() => void saveAccount()} style={primaryButtonStyle} disabled={saving || !isDirty}>
+                      {saving ? "Saving…" : isNewPartner ? "Create Partner" : "Save Changes"}
+                    </button>
                   </div>
                 </div>
               )}
@@ -324,18 +597,28 @@ export default function PartnerAccountsPage({
 
             <AdminCard title="Scheduling Projection" description="What approval enabled operationally">
               {!selectedAccount ? (
-                <div style={subtleTextStyle}>Select a partner account to inspect scheduling readiness.</div>
+                <div style={subtleTextStyle}>Create or select a partner account to inspect scheduling readiness.</div>
               ) : selectedAccount.linkedScheduleParticipant ? (
                 <div style={{ display: "grid", gap: "12px" }}>
                   <div style={paragraphStyle}>
                     Linked participant status: {selectedAccount.linkedScheduleParticipant.status === ScheduleParticipantStatus.ACTIVE ? "ACTIVE" : "INACTIVE"}
                   </div>
                   <div style={subtleTextStyle}>
-                    Source: {selectedAccount.linkedScheduleParticipant.source}. Planners can assign this participant later from the planner and assignments surfaces.
+                    {linkedParticipantText(selectedAccount)}. Planners can assign this participant later from the planner and assignments surfaces.
+                  </div>
+                  <div style={subtleTextStyle}>
+                    Application history: {selectedAccount.applicationCounts.approved} approved · {selectedAccount.applicationCounts.submitted} submitted ·{" "}
+                    {selectedAccount.applicationCounts.inReview} in review · {selectedAccount.applicationCounts.rejected} rejected
                   </div>
                 </div>
               ) : (
-                <div style={subtleTextStyle}>This partner does not yet have an approved application that created a schedulable participant projection.</div>
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <div style={subtleTextStyle}>This partner does not yet have an approved application that created a schedulable participant projection.</div>
+                  <div style={subtleTextStyle}>
+                    Last login {selectedAccount.lastLoginAt ? formatDateTime(selectedAccount.lastLoginAt) : "never"} ·{" "}
+                    {selectedAccount.emailVerifiedAt ? `Verified ${formatDateTime(selectedAccount.emailVerifiedAt)}` : "Verified by backoffice only"}
+                  </div>
+                </div>
               )}
             </AdminCard>
           </div>

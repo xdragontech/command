@@ -512,6 +512,12 @@ This replaces the current placeholder entries:
 - `Entertainment`
 - `Sponsors`
 
+Backoffice account-management rule:
+- operators may create partner and sponsor accounts directly from these pages
+- backoffice-created accounts do not require email verification before first login
+- backoffice-set or backoffice-reset passwords must set a forced-password-change requirement for the next successful portal login
+- issuing a temporary password is an admin action, not a public self-service reset flow
+
 ### Events
 - `Events > Pending Applications`
 - `Events > Discrepancies`
@@ -541,6 +547,13 @@ This replaces the current placeholder entries:
    - discrepancy is surfaced
    - scheduling still remains allowed in v1
 
+### Backoffice-Created Participant Workflow
+1. operator creates participant account in backoffice
+2. account starts as email-verified
+3. operator may set or email a temporary password
+4. first successful portal login must redirect to password change before normal portal access
+5. application and approval workflow then follows the same per-event path as public signups
+
 ### Sponsor Workflow
 1. sponsor signs up
 2. email verification completes
@@ -550,6 +563,13 @@ This replaces the current placeholder entries:
    - sponsor profile remains sponsor-only
    - event association may be created
    - tier is assigned by backoffice
+
+### Backoffice-Created Sponsor Workflow
+1. operator creates sponsor account in backoffice
+2. account starts as email-verified
+3. operator may set or email a temporary password
+4. first successful portal login must redirect to password change before normal portal access
+5. sponsor profile/application workflow then follows the same per-event path as public signups
 
 ## Notifications
 

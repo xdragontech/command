@@ -88,6 +88,7 @@ export type PartnerPublicAccount = {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
+  passwordChangeRequired: boolean;
   displayName: string;
   slug: string;
 };
@@ -392,6 +393,7 @@ function toPartnerPublicAccount(user: PartnerUserWithRelations): PartnerPublicAc
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
+    passwordChangeRequired: Boolean(user.passwordChangeRequiredAt),
     displayName: user.profile.displayName,
     slug: user.profile.slug,
   };
@@ -819,5 +821,53 @@ export async function verifyPartnerEmail(params: {
   return {
     ok: true as const,
     verified: true as const,
+  };
+}
+
+export async function changePartnerPassword(params: {
+  brandKey: string;
+  publicOrigin: string;
+  sessionToken: string;
+  kind: PartnerKind;
+  password: unknown;
+}) {
+  const brand = await requireBrandContext(params.brandKey, params.publicOrigin);
+  const token = requireToken(params.sessionToken, "Session token");
+  const nextPassword = requirePassword(params.password);
+  const session = await requireAccessibleSession(brand, token, params.kind);
+  const passwordHash = await bcrypt.hash(nextPassword, 12);
+
+  await prisma.$transaction([
+    prisma.partnerUser.update({
+      where: { id: session.user.id },
+      data: {
+        passwordHash,
+        passwordChangeRequiredAt: null,
+      },
+    }),
+    prisma.partnerSession.deleteMany({
+      where: {
+        partnerUserId: session.user.id,
+        NOT: {
+          sessionToken: session.sessionToken,
+        },
+      },
+    }),
+    prisma.partnerPasswordResetToken.deleteMany({
+      where: {
+        brandId: brand.brandId,
+        identifier: session.user.email,
+      },
+    }),
+  ]);
+
+  const refreshed = await getPartnerSessionRecord(token);
+  if (!refreshed || !isAccessiblePartnerUser(refreshed.user, params.kind)) {
+    throw new PartnerAuthServiceError(401, "Unauthorized");
+  }
+
+  return {
+    ok: true as const,
+    account: toPartnerPublicAccount(refreshed.user),
   };
 }

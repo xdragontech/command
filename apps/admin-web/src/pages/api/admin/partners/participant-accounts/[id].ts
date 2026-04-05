@@ -1,8 +1,11 @@
-import { PartnerUserStatus } from "@prisma/client";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { updatePartnerAccountStatus } from "@command/core-partners";
+import {
+  emailPartnerTemporaryPassword,
+  updateParticipantPartnerAccount,
+} from "@command/core-partners";
 import { requireBackofficeApi } from "../../../../../server/backofficeAuth";
 import { toPartnerScope } from "../../../../../server/partnerScope";
+import { PartnerKind } from "@prisma/client";
 
 function json(res: NextApiResponse, status: number, payload: any) {
   return res.status(status).json(payload);
@@ -18,16 +21,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     if (req.method === "PATCH") {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-      const status = body.status === PartnerUserStatus.BLOCKED ? PartnerUserStatus.BLOCKED : PartnerUserStatus.ACTIVE;
-      const account = await updatePartnerAccountStatus({
+      const account = await updateParticipantPartnerAccount({
         scope: toPartnerScope(auth.principal),
         partnerProfileId: id,
-        status,
+        email: body.email,
+        displayName: body.displayName,
+        contactName: body.contactName,
+        contactPhone: body.contactPhone,
+        mainWebsiteUrl: body.mainWebsiteUrl,
+        summary: body.summary,
+        description: body.description,
+        participantType: body.participantType,
+        status: body.status,
+        password: body.password,
       });
       return json(res, 200, { ok: true, account });
     }
 
-    res.setHeader("Allow", "PATCH");
+    if (req.method === "POST") {
+      await emailPartnerTemporaryPassword({
+        scope: toPartnerScope(auth.principal),
+        partnerProfileId: id,
+        expectedKind: PartnerKind.PARTICIPANT,
+      });
+      return json(res, 200, { ok: true });
+    }
+
+    res.setHeader("Allow", "PATCH, POST");
     return json(res, 405, { ok: false, error: "Method not allowed" });
   } catch (error: any) {
     return json(res, 400, { ok: false, error: error?.message || "Failed to update partner account" });
